@@ -1,13 +1,36 @@
-#include <QDir>
+#include <QtCore/QDir>
+#include <QtCore/QStringList>
 
 #include "addlocaldialog.h"
 #include "ui_addlocaldialog.h"
+
+// X() macro trick
+// https://stackoverflow.com/questions/201593/is-there-a-simple-way-to-convert-c-enum-to-string#201792
+
+static const QStringList animentrytype_str
+{
+#define X(a) QObject::tr( #a ),
+#include "animentrytype.def"
+#undef X
+};
+
+static const QStringList animexittype_str
+{
+#define X(a) QObject::tr( #a ),
+#include "animexittype.def"
+#undef X
+};
 
 AddLocalDialog::AddLocalDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::AddLocalDialog)
 {
     ui->setupUi(this);
+
+    ui->combo_EntryType->clear();
+    ui->combo_EntryType->addItems(animentrytype_str);
+    ui->combo_ExitType->clear();
+    ui->combo_ExitType->addItems(animexittype_str);
 }
 
 AddLocalDialog::~AddLocalDialog()
