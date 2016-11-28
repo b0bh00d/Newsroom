@@ -1,0 +1,15 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/">
+  <file>images/Quit.png</file>
+  <file>images/Remove.png</file>
+  <file>images/Options.png</file>
+  <file>images/About.png</file>
+  <file>images/Newsroom.png</file>
+  <file>images/Newsroom16x16.png</file>
+  <file>images/Add.png</file>
+  <file>images/Monitor1.png</file>
+  <file>images/Monitor2.png</file>
+  <file>images/Monitor3.png</file>
+  <file>images/Monitor4.png</file>
+</qresource>
+</RCC>
