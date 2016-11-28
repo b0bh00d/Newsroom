@@ -127,7 +127,7 @@
               <string/>
              </property>
              <property name="icon">
-              <iconset resource="Dashboard.qrc">
+              <iconset resource="Newsroom.qrc">
                <normaloff>:/images/Monitor1.png</normaloff>:/images/Monitor1.png</iconset>
              </property>
              <property name="iconSize">
@@ -144,7 +144,7 @@
               <string/>
              </property>
              <property name="icon">
-              <iconset resource="Dashboard.qrc">
+              <iconset resource="Newsroom.qrc">
                <normaloff>:/images/Monitor2.png</normaloff>:/images/Monitor2.png</iconset>
              </property>
              <property name="iconSize">
@@ -161,7 +161,7 @@
               <string/>
              </property>
              <property name="icon">
-              <iconset resource="Dashboard.qrc">
+              <iconset resource="Newsroom.qrc">
                <normaloff>:/images/Monitor3.png</normaloff>:/images/Monitor3.png</iconset>
              </property>
              <property name="iconSize">
@@ -178,7 +178,7 @@
               <string/>
              </property>
              <property name="icon">
-              <iconset resource="Dashboard.qrc">
+              <iconset resource="Newsroom.qrc">
                <normaloff>:/images/Monitor4.png</normaloff>:/images/Monitor4.png</iconset>
              </property>
              <property name="iconSize">
@@ -232,88 +232,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="combo_EntryType">
-             <item>
-              <property name="text">
-               <string>SlideDownLeftTop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideDownCenterTop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideDownRightTop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideInLeftTop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideInRightTop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideInLeftBottom</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideInRightBottom</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideUpLeftBottom</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideUpRightBottom</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideUpCenterBottom</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>FadeInCenter</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>PopCenter</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>PopLeftTop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>PopRightTop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>PopLeftBottom</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>PopRightBottom</string>
-              </property>
-             </item>
-            </widget>
+            <widget class="QComboBox" name="combo_EntryType"/>
            </item>
           </layout>
          </item>
@@ -336,58 +255,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="combo_ExitType">
-             <item>
-              <property name="text">
-               <string>Pop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Fade</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideLeft</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideRight</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideUp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideDown</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideFadeLeft</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideFadeRight</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideFadeUp</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>SlideFadeDown</string>
-              </property>
-             </item>
-            </widget>
+            <widget class="QComboBox" name="combo_ExitType"/>
            </item>
           </layout>
          </item>
@@ -452,7 +320,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="Dashboard.qrc"/>
+  <include location="Newsroom.qrc"/>
  </resources>
  <connections>
   <connection>
