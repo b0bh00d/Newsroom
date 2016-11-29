@@ -143,7 +143,7 @@ void MainWindow::dropEvent(QDropEvent* event)
                 ChyronPointer chyron = storys[story];
 
                 // add this reporter to the payroll
-                ReporterPointer reporter(new ReporterLocal(story, dlg.get_trigger()));
+                ReporterPointer reporter(new ReporterLocal(story, dlg.get_trigger(), this));
                 reporters.push_back(reporter);
                 connect(reporter.data(), &Reporter::signal_new_article, chyron.data(), &Chyron::slot_file_article);
 

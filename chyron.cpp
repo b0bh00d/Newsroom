@@ -30,7 +30,7 @@ Chyron::Chyron(const QUrl&      story,
     age_timer->start();
 }
 
-void Chyron::initialize_article_position(ArticlePointer article)
+void Chyron::initialize_article(ArticlePointer article)
 {
     int x = 0;
     int y = 0;
@@ -430,7 +430,7 @@ void Chyron::slot_age_articles()
     {
         ArticlePointer article = incoming_articles.dequeue();
         article->viewed = 0;    // let's us know when the article was first displayed
-        initialize_article_position(article);
+        initialize_article(article);
 
         // inject an article into the chyron
         start_article_entry(article);
