@@ -1,5 +1,6 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
+#include <QtWidgets/QGraphicsOpacityEffect>
 
 #include <QtCore/QUrl>
 #include <QtCore/QDateTime>
@@ -33,73 +34,79 @@ void Chyron::initialize_article_position(ArticlePointer article)
 {
     int x = 0;
     int y = 0;
-    int width = article->w;
-    int height = article->h;
+
+    QRect r = article->geometry();
+    int width = r.width();
+    int height = r.height();
 
     QDesktopWidget* desktop = QApplication::desktop();
-    QRect r = desktop->screenGeometry(display);
+    QRect r_desktop = desktop->screenGeometry(display);
     switch(entry_type)
     {
         case AnimEntryType::SlideDownLeftTop:
-            y = -height;
-            x = margin;
+            y = r_desktop.top() - height;
+            x = r_desktop.left() + margin;
             break;
         case AnimEntryType::SlideDownCenterTop:
-            y = -height;
-            x = (r.width() - width) / 2;
+            y = r_desktop.top() - height;
+            x = r_desktop.left() + (r_desktop.width() - width) / 2;
             break;
         case AnimEntryType::SlideDownRightTop:
-            y = -height;
-            x = r.right() - width - margin;
+            y = r_desktop.top() - height;
+            x = r_desktop.right() - width - margin;
             break;
         case AnimEntryType::SlideInLeftTop:
-            y = margin;
-            x = r.left() - width;
+            y = r_desktop.top() + margin;
+            x = r_desktop.left() - width;
             break;
         case AnimEntryType::SlideInRightTop:
-            y = margin;
-            x = r.right() + width;
+            y = r_desktop.top() + margin;
+            x = r_desktop.right() + width;
             break;
         case AnimEntryType::SlideInLeftBottom:
-            y = r.bottom() - height - margin;
-            x = -width;
+            y = r_desktop.bottom() - height - margin;
+            x = r_desktop.left() - width;
             break;
         case AnimEntryType::SlideInRightBottom:
-            y = r.bottom() - height - margin;
-            x = r.right() + width;
+            y = r_desktop.bottom() - height - margin;
+            x = r_desktop.right() + width;
             break;
         case AnimEntryType::SlideUpLeftBottom:
-            y = r.bottom() + height;
-            x = margin;
+            y = r_desktop.bottom() + height;
+            x = r_desktop.left() + margin;
             break;
         case AnimEntryType::SlideUpRightBottom:
-            y = r.bottom() + height;
-            x = r.right() - width - margin;
+            y = r_desktop.bottom() + height;
+            x = r_desktop.right() - width - margin;
             break;
         case AnimEntryType::SlideUpCenterBottom:
-            y = r.bottom() + height;
-            x = (r.width() - width) / 2;
+            y = r_desktop.bottom() + height;
+            x = r_desktop.left() + (r_desktop.width() - width) / 2;
             break;
         case AnimEntryType::FadeInCenter:
         case AnimEntryType::PopCenter:
-            y = (r.height() - height) / 2;
-            x = (r.width() - width) / 2;
+            y = r_desktop.top() + (r_desktop.height() - height) / 2;
+            x = r_desktop.left() + (r_desktop.width() - width) / 2;
             break;
+        case AnimEntryType::FadeInLeftTop:
         case AnimEntryType::PopLeftTop:
-            y = margin;
-            x = margin;
+            y = r_desktop.top() + margin;
+            x = r_desktop.left() + margin;
             break;
+        case AnimEntryType::FadeInRightTop:
         case AnimEntryType::PopRightTop:
-            y = margin;
-            x = r.right() - width - margin;
+            y = r_desktop.top() + margin;
+            x = r_desktop.right() - width - margin;
             break;
+        case AnimEntryType::FadeInLeftBottom:
         case AnimEntryType::PopLeftBottom:
-            y = r.height() - height - margin;
-            x = margin;
+            y = r_desktop.bottom() - height - margin;
+            x = r_desktop.left() + margin;
             break;
+        case AnimEntryType::FadeInRightBottom:
         case AnimEntryType::PopRightBottom:
-            y = r.height() - height - margin;
-            x = r.width() - width - margin;
+            y = r_desktop.bottom() - height - margin;
+            x = r_desktop.right() - width - margin;
             break;
     }
 
@@ -108,12 +115,11 @@ void Chyron::initialize_article_position(ArticlePointer article)
 
 void Chyron::start_article_entry(ArticlePointer article)
 {
-//    QPropertyAnimation* animation = nullptr;
     int speed = 500;
 
     QParallelAnimationGroup* animation_group = nullptr;
-//    QDesktopWidget* desktop = QApplication::desktop();
-//    QRect r_desktop = desktop->screenGeometry(display);
+    QDesktopWidget* desktop = QApplication::desktop();
+    QRect r_desktop = desktop->screenGeometry(display);
     QRect r = article->geometry();
 
     switch(entry_type)
@@ -129,6 +135,9 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::SlideUpRightBottom:
         case AnimEntryType::SlideUpCenterBottom:
             article->animation = new QPropertyAnimation(article.data(), "geometry");
+            article->animation->setDuration(speed);
+            article->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+            article->animation->setEasingCurve(QEasingCurve::InCubic);
             connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_posted);
             prop_anim_map[article->animation] = article;
 
@@ -151,46 +160,126 @@ void Chyron::start_article_entry(ArticlePointer article)
             article->viewed = QDateTime::currentDateTime().toTime_t();
             article->show();
             break;
+
+        case AnimEntryType::FadeInCenter:
+        case AnimEntryType::FadeInLeftTop:
+        case AnimEntryType::FadeInRightTop:
+        case AnimEntryType::FadeInLeftBottom:
+        case AnimEntryType::FadeInRightBottom:
+            {
+                article->setAttribute(Qt::WA_TranslucentBackground, true);
+
+                QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+                eff->setOpacity(0.0);
+                article->setGraphicsEffect(eff);
+                article->animation = new QPropertyAnimation(eff, "opacity");
+                article->animation->setDuration(speed);
+                article->animation->setStartValue(0.0);
+                article->animation->setEndValue(1.0);
+                article->animation->setEasingCurve(QEasingCurve::InCubic);
+                connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_posted);
+                prop_anim_map[article->animation] = article;
+            }
+            break;
     }
+
+    auto configure_group_item = [](QPropertyAnimation* anim, int speed, const QRect& start, const QRect& end) {
+        anim->setDuration(speed);
+        anim->setStartValue(start);
+        anim->setEndValue(end);
+        anim->setEasingCurve(QEasingCurve::InCubic);
+    };
 
     switch(entry_type)
     {
         case AnimEntryType::SlideDownLeftTop:
         case AnimEntryType::SlideDownCenterTop:
         case AnimEntryType::SlideDownRightTop:
-            article->animation->setDuration(speed);
-            article->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
             article->animation->setEndValue(QRect(r.x(), margin, r.width(), r.height()));
-            article->animation->setEasingCurve(QEasingCurve::InCubic);
 
             if(animation_group)
             {
                 foreach(ArticlePointer posted_article, article_list)
                 {
                     QRect posted_r = posted_article->geometry();
-                    posted_article->animation->setDuration(speed);
-                    posted_article->animation->setStartValue(QRect(posted_r.x(), posted_r.y(), posted_r.width(), posted_r.height()));
-                    posted_article->animation->setEndValue(QRect(posted_r.x(), posted_r.y() + r.height() + margin, posted_r.width(), posted_r.height()));
-                    posted_article->animation->setEasingCurve(QEasingCurve::InCubic);
+                    configure_group_item(posted_article->animation, speed, posted_r,
+                                         QRect(posted_r.x(), posted_r.y() + r.height() + margin, posted_r.width(), posted_r.height()));
                 }
             }
             break;
         case AnimEntryType::SlideInLeftTop:
+            article->animation->setEndValue(QRect(margin, margin, r.width(), r.height()));
+
+            if(animation_group)
+            {
+                foreach(ArticlePointer posted_article, article_list)
+                {
+                    QRect posted_r = posted_article->geometry();
+                    configure_group_item(posted_article->animation, speed, posted_r,
+                                         QRect(posted_r.x() + r.width() + margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                }
+            }
             break;
         case AnimEntryType::SlideInRightTop:
+            article->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, margin, r.width(), r.height()));
+
+            if(animation_group)
+            {
+                foreach(ArticlePointer posted_article, article_list)
+                {
+                    QRect posted_r = posted_article->geometry();
+                    configure_group_item(posted_article->animation, speed, posted_r,
+                                         QRect(posted_r.x() - r.width() - margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                }
+            }
             break;
         case AnimEntryType::SlideInLeftBottom:
+            article->animation->setEndValue(QRect(margin, r.y(), r.width(), r.height()));
+
+            if(animation_group)
+            {
+                foreach(ArticlePointer posted_article, article_list)
+                {
+                    QRect posted_r = posted_article->geometry();
+                    configure_group_item(posted_article->animation, speed, posted_r,
+                                         QRect(posted_r.x() + r.width() + margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                }
+            }
             break;
         case AnimEntryType::SlideInRightBottom:
+            article->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, r.y(), r.width(), r.height()));
+
+            if(animation_group)
+            {
+                foreach(ArticlePointer posted_article, article_list)
+                {
+                    QRect posted_r = posted_article->geometry();
+                    configure_group_item(posted_article->animation, speed, posted_r,
+                                         QRect(posted_r.x() - r.width() - margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                }
+            }
             break;
         case AnimEntryType::SlideUpLeftBottom:
-            break;
         case AnimEntryType::SlideUpRightBottom:
-            break;
         case AnimEntryType::SlideUpCenterBottom:
+            article->animation->setEndValue(QRect(r.x(), r_desktop.bottom() - r.height() - margin, r.width(), r.height()));
+
+            if(animation_group)
+            {
+                foreach(ArticlePointer posted_article, article_list)
+                {
+                    QRect posted_r = posted_article->geometry();
+                    configure_group_item(posted_article->animation, speed, posted_r,
+                                         QRect(posted_r.x(), posted_r.y() - r.height() - margin, posted_r.width(), posted_r.height()));
+                }
+            }
             break;
 
         case AnimEntryType::FadeInCenter:
+        case AnimEntryType::FadeInLeftTop:
+        case AnimEntryType::FadeInRightTop:
+        case AnimEntryType::FadeInLeftBottom:
+        case AnimEntryType::FadeInRightBottom:
             break;
     }
 
@@ -236,6 +325,20 @@ void Chyron::start_article_exit(ArticlePointer article)
             break;
 
         case AnimExitType::Fade:
+            {
+                article->setAttribute(Qt::WA_TranslucentBackground, true);
+
+                QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+                eff->setOpacity(1.0);
+                article->setGraphicsEffect(eff);
+                article->animation = new QPropertyAnimation(eff, "opacity");
+                article->animation->setDuration(speed);
+                article->animation->setStartValue(1.0);
+                article->animation->setEndValue(0.0);
+                article->animation->setEasingCurve(QEasingCurve::InCubic);
+                connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_expired);
+                prop_anim_map[article->animation] = article;
+            }
             break;
 
         case AnimExitType::Pop:

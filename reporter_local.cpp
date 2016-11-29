@@ -87,5 +87,11 @@ void ReporterLocal::slot_poll()
             last_size = target.size();  // wait for the file to stop changing
             ++stabilize_count;
         }
+        else if(target.size() < last_size)
+        {
+            // the file got smaller since we last checked, so reset
+            last_size = seek_offset = target.size();
+            stabilize_count = 0;
+        }
     }
 }

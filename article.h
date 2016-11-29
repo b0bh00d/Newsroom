@@ -22,14 +22,9 @@ public:
         article = source.article;
     }
 
-protected:  // methods
-    void            calculate_dimensions();
-
 protected:  // data members
     QUrl            story;
     QString         article;
-
-    int             x, y, w, h;
 
     uint                viewed;     // Chyron
     QPropertyAnimation* animation;  // Chyron
