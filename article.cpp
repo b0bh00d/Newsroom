@@ -14,12 +14,20 @@ Article::Article(const QUrl& story,
       article(article),
       QWidget(parent)
 {
+}
+
+void Article::configure(const QFont& font, bool stay_visible)
+{
+
     // https://stackoverflow.com/questions/18316710/frameless-and-transparent-window-qt5
-    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    if(stay_visible)
+        setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    else
+        setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
     setParent(0); // Create TopLevel-Widget
     setAttribute(Qt::WA_ShowWithoutActivating);
 //    setAttribute(Qt::WA_NoSystemBackground, true);
-//    setAttribute(Qt::WA_TranslucentBackground, true);
+    setAttribute(Qt::WA_TranslucentBackground, true);
 //    setAttribute(Qt::WA_PaintOnScreen); // not needed in Qt 5.2 and up
 
     QVBoxLayout *main_layout = new QVBoxLayout;
@@ -30,9 +38,9 @@ Article::Article(const QUrl& story,
     label->setText(article);
     label->setStyleSheet("color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;");
 
-    QFont f = label->font();
-    f.setPointSize(f.pointSize() + 5);
-    label->setFont(f);
+    //QFont f = label->font();
+    //f.setPointSize(f.pointSize() + 5);
+    label->setFont(font);
 
     main_layout->addWidget(label);
 

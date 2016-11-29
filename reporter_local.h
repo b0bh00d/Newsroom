@@ -9,8 +9,6 @@ class ReporterLocal : public Reporter
 public:
     explicit ReporterLocal(const QUrl& story, LocalTrigger trigger_type, QObject *parent = 0);
 
-    virtual ArticlePointer get_article() const;
-
     virtual void    start_covering_story();
     virtual void    stop_covering_story();
 

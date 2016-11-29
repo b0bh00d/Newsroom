@@ -11,12 +11,6 @@ ReporterLocal::ReporterLocal(const QUrl& story, LocalTrigger trigger_type, QObje
     target.setFile(story.toLocalFile());
 }
 
-ArticlePointer ReporterLocal::get_article() const
-{
-    ArticlePointer article(new Article(story, report));
-    return article;
-}
-
 void ReporterLocal::start_covering_story()
 {
     target.refresh();

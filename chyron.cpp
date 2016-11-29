@@ -10,6 +10,8 @@
 Chyron::Chyron(const QUrl&      story,
                uint             ttl,
                int              display,
+               const QFont&     font,
+               bool             always_visible,
                AnimEntryType    entry_type,
                AnimExitType     exit_type,
                ReportStacking   stacking_type,
@@ -18,6 +20,8 @@ Chyron::Chyron(const QUrl&      story,
     : story(story),
       ttl(ttl),
       display(display),
+      font(font),
+      always_visible(always_visible),
       entry_type(entry_type),
       exit_type(exit_type),
       stacking_type(stacking_type),
@@ -32,9 +36,10 @@ Chyron::Chyron(const QUrl&      story,
 
 void Chyron::initialize_article(ArticlePointer article)
 {
+    article->configure(font, always_visible);
+
     int x = 0;
     int y = 0;
-
     QRect r = article->geometry();
     int width = r.width();
     int height = r.height();
@@ -83,27 +88,27 @@ void Chyron::initialize_article(ArticlePointer article)
             y = r_desktop.bottom() + height;
             x = r_desktop.left() + (r_desktop.width() - width) / 2;
             break;
-        case AnimEntryType::FadeInCenter:
+        case AnimEntryType::FadeCenter:
         case AnimEntryType::PopCenter:
             y = r_desktop.top() + (r_desktop.height() - height) / 2;
             x = r_desktop.left() + (r_desktop.width() - width) / 2;
             break;
-        case AnimEntryType::FadeInLeftTop:
+        case AnimEntryType::FadeLeftTop:
         case AnimEntryType::PopLeftTop:
             y = r_desktop.top() + margin;
             x = r_desktop.left() + margin;
             break;
-        case AnimEntryType::FadeInRightTop:
+        case AnimEntryType::FadeRightTop:
         case AnimEntryType::PopRightTop:
             y = r_desktop.top() + margin;
             x = r_desktop.right() - width - margin;
             break;
-        case AnimEntryType::FadeInLeftBottom:
+        case AnimEntryType::FadeLeftBottom:
         case AnimEntryType::PopLeftBottom:
             y = r_desktop.bottom() - height - margin;
             x = r_desktop.left() + margin;
             break;
-        case AnimEntryType::FadeInRightBottom:
+        case AnimEntryType::FadeRightBottom:
         case AnimEntryType::PopRightBottom:
             y = r_desktop.bottom() - height - margin;
             x = r_desktop.right() - width - margin;
@@ -161,13 +166,13 @@ void Chyron::start_article_entry(ArticlePointer article)
             article->show();
             break;
 
-        case AnimEntryType::FadeInCenter:
-        case AnimEntryType::FadeInLeftTop:
-        case AnimEntryType::FadeInRightTop:
-        case AnimEntryType::FadeInLeftBottom:
-        case AnimEntryType::FadeInRightBottom:
+        case AnimEntryType::FadeCenter:
+        case AnimEntryType::FadeLeftTop:
+        case AnimEntryType::FadeRightTop:
+        case AnimEntryType::FadeLeftBottom:
+        case AnimEntryType::FadeRightBottom:
             {
-                article->setAttribute(Qt::WA_TranslucentBackground, true);
+                //article->setAttribute(Qt::WA_TranslucentBackground, true);
 
                 QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
                 eff->setOpacity(0.0);
@@ -275,11 +280,11 @@ void Chyron::start_article_entry(ArticlePointer article)
             }
             break;
 
-        case AnimEntryType::FadeInCenter:
-        case AnimEntryType::FadeInLeftTop:
-        case AnimEntryType::FadeInRightTop:
-        case AnimEntryType::FadeInLeftBottom:
-        case AnimEntryType::FadeInRightBottom:
+        case AnimEntryType::FadeCenter:
+        case AnimEntryType::FadeLeftTop:
+        case AnimEntryType::FadeRightTop:
+        case AnimEntryType::FadeLeftBottom:
+        case AnimEntryType::FadeRightBottom:
             break;
     }
 
