@@ -100,9 +100,9 @@ uint AddLocalDialog::get_ttl()
     return value.toInt();
 }
 
-int AddLocalDialog::get_screen()
+int AddLocalDialog::get_display()
 {
-    QVector<QRadioButton*> buttons { ui->radio_Monitor2, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
+    QVector<QRadioButton*> buttons { ui->radio_Monitor1, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
     for(int i = 0; i < 4;++i)
     {
         if(buttons[i]->isChecked())

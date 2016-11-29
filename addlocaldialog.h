@@ -24,7 +24,7 @@ public:
     void            set_animation_entry_and_exit(AnimEntryType entry_type, AnimExitType exit_type);
     void            set_stacking(ReportStacking stack_type);
 
-    int             get_screen();
+    int             get_display();
     LocalTrigger    get_trigger();
     uint            get_ttl();
     AnimEntryType   get_animation_entry_type();
