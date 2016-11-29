@@ -42,6 +42,7 @@ SOURCES += main.cpp\
         addlocaldialog.cpp \
         article.cpp \
         chyron.cpp \
+    settingsdialog.cpp
 
 HEADERS  += mainwindow.h \
             reporter.h \
@@ -51,6 +52,8 @@ HEADERS  += mainwindow.h \
             specialize.h \
             article.h \
             chyron.h \
+    settingsdialog.h
 
 FORMS    += mainwindow.ui \
-            addlocaldialog.ui
+            addlocaldialog.ui \
+    settingsdialog.ui

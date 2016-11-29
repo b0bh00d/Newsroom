@@ -26,6 +26,13 @@ public:
                     int margin = 5,
                     QObject* parent = nullptr);
 
+    AnimEntryType   get_entry_type()    const   { return entry_type; }
+    AnimExitType    get_exit_type()     const   { return exit_type; }
+
+    // stacking priority determines the lane occupied by the chyron
+    // among identical entry types
+    void        set_stacking_lane(int /*lane*/) {}
+
 public slots:
     void        slot_file_article(ArticlePointer article);
 

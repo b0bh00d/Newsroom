@@ -32,9 +32,8 @@ AddLocalDialog::AddLocalDialog(QWidget *parent) :
     ui->combo_ExitType->clear();
     ui->combo_ExitType->addItems(animexittype_str);
 
-    connect(ui->combo_FontFamily, &QFontComboBox::currentFontChanged, this, &AddLocalDialog::slot_update_font);
-    connect(ui->combo_FontSize, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-            this, &AddLocalDialog::slot_update_font_size);
+    setWindowTitle(tr("Newsroom: Add Story"));
+    setWindowIcon(QIcon(":/images/Newsroom.png"));
 }
 
 AddLocalDialog::~AddLocalDialog()
@@ -64,12 +63,6 @@ void AddLocalDialog::set_ttl(uint ttl)
     ui->edit_TTL->setText(QString::number(ttl));
 }
 
-void AddLocalDialog::set_font(const QFont& font)
-{
-    ui->combo_FontFamily->setCurrentFont(font);
-    slot_update_font(font);
-}
-
 void AddLocalDialog::set_always_visible(bool visible)
 {
     ui->check_KeepOnTop->setChecked(visible);
@@ -96,12 +89,6 @@ void AddLocalDialog::set_animation_entry_and_exit(AnimEntryType entry_type, Anim
     ui->combo_ExitType->setCurrentIndex(static_cast<int>(exit_type));
 }
 
-void AddLocalDialog::set_stacking(ReportStacking stack_type)
-{
-    ui->radio_Stacked->setChecked(stack_type == ReportStacking::Stacked);
-    ui->radio_Intermixed->setChecked(stack_type == ReportStacking::Intermixed);
-}
-
 LocalTrigger AddLocalDialog::get_trigger()
 {
     return static_cast<LocalTrigger>(ui->combo_LocalTrigger->currentIndex());
@@ -113,13 +100,6 @@ uint AddLocalDialog::get_ttl()
     if(value.isEmpty())
         return ui->edit_TTL->placeholderText().toInt();
     return value.toInt();
-}
-
-QFont AddLocalDialog::get_font()
-{
-    QFont f = ui->combo_FontFamily->currentFont();
-    f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
-    return f;
 }
 
 bool AddLocalDialog::get_always_visible()
@@ -147,32 +127,4 @@ AnimEntryType AddLocalDialog::get_animation_entry_type()
 AnimExitType AddLocalDialog::get_animation_exit_type()
 {
     return static_cast<AnimExitType>(ui->combo_ExitType->currentIndex());
-}
-
-ReportStacking AddLocalDialog::get_stacking()
-{
-    return ui->radio_Stacked->isChecked() ? ReportStacking::Stacked : ReportStacking::Intermixed;
-}
-
-// font selection changed
-void AddLocalDialog::slot_update_font(const QFont& font)
-{
-    ui->combo_FontSize->clear();
-
-    QFontDatabase font_db;
-    foreach(int point, font_db.smoothSizes(font.family(), font.styleName()))
-        ui->combo_FontSize->addItem(QString::number(point));
-    ui->combo_FontSize->setCurrentIndex(ui->combo_FontSize->findText(QString::number(font.pointSize())));
-
-    QFont f = font;
-    f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
-    ui->label_FontExample->setFont(f);
-}
-
-// font size changed
-void AddLocalDialog::slot_update_font_size(int index)
-{
-    QFont f = ui->combo_FontFamily->currentFont();
-    f.setPointSize(ui->combo_FontSize->itemText(index).toInt());
-    ui->label_FontExample->setFont(f);
 }
