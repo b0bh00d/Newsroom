@@ -41,7 +41,7 @@ protected:  // typedefs and enums
     SPECIALIZE_MAP(ArticlePointer, bool, Exiting)       // "ExitingMap"
 
 protected:  // methods
-    void        initialize_article_position(ArticlePointer article);
+    void        initialize_article(ArticlePointer article);
     void        start_article_entry(ArticlePointer article);
     void        start_article_exit(ArticlePointer article);
 
