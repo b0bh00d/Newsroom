@@ -136,7 +136,7 @@ void MainWindow::dropEvent(QDropEvent* event)
                 if(storys.find(story) == storys.end())
                     storys[story] = ChyronPointer(new Chyron(story,
                                                              dlg.get_ttl(),
-                                                             dlg.get_screen(),
+                                                             dlg.get_display(),
                                                              dlg.get_animation_entry_type(),
                                                              dlg.get_animation_exit_type(),
                                                              dlg.get_stacking()));
