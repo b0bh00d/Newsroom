@@ -14,6 +14,7 @@
 #include "ui_mainwindow.h"
 
 #include "addlocaldialog.h"
+#include "settingsdialog.h"
 #include "chyron.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -21,10 +22,13 @@ MainWindow::MainWindow(QWidget *parent)
       window_geometry_save_enabled(true),
       start_automatically(false),
       settings_modified(false),
+      chyron_stacking(ReportStacking::Stacked),
       QMainWindow(parent),
       ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    chyron_font = ui->label->font();
 
 //    QPixmap bkgnd(":/images/Add.png");
 //    bkgnd = bkgnd.scaled(this->size(), Qt::IgnoreAspectRatio);
@@ -45,6 +49,9 @@ MainWindow::MainWindow(QWidget *parent)
     bool connected = connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::slot_message_clicked);
     ASSERT_UNUSED(connected);
     connected = connect(trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::slot_icon_activated);
+    ASSERT_UNUSED(connected);
+
+    connected = connect(ui->action_Settings, &QAction::triggered, this, &MainWindow::slot_edit_settings);
     ASSERT_UNUSED(connected);
 
     trayIcon->setIcon(QIcon(":/images/Newsroom16x16.png"));
@@ -129,25 +136,30 @@ void MainWindow::dropEvent(QDropEvent* event)
             AddLocalDialog dlg;
             dlg.set_target(text);
             dlg.set_trigger(LocalTrigger::NewContent);
-            QFont f = ui->label->font();
-            dlg.set_font(f);
             dlg.set_screens(desktop->primaryScreen(), desktop->screenCount());
             dlg.set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
-            dlg.set_stacking(ReportStacking::Stacked);
+
+            restore_window_data(&dlg);
 
             if(dlg.exec() == QDialog::Accepted)
             {
+                AnimEntryType entry_type = dlg.get_animation_entry_type();
+
                 // see if this story already has a chyron
-                if(storys.find(story) == storys.end())
-                    storys[story] = ChyronPointer(new Chyron(story,
+                if(stories.find(story) == stories.end())
+                    stories[story] = ChyronPointer(new Chyron(story,
                                                              dlg.get_ttl(),
                                                              dlg.get_display(),
-                                                             dlg.get_font(),
+                                                             chyron_font,
                                                              dlg.get_always_visible(),
                                                              dlg.get_animation_entry_type(),
                                                              dlg.get_animation_exit_type(),
-                                                             dlg.get_stacking()));
-                ChyronPointer chyron = storys[story];
+                                                             chyron_stacking));
+                ChyronPointer chyron = stories[story];
+                if(!stacking.contains(entry_type))
+                    stacking[entry_type] = StoryVector();
+                stacking[entry_type].append(chyron);
+                chyron->set_stacking_lane(stacking[entry_type].length() - 1);
 
                 // add this reporter to the payroll
                 ReporterPointer reporter(new ReporterLocal(story, dlg.get_trigger(), this));
@@ -156,6 +168,8 @@ void MainWindow::dropEvent(QDropEvent* event)
 
                 reporter->start_covering_story();
             }
+
+            save_window_data(&dlg);
         }
         else
             text = story.toString();
@@ -254,6 +268,10 @@ void MainWindow::save_application_settings()
 //      }
 //    settings.endArray();
 
+    settings.setValue("auto_start", false);
+    settings.setValue("chyron.font", chyron_font.toString());
+    settings.setValue("chyron.stacking", static_cast<int>(chyron_stacking));
+
     if(window_data.size())
     {
         settings.beginWriteArray("window_data");
@@ -280,35 +298,12 @@ void MainWindow::load_application_settings()
     settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
     QSettings settings(settings_file_name, QSettings::IniFormat);
 
-//    next_tab_icon       = settings.value("next_tab_icon", next_tab_icon).toInt();
-//    backup_database     = settings.value("backup_database", backup_database).toBool();
-//    max_backups         = settings.value("max_backups", max_backups).toUInt();
-//    add_hook_key        = settings.value("add_hook_key", add_hook_key).toChar().toLatin1();
-//    start_automatically = settings.value("start_automatically", start_automatically).toBool();
-//    selected_opacity    = settings.value("selected_opacity", selected_opacity).toDouble();
-//    unselected_opacity  = settings.value("unselected_opacity", unselected_opacity).toDouble();
-//    favored_side        = settings.value("favored_side", favored_side).toInt();
-
-//    clipboard_ttl = settings.value("clipboard_ttl", clipboard_ttl).toBool();
-//    clipboard_ttl_timeout = settings.value("clipboard_ttl_timeout", clipboard_ttl_timeout).toInt();
-
-//    enable_sound_effects= settings.value("enable_sound_effects", enable_sound_effects).toBool();
-
-//    sound_files.resize(SOUND_MAX);
-//    //for(int i = 0;i < SOUND_MAX;i++)
-//    //    sound_files.append(QString());
-
-//    int soundfiles_size = settings.beginReadArray("sound_files");
-//    if(soundfiles_size)
-//    {
-//        for(int i = 0; i < soundfiles_size; ++i)
-//        {
-//            settings.setArrayIndex(i);
-//            sound_files[i] = settings.value(QString("sound_file_%1").arg(i + 1)).toString();
-//        }
-//    }
-
-//    settings.endArray();
+    (void)settings.value("auto_start", false).toBool();
+    QFont f = ui->label->font();
+    QString font_str = settings.value("chyron.font", QString()).toString();
+    if(!font_str.isEmpty())
+        chyron_font.fromString(font_str);
+    chyron_stacking = static_cast<ReportStacking>(settings.value("chyron.stacking", ReportStacking::Stacked).toInt());
 
     int windata_size = settings.beginReadArray("window_data");
     if(windata_size)
@@ -322,29 +317,6 @@ void MainWindow::load_application_settings()
         }
     }
     settings.endArray();
-
-//    ui->check_Start_Automatically->setChecked(start_automatically);
-//    ui->edit_Add_Key->setText(QString(add_hook_key));
-//    ui->spin_Selected_Opacity->setValue((int)(selected_opacity * 100.0));
-//    ui->spin_Unselected_Opacity->setValue((int)(unselected_opacity * 100.0));
-
-//    switch(favored_side)
-//    {
-//        case FAVOR_LEFT:
-//            ui->radio_Position_Left->setChecked(true);
-//            break;
-//        case FAVOR_TOP:
-//            ui->radio_Position_Top->setChecked(true);
-//            break;
-//        case FAVOR_RIGHT:
-//            ui->radio_Position_Right->setChecked(true);
-//            break;
-//        case FAVOR_BOTTOM:
-//            ui->radio_Position_Bottom->setChecked(true);
-//            break;
-//    }
-
-//    set_startup();
 
     settings_modified = !QFile::exists(settings_file_name);
 }
@@ -396,4 +368,53 @@ void MainWindow::slot_restore()
     showNormal();
     activateWindow();
     raise();
+}
+
+void MainWindow::slot_edit_settings(bool /*checked*/)
+{
+    SettingsDialog dlg;
+
+    dlg.set_autostart(false);
+    dlg.set_font(chyron_font);
+    dlg.set_stacking(chyron_stacking);
+    dlg.set_stories(stories.keys());
+
+    restore_window_data(&dlg);
+
+    if(dlg.exec() == QDialog::Accepted)
+    {
+        (void)dlg.get_autostart();
+        chyron_font = dlg.get_font();
+        chyron_stacking = dlg.get_stacking();
+        QList<QUrl> remaining_stories = dlg.get_stories();
+        if(remaining_stories.count() != stories.count())
+        {
+            // stories have been deleted
+
+            QList<QUrl> deleted_stories;
+            foreach(const QUrl& story, stories.keys())
+            {
+                if(!remaining_stories.contains(story))
+                    deleted_stories.append(story);
+            }
+
+            foreach(const QUrl& story, deleted_stories)
+                stories.remove(story);
+
+            // adjust stacking orders
+            stacking.clear();
+            foreach(const QUrl& story, stories.keys())
+            {
+                AnimEntryType entry_type = stories[story]->get_entry_type();
+                if(!stacking.contains(entry_type))
+                    stacking[entry_type] = StoryVector();
+                stacking[entry_type].append(stories[story]);
+                stories[story]->set_stacking_lane(stacking[entry_type].length() - 1);
+            }
+        }
+
+        save_application_settings();
+    }
+
+    save_window_data(&dlg);
 }

@@ -52,11 +52,13 @@ protected:  // methods
     void            dropEvent(QDropEvent *event);
 
 private:    // typedefs and enums
-    SPECIALIZE_MAP(QString, QByteArray, Window)     // "WindowMap"
-    SPECIALIZE_MAP(QUrl, ChyronPointer, Story)      // "StoryMap"
-    SPECIALIZE_LIST(ReporterPointer, Reporter)      // "ReporterList"
-    SPECIALIZE_QUEUE(ArticlePointer, Article)       // "ArticleQueue"
-    SPECIALIZE_MAP(QUrl, ArticleQueue, Article)     // "ArticleMap"
+    SPECIALIZE_MAP(QString, QByteArray, Window)             // "WindowMap"
+    SPECIALIZE_MAP(QUrl, ChyronPointer, Story)              // "StoryMap"
+    SPECIALIZE_LIST(ReporterPointer, Reporter)              // "ReporterList"
+    SPECIALIZE_QUEUE(ArticlePointer, Article)               // "ArticleQueue"
+    SPECIALIZE_MAP(QUrl, ArticleQueue, Article)             // "ArticleMap"
+    SPECIALIZE_VECTOR(ChyronPointer, Story)                 // "StoryVector"
+    SPECIALIZE_MAP(AnimEntryType, StoryVector, Stacking)    // "StackingMap"
 
 private slots:
     void            slot_quit();
@@ -64,6 +66,7 @@ private slots:
     void            slot_message_clicked();
     void            slot_menu_action(QAction* action);
     void            slot_restore();
+    void            slot_edit_settings(bool checked);
 
     private:    // methods
     void            load_application_settings();
@@ -89,8 +92,12 @@ private:    // data members
     bool                start_automatically;
     bool                settings_modified;
 
+    QFont               chyron_font;
+    ReportStacking      chyron_stacking;
+
     QMimeDatabase       mime_db;
 
-    StoryMap            storys;
+    StoryMap            stories;
     ReporterList        reporters;
+    StackingMap         stacking;
 };

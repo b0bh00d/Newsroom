@@ -132,22 +132,13 @@
      <x>0</x>
      <y>0</y>
      <width>346</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
      <string>Edit</string>
     </property>
-    <widget class="QMenu" name="menuRemove">
-     <property name="title">
-      <string>Remove</string>
-     </property>
-     <addaction name="action_RemoveAll"/>
-     <addaction name="separator"/>
-    </widget>
-    <addaction name="menuRemove"/>
-    <addaction name="separator"/>
     <addaction name="action_Settings"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
