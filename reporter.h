@@ -18,8 +18,6 @@ public:
 
     QUrl            get_story()         const   { return story; }
 
-    virtual ArticlePointer get_article() const = 0;
-
     virtual void    start_covering_story() = 0;
     virtual void    stop_covering_story() = 0;
 

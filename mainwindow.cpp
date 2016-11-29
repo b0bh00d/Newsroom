@@ -1,10 +1,13 @@
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QMessageBox>
 
+#include <QtGui/QFontMetrics>
+
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QDir>
 #include <QtCore/QSettings>
+#include <QtCore/QStandardPaths>
 
 #include "types.h"
 #include "mainwindow.h"
@@ -126,6 +129,8 @@ void MainWindow::dropEvent(QDropEvent* event)
             AddLocalDialog dlg;
             dlg.set_target(text);
             dlg.set_trigger(LocalTrigger::NewContent);
+            QFont f = ui->label->font();
+            dlg.set_font(f);
             dlg.set_screens(desktop->primaryScreen(), desktop->screenCount());
             dlg.set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
             dlg.set_stacking(ReportStacking::Stacked);
@@ -137,6 +142,8 @@ void MainWindow::dropEvent(QDropEvent* event)
                     storys[story] = ChyronPointer(new Chyron(story,
                                                              dlg.get_ttl(),
                                                              dlg.get_display(),
+                                                             dlg.get_font(),
+                                                             dlg.get_always_visible(),
                                                              dlg.get_animation_entry_type(),
                                                              dlg.get_animation_exit_type(),
                                                              dlg.get_stacking()));
@@ -217,12 +224,60 @@ void MainWindow::build_tray_menu()
     connect(trayIconMenu, &QMenu::triggered, this, &MainWindow::slot_menu_action);
 }
 
+void MainWindow::save_application_settings()
+{
+    QString settings_file_name;
+    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    QSettings settings(settings_file_name, QSettings::IniFormat);
+
+    settings.clear();
+
+//    settings.setValue("next_tab_icon", next_tab_icon);
+//    settings.setValue("backup_database", backup_database);
+//    settings.setValue("max_backups", max_backups);
+//    settings.setValue("add_hook_key", QChar(add_hook_key));
+//    settings.setValue("start_automatically", start_automatically);
+//    settings.setValue("selected_opacity", selected_opacity);
+//    settings.setValue("unselected_opacity", unselected_opacity);
+//    settings.setValue("favored_side", favored_side);
+
+//    settings.setValue("clipboard_ttl", clipboard_ttl);
+//    settings.setValue("clipboard_ttl_timeout", clipboard_ttl_timeout);
+
+//    settings.setValue("enable_sound_effects", enable_sound_effects);
+//    settings.beginWriteArray("sound_files");
+//      quint32 item_index = 0;
+//      foreach(QString key, sound_files)
+//      {
+//          settings.setArrayIndex(item_index++);
+//          settings.setValue(QString("sound_file_%1").arg(item_index), sound_files[item_index-1]);
+//      }
+//    settings.endArray();
+
+    if(window_data.size())
+    {
+        settings.beginWriteArray("window_data");
+          quint32 item_index = 0;
+          QList<QString> keys = window_data.keys();
+          foreach(QString key, keys)
+          {
+              settings.setArrayIndex(item_index++);
+
+              settings.setValue("key", key);
+              settings.setValue("geometry", window_data[key]);
+          }
+        settings.endArray();
+    }
+
+    settings_modified = false;
+}
+
 void MainWindow::load_application_settings()
 {
     window_data.clear();
 
     QString settings_file_name;
-    settings_file_name = QDir::toNativeSeparators(QString("%1/Dashboard/Dashboard.ini").arg(qgetenv("APPDATA").constData()));
+    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
     QSettings settings(settings_file_name, QSettings::IniFormat);
 
 //    next_tab_icon       = settings.value("next_tab_icon", next_tab_icon).toInt();
@@ -255,18 +310,18 @@ void MainWindow::load_application_settings()
 
 //    settings.endArray();
 
-//    int windata_size = settings.beginReadArray("window_data");
-//    if(windata_size)
-//    {
-//        for(int i = 0; i < windata_size; ++i)
-//        {
-//            settings.setArrayIndex(i);
+    int windata_size = settings.beginReadArray("window_data");
+    if(windata_size)
+    {
+        for(int i = 0; i < windata_size; ++i)
+        {
+            settings.setArrayIndex(i);
 
-//            QString key = settings.value("key").toString();
-//            window_data[key] = settings.value("geometry").toByteArray();
-//        }
-//    }
-//    settings.endArray();
+            QString key = settings.value("key").toString();
+            window_data[key] = settings.value("geometry").toByteArray();
+        }
+    }
+    settings.endArray();
 
 //    ui->check_Start_Automatically->setChecked(start_automatically);
 //    ui->edit_Add_Key->setText(QString(add_hook_key));
@@ -292,54 +347,6 @@ void MainWindow::load_application_settings()
 //    set_startup();
 
     settings_modified = !QFile::exists(settings_file_name);
-}
-
-void MainWindow::save_application_settings()
-{
-    QString settings_file_name;
-    settings_file_name = QDir::toNativeSeparators(QString("%1/Dashboard/Dashboard.ini").arg(qgetenv("APPDATA").constData()));
-    QSettings settings(settings_file_name, QSettings::IniFormat);
-
-    settings.clear();
-
-//    settings.setValue("next_tab_icon", next_tab_icon);
-//    settings.setValue("backup_database", backup_database);
-//    settings.setValue("max_backups", max_backups);
-//    settings.setValue("add_hook_key", QChar(add_hook_key));
-//    settings.setValue("start_automatically", start_automatically);
-//    settings.setValue("selected_opacity", selected_opacity);
-//    settings.setValue("unselected_opacity", unselected_opacity);
-//    settings.setValue("favored_side", favored_side);
-
-//    settings.setValue("clipboard_ttl", clipboard_ttl);
-//    settings.setValue("clipboard_ttl_timeout", clipboard_ttl_timeout);
-
-//    settings.setValue("enable_sound_effects", enable_sound_effects);
-//    settings.beginWriteArray("sound_files");
-//      quint32 item_index = 0;
-//      foreach(QString key, sound_files)
-//      {
-//          settings.setArrayIndex(item_index++);
-//          settings.setValue(QString("sound_file_%1").arg(item_index), sound_files[item_index-1]);
-//      }
-//    settings.endArray();
-
-//    if(window_data.size())
-//    {
-//        settings.beginWriteArray("window_data");
-//          quint32 item_index = 0;
-//          QList<QString> keys = window_data.keys();
-//          foreach(QString key, keys)
-//          {
-//              settings.setArrayIndex(item_index++);
-
-//              settings.setValue("key", key);
-//              settings.setValue("geometry", window_data[key]);
-//          }
-//        settings.endArray();
-//    }
-
-    settings_modified = false;
 }
 
 void MainWindow::slot_icon_activated(QSystemTrayIcon::ActivationReason reason)

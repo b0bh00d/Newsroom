@@ -31,6 +31,10 @@ AddLocalDialog::AddLocalDialog(QWidget *parent) :
     ui->combo_EntryType->addItems(animentrytype_str);
     ui->combo_ExitType->clear();
     ui->combo_ExitType->addItems(animexittype_str);
+
+    connect(ui->combo_FontFamily, &QFontComboBox::currentFontChanged, this, &AddLocalDialog::slot_update_font);
+    connect(ui->combo_FontSize, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &AddLocalDialog::slot_update_font_size);
 }
 
 AddLocalDialog::~AddLocalDialog()
@@ -58,6 +62,17 @@ void AddLocalDialog::set_trigger(LocalTrigger trigger_type)
 void AddLocalDialog::set_ttl(uint ttl)
 {
     ui->edit_TTL->setText(QString::number(ttl));
+}
+
+void AddLocalDialog::set_font(const QFont& font)
+{
+    ui->combo_FontFamily->setCurrentFont(font);
+    slot_update_font(font);
+}
+
+void AddLocalDialog::set_always_visible(bool visible)
+{
+    ui->check_KeepOnTop->setChecked(visible);
 }
 
 void AddLocalDialog::set_screens(int primary_screen, int screen_count)
@@ -100,6 +115,18 @@ uint AddLocalDialog::get_ttl()
     return value.toInt();
 }
 
+QFont AddLocalDialog::get_font()
+{
+    QFont f = ui->combo_FontFamily->currentFont();
+    f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
+    return f;
+}
+
+bool AddLocalDialog::get_always_visible()
+{
+    return ui->check_KeepOnTop->isChecked();
+}
+
 int AddLocalDialog::get_display()
 {
     QVector<QRadioButton*> buttons { ui->radio_Monitor1, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
@@ -125,4 +152,27 @@ AnimExitType AddLocalDialog::get_animation_exit_type()
 ReportStacking AddLocalDialog::get_stacking()
 {
     return ui->radio_Stacked->isChecked() ? ReportStacking::Stacked : ReportStacking::Intermixed;
+}
+
+// font selection changed
+void AddLocalDialog::slot_update_font(const QFont& font)
+{
+    ui->combo_FontSize->clear();
+
+    QFontDatabase font_db;
+    foreach(int point, font_db.smoothSizes(font.family(), font.styleName()))
+        ui->combo_FontSize->addItem(QString::number(point));
+    ui->combo_FontSize->setCurrentIndex(ui->combo_FontSize->findText(QString::number(font.pointSize())));
+
+    QFont f = font;
+    f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
+    ui->label_FontExample->setFont(f);
+}
+
+// font size changed
+void AddLocalDialog::slot_update_font_size(int index)
+{
+    QFont f = ui->combo_FontFamily->currentFont();
+    f.setPointSize(ui->combo_FontSize->itemText(index).toInt());
+    ui->label_FontExample->setFont(f);
 }

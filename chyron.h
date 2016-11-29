@@ -18,6 +18,8 @@ public:
     explicit Chyron(const QUrl& story,
                     uint ttl,
                     int display,
+                    const QFont& font,
+                    bool always_visible,
                     AnimEntryType entry_type,
                     AnimExitType exit_type,
                     ReportStacking stacking_type,
@@ -49,6 +51,8 @@ protected:  // data members
     QUrl            story;
     uint            ttl;
     int             display;
+    QFont           font;
+    bool            always_visible;
     AnimEntryType   entry_type;
     AnimExitType    exit_type;
     ReportStacking  stacking_type;
