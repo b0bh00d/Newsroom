@@ -38,17 +38,17 @@ Chyron::Chyron(const QUrl&      story,
 {
     age_timer = new QTimer(this);
     age_timer->setInterval(100);
-    connect(age_timer, &QTimer::timeout, this, &Chyron::slot_age_articles);
+    connect(age_timer, &QTimer::timeout, this, &Chyron::slot_age_headlines);
     age_timer->start();
 }
 
-void Chyron::initialize_article(ArticlePointer article)
+void Chyron::initialize_headline(HeadlinePointer headline)
 {
-    article->configure(font, always_visible);
+    headline->configure(font, always_visible);
 
     int x = 0;
     int y = 0;
-    QRect r = article->geometry();
+    QRect r = headline->geometry();
     int width = train_fixed_width ? train_fixed_width : r.width();
     int height = r.height();
 
@@ -133,17 +133,17 @@ void Chyron::initialize_article(ArticlePointer article)
             break;
     }
 
-    article->setGeometry(x, y, width, height);
+    headline->setGeometry(x, y, width, height);
 }
 
-void Chyron::start_article_entry(ArticlePointer article)
+void Chyron::start_headline_entry(HeadlinePointer headline)
 {
     int speed = 500;
 
     QParallelAnimationGroup* animation_group = nullptr;
     QDesktopWidget* desktop = QApplication::desktop();
     QRect r_desktop = desktop->screenGeometry(display);
-    QRect r = article->geometry();
+    QRect r = headline->geometry();
 
     switch(entry_type)
     {
@@ -167,24 +167,24 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::TrainUpLeftBottom:
         case AnimEntryType::TrainUpRightBottom:
         case AnimEntryType::TrainUpCenterBottom:
-            article->animation = new QPropertyAnimation(article.data(), "geometry");
-            article->animation->setDuration(speed);
-            article->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-            article->animation->setEasingCurve(QEasingCurve::InCubic);
-            connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_posted);
-            prop_anim_map[article->animation] = article;
+            headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+            headline->animation->setDuration(speed);
+            headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+            headline->animation->setEasingCurve(QEasingCurve::InCubic);
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
+            prop_anim_map[headline->animation] = headline;
 
-            if(article_list.length())
+            if(headline_list.length())
             {
                 animation_group = new QParallelAnimationGroup();
-                foreach(ArticlePointer posted_article, article_list)
+                foreach(HeadlinePointer posted_headline, headline_list)
                 {
-                    posted_article->animation = new QPropertyAnimation(posted_article.data(), "geometry");
-                    connect(posted_article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+                    posted_headline->animation = new QPropertyAnimation(posted_headline.data(), "geometry");
+                    connect(posted_headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
                 }
 
                 if(entry_type >= AnimEntryType::TrainDownLeftTop && entry_type <= AnimEntryType::TrainUpCenterBottom)
-                    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_train_expire_articles);
+                    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_train_expire_headlines);
             }
             break;
 
@@ -193,8 +193,8 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::PopRightTop:
         case AnimEntryType::PopLeftBottom:
         case AnimEntryType::PopRightBottom:
-            article->viewed = QDateTime::currentDateTime().toTime_t();
-            article->show();
+            headline->viewed = QDateTime::currentDateTime().toTime_t();
+            headline->show();
             break;
 
         case AnimEntryType::FadeCenter:
@@ -203,18 +203,18 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::FadeLeftBottom:
         case AnimEntryType::FadeRightBottom:
             {
-                article->setAttribute(Qt::WA_TranslucentBackground, true);
+                headline->setAttribute(Qt::WA_TranslucentBackground, true);
 
                 QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
                 eff->setOpacity(0.0);
-                article->setGraphicsEffect(eff);
-                article->animation = new QPropertyAnimation(eff, "opacity");
-                article->animation->setDuration(speed);
-                article->animation->setStartValue(0.0);
-                article->animation->setEndValue(1.0);
-                article->animation->setEasingCurve(QEasingCurve::InCubic);
-                connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_posted);
-                prop_anim_map[article->animation] = article;
+                headline->setGraphicsEffect(eff);
+                headline->animation = new QPropertyAnimation(eff, "opacity");
+                headline->animation->setDuration(speed);
+                headline->animation->setStartValue(0.0);
+                headline->animation->setEndValue(1.0);
+                headline->animation->setEasingCurve(QEasingCurve::InCubic);
+                connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
+                prop_anim_map[headline->animation] = headline;
             }
             break;
     }
@@ -234,70 +234,70 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::TrainDownLeftTop:
         case AnimEntryType::TrainDownCenterTop:
         case AnimEntryType::TrainDownRightTop:
-            article->animation->setEndValue(QRect(r.x(), margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r.x(), margin, r.width(), r.height()));
 
             if(animation_group)
             {
-                foreach(ArticlePointer posted_article, article_list)
+                foreach(HeadlinePointer posted_headline, headline_list)
                 {
-                    QRect posted_r = posted_article->geometry();
-                    configure_group_item(posted_article->animation, speed, posted_r,
+                    QRect posted_r = posted_headline->geometry();
+                    configure_group_item(posted_headline->animation, speed, posted_r,
                                          QRect(posted_r.x(), posted_r.y() + r.height() + margin, posted_r.width(), posted_r.height()));
                 }
             }
             break;
         case AnimEntryType::SlideInLeftTop:
         case AnimEntryType::TrainInLeftTop:
-            article->animation->setEndValue(QRect(margin, margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(margin, margin, r.width(), r.height()));
 
             if(animation_group)
             {
-                foreach(ArticlePointer posted_article, article_list)
+                foreach(HeadlinePointer posted_headline, headline_list)
                 {
-                    QRect posted_r = posted_article->geometry();
-                    configure_group_item(posted_article->animation, speed, posted_r,
+                    QRect posted_r = posted_headline->geometry();
+                    configure_group_item(posted_headline->animation, speed, posted_r,
                                          QRect(posted_r.x() + r.width() + margin, posted_r.y(), posted_r.width(), posted_r.height()));
                 }
             }
             break;
         case AnimEntryType::SlideInRightTop:
         case AnimEntryType::TrainInRightTop:
-            article->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, margin, r.width(), r.height()));
 
             if(animation_group)
             {
-                foreach(ArticlePointer posted_article, article_list)
+                foreach(HeadlinePointer posted_headline, headline_list)
                 {
-                    QRect posted_r = posted_article->geometry();
-                    configure_group_item(posted_article->animation, speed, posted_r,
+                    QRect posted_r = posted_headline->geometry();
+                    configure_group_item(posted_headline->animation, speed, posted_r,
                                          QRect(posted_r.x() - r.width() - margin, posted_r.y(), posted_r.width(), posted_r.height()));
                 }
             }
             break;
         case AnimEntryType::SlideInLeftBottom:
         case AnimEntryType::TrainInLeftBottom:
-            article->animation->setEndValue(QRect(margin, r.y(), r.width(), r.height()));
+            headline->animation->setEndValue(QRect(margin, r.y(), r.width(), r.height()));
 
             if(animation_group)
             {
-                foreach(ArticlePointer posted_article, article_list)
+                foreach(HeadlinePointer posted_headline, headline_list)
                 {
-                    QRect posted_r = posted_article->geometry();
-                    configure_group_item(posted_article->animation, speed, posted_r,
+                    QRect posted_r = posted_headline->geometry();
+                    configure_group_item(posted_headline->animation, speed, posted_r,
                                          QRect(posted_r.x() + r.width() + margin, posted_r.y(), posted_r.width(), posted_r.height()));
                 }
             }
             break;
         case AnimEntryType::SlideInRightBottom:
         case AnimEntryType::TrainInRightBottom:
-            article->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, r.y(), r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, r.y(), r.width(), r.height()));
 
             if(animation_group)
             {
-                foreach(ArticlePointer posted_article, article_list)
+                foreach(HeadlinePointer posted_headline, headline_list)
                 {
-                    QRect posted_r = posted_article->geometry();
-                    configure_group_item(posted_article->animation, speed, posted_r,
+                    QRect posted_r = posted_headline->geometry();
+                    configure_group_item(posted_headline->animation, speed, posted_r,
                                          QRect(posted_r.x() - r.width() - margin, posted_r.y(), posted_r.width(), posted_r.height()));
                 }
             }
@@ -308,14 +308,14 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::TrainUpLeftBottom:
         case AnimEntryType::TrainUpRightBottom:
         case AnimEntryType::TrainUpCenterBottom:
-            article->animation->setEndValue(QRect(r.x(), r_desktop.bottom() - r.height() - margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r.x(), r_desktop.bottom() - r.height() - margin, r.width(), r.height()));
 
             if(animation_group)
             {
-                foreach(ArticlePointer posted_article, article_list)
+                foreach(HeadlinePointer posted_headline, headline_list)
                 {
-                    QRect posted_r = posted_article->geometry();
-                    configure_group_item(posted_article->animation, speed, posted_r,
+                    QRect posted_r = posted_headline->geometry();
+                    configure_group_item(posted_headline->animation, speed, posted_r,
                                          QRect(posted_r.x(), posted_r.y() - r.height() - margin, posted_r.width(), posted_r.height()));
                 }
             }
@@ -329,29 +329,29 @@ void Chyron::start_article_entry(ArticlePointer article)
             break;
     }
 
-    entering_map[article] = true;
-    article->viewed = QDateTime::currentDateTime().toTime_t();
-    article->show();
+    entering_map[headline] = true;
+    headline->viewed = QDateTime::currentDateTime().toTime_t();
+    headline->show();
 
     if(animation_group)
     {
-        animation_group->addAnimation(article->animation);
-        foreach(ArticlePointer posted_article, article_list)
-            animation_group->addAnimation(posted_article->animation);
+        animation_group->addAnimation(headline->animation);
+        foreach(HeadlinePointer posted_headline, headline_list)
+            animation_group->addAnimation(posted_headline->animation);
        animation_group->start();
     }
     else
-        article->animation->start();
+        headline->animation->start();
 }
 
 //
-void Chyron::start_article_exit(ArticlePointer article)
+void Chyron::start_headline_exit(HeadlinePointer headline)
 {
     // the time-to-display has expired
 
     QDesktopWidget* desktop = QApplication::desktop();
     QRect r_desktop = desktop->screenGeometry(display);
-    QRect r = article->geometry();
+    QRect r = headline->geometry();
 
     int speed = 500;
 
@@ -359,22 +359,22 @@ void Chyron::start_article_exit(ArticlePointer article)
     {
         if(age_effect == AgeEffects::ReduceOpacityFixed)
         {
-            article->setAttribute(Qt::WA_TranslucentBackground, true);
+            headline->setAttribute(Qt::WA_TranslucentBackground, true);
 
             QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
             eff->setOpacity(1.0);
-            article->setGraphicsEffect(eff);
-            article->animation = new QPropertyAnimation(eff, "opacity");
-            article->animation->setDuration(speed);
-            article->animation->setStartValue(1.0);
-            article->animation->setEndValue(train_reduce_opacity / 100.0);
-            article->animation->setEasingCurve(QEasingCurve::InCubic);
-            connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+            headline->setGraphicsEffect(eff);
+            headline->animation = new QPropertyAnimation(eff, "opacity");
+            headline->animation->setDuration(speed);
+            headline->animation->setStartValue(1.0);
+            headline->animation->setEndValue(train_reduce_opacity / 100.0);
+            headline->animation->setEasingCurve(QEasingCurve::InCubic);
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
-            article->animation->start();
+            headline->animation->start();
         }
 
-        article->ignore = true;     // ignore subsequent 'aging' activities on this one
+        headline->ignore = true;     // ignore subsequent 'aging' activities on this one
     }
     else
     {
@@ -388,51 +388,51 @@ void Chyron::start_article_exit(ArticlePointer article)
             case AnimExitType::SlideFadeRight:
             case AnimExitType::SlideFadeUp:
             case AnimExitType::SlideFadeDown:
-                article->animation = new QPropertyAnimation(article.data(), "geometry");
-                article->animation->setDuration(speed);
-                article->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-                article->animation->setEasingCurve(QEasingCurve::InCubic);
-                connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_expired);
-                prop_anim_map[article->animation] = article;
+                headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+                headline->animation->setDuration(speed);
+                headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+                headline->animation->setEasingCurve(QEasingCurve::InCubic);
+                connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
+                prop_anim_map[headline->animation] = headline;
                 break;
 
             case AnimExitType::Fade:
                 {
-                    article->setAttribute(Qt::WA_TranslucentBackground, true);
+                    headline->setAttribute(Qt::WA_TranslucentBackground, true);
 
                     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
                     eff->setOpacity(1.0);
-                    article->setGraphicsEffect(eff);
-                    article->animation = new QPropertyAnimation(eff, "opacity");
-                    article->animation->setDuration(speed);
-                    article->animation->setStartValue(1.0);
-                    article->animation->setEndValue(0.0);
-                    article->animation->setEasingCurve(QEasingCurve::InCubic);
-                    connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_expired);
-                    prop_anim_map[article->animation] = article;
+                    headline->setGraphicsEffect(eff);
+                    headline->animation = new QPropertyAnimation(eff, "opacity");
+                    headline->animation->setDuration(speed);
+                    headline->animation->setStartValue(1.0);
+                    headline->animation->setEndValue(0.0);
+                    headline->animation->setEasingCurve(QEasingCurve::InCubic);
+                    connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
+                    prop_anim_map[headline->animation] = headline;
                 }
                 break;
 
             case AnimExitType::Pop:
-                article_list.removeAll(article);
-                article->hide();
-                article.clear();
+                headline_list.removeAll(headline);
+                headline->hide();
+                headline.clear();
                 break;
         }
 
         switch(exit_type)
         {
             case AnimExitType::SlideLeft:
-                article->animation->setEndValue(QRect(-r.width(), r.y(), r.width(), r.height()));
+                headline->animation->setEndValue(QRect(-r.width(), r.y(), r.width(), r.height()));
                 break;
             case AnimExitType::SlideRight:
-                article->animation->setEndValue(QRect(r_desktop.width() + r.width(), r.y(), r.width(), r.height()));
+                headline->animation->setEndValue(QRect(r_desktop.width() + r.width(), r.y(), r.width(), r.height()));
                 break;
             case AnimExitType::SlideUp:
-                article->animation->setEndValue(QRect(r.x(), -r.height(), r.width(), r.height()));
+                headline->animation->setEndValue(QRect(r.x(), -r.height(), r.width(), r.height()));
                 break;
             case AnimExitType::SlideDown:
-                article->animation->setEndValue(QRect(r.x(), r_desktop.height() + r.height(), r.width(), r.height()));
+                headline->animation->setEndValue(QRect(r.x(), r_desktop.height() + r.height(), r.width(), r.height()));
                 break;
             case AnimExitType::SlideFadeLeft:
             case AnimExitType::SlideFadeRight:
@@ -444,46 +444,46 @@ void Chyron::start_article_exit(ArticlePointer article)
                 break;
         }
 
-        exiting_map[article] = true;
-        article_list.removeAll(article);
+        exiting_map[headline] = true;
+        headline_list.removeAll(headline);
 
-        article->animation->start();
+        headline->animation->start();
     }
 }
 
-void Chyron::slot_file_article(ArticlePointer article)
+void Chyron::slot_file_headline(HeadlinePointer headline)
 {
-    if(article->story.toString().compare(story.toString()))
-        return;     // this article isn't for this story
-    incoming_articles.enqueue(article);
+    if(headline->story.toString().compare(story.toString()))
+        return;     // this headline isn't for this story
+    incoming_headlines.enqueue(headline);
 }
 
-void Chyron::slot_article_posted()
+void Chyron::slot_headline_posted()
 {
     QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(sender());
-    ArticlePointer article = prop_anim_map[anim];
+    HeadlinePointer headline = prop_anim_map[anim];
 
     prop_anim_map.remove(anim);
-    entering_map.remove(article);
+    entering_map.remove(headline);
 
-    article->animation->deleteLater();
+    headline->animation->deleteLater();
 
-    article->viewed = QDateTime::currentDateTime().toTime_t();
-    article_list.append(article);
+    headline->viewed = QDateTime::currentDateTime().toTime_t();
+    headline_list.append(headline);
 }
 
-void Chyron::slot_article_expired()
+void Chyron::slot_headline_expired()
 {
     QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(sender());
-    ArticlePointer article = prop_anim_map[anim];
+    HeadlinePointer headline = prop_anim_map[anim];
 
     prop_anim_map.remove(anim);
-    exiting_map.remove(article);
+    exiting_map.remove(headline);
 
-    article->animation->deleteLater();
+    headline->animation->deleteLater();
 
-    article->hide();
-    article.clear();
+    headline->hide();
+    headline.clear();
 }
 
 void Chyron::slot_release_animation()
@@ -492,31 +492,31 @@ void Chyron::slot_release_animation()
     anim->deleteLater();
 }
 
-void Chyron::slot_age_articles()
+void Chyron::slot_age_headlines()
 {
     if(entering_map.count() || exiting_map.count())
         return;     // let any running animation finish
 
     uint now = QDateTime::currentDateTime().toTime_t();
 
-    if(incoming_articles.length())
+    if(incoming_headlines.length())
     {
-        ArticlePointer article = incoming_articles.dequeue();
-        article->viewed = 0;    // let's us know when the article was first displayed
-        initialize_article(article);
+        HeadlinePointer headline = incoming_headlines.dequeue();
+        headline->viewed = 0;    // let's us know when the headline was first displayed
+        initialize_headline(headline);
 
-        // inject an article into the chyron
-        start_article_entry(article);
+        // inject an headline into the chyron
+        start_headline_entry(headline);
     }
     else
     {
-        foreach(ArticlePointer article, article_list)
+        foreach(HeadlinePointer headline, headline_list)
         {
-            if(!article->ignore)
+            if(!headline->ignore)
             {
-                if((now - article->viewed) > ttl)
+                if((now - headline->viewed) > ttl)
                 {
-                    start_article_exit(article);
+                    start_headline_exit(headline);
                     break;
                 }
             }
@@ -524,7 +524,7 @@ void Chyron::slot_age_articles()
     }
 }
 
-void Chyron::slot_train_expire_articles()
+void Chyron::slot_train_expire_headlines()
 {
     // each headline that is no longer visible on the primary
     // display will be expired
@@ -532,20 +532,20 @@ void Chyron::slot_train_expire_articles()
     QDesktopWidget* desktop = QApplication::desktop();
     QRect r_desktop = desktop->screenGeometry(display);
 
-    ArticleList expired_list;
-    foreach(ArticlePointer article, article_list)
+    HeadlineList expired_list;
+    foreach(HeadlinePointer headline, headline_list)
     {
-        QRect r = article->geometry();
+        QRect r = headline->geometry();
         if(!r_desktop.contains(QPoint(r.x(), r.y())) &&
            !r_desktop.contains(QPoint(r.x(), r.y() + r.height())) &&
            !r_desktop.contains(r.x() + r.width(), r.y() + r.height()) &&
            !r_desktop.contains(r.x() + r.width(), r.y()))
-            expired_list.append(article);
+            expired_list.append(headline);
     }
 
-    foreach(ArticlePointer expired, expired_list)
+    foreach(HeadlinePointer expired, expired_list)
     {
-        article_list.removeAll(expired);
+        headline_list.removeAll(expired);
         expired->hide();
         expired.clear();
     }

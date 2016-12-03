@@ -8,7 +8,7 @@
 
 #include "types.h"
 #include "specialize.h"
-#include "article.h"
+#include "headline.h"
 
 class Reporter : public QObject
 {
@@ -25,7 +25,7 @@ public:
     virtual void    load(QSettings& settings) = 0;
 
 signals:
-    void            signal_new_article(ArticlePointer article);
+    void            signal_new_headline(HeadlinePointer headline);
 
 protected:
     QUrl            story;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "article.h"
+#include "headline.h"
 #include "reporter.h"
 
 class ReporterLocal : public Reporter
