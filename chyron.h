@@ -11,6 +11,11 @@
 #include "specialize.h"
 #include "article.h"
 
+/// @class Chyron
+/// @brief Manages headlines submitted by Reporters
+///
+/// The Chyron class manages the display of headlines submitted by Reporters.
+
 class Chyron : public QObject
 {
     Q_OBJECT
@@ -23,6 +28,9 @@ public:
                     AnimEntryType entry_type,
                     AnimExitType exit_type,
                     ReportStacking stacking_type,
+                    int train_fixed_width = 0,
+                    AgeEffects effect = AgeEffects::None,
+                    int train_reduce_opacity = 0,
                     int margin = 5,
                     QObject* parent = nullptr);
 
@@ -41,6 +49,7 @@ protected slots:
     void        slot_article_posted();
     void        slot_article_expired();
     void        slot_release_animation();
+    void        slot_train_expire_articles();
 
 protected:  // typedefs and enums
     SPECIALIZE_LIST(ArticlePointer, Article)            // "ArticleList"
@@ -64,11 +73,15 @@ protected:  // data members
     AnimExitType    exit_type;
     ReportStacking  stacking_type;
     int             margin;
+    int             train_fixed_width;
+    AgeEffects      age_effect;
+    int             train_reduce_opacity;
 
     QTimer*         age_timer;
 
     TransitionQueue incoming_articles;
     ArticleList     article_list;
+    ArticleList     reduce_list;
 
     PropertyAnimationMap prop_anim_map;
     EnteringMap     entering_map;

@@ -1,6 +1,5 @@
 #pragma once
 
-// Order is important here so they match the GUI controls
 enum AnimEntryType
 {
 #   define X(a) a,
@@ -25,4 +24,11 @@ enum LocalTrigger
 {
     NewContent,
     FileChange
+};
+
+enum AgeEffects
+{
+    None,
+    ReduceOpacityFixed,
+    ReduceOpacityByAge
 };

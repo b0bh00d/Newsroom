@@ -35,14 +35,14 @@ OBJECTS_DIR = $$INTERMEDIATE_NAME/obj
 RCC_DIR = $$INTERMEDIATE_NAME/rcc
 UI_DIR = $$INTERMEDIATE_NAME/ui
 
-SOURCES += main.cpp\
+SOURCES += main.cpp \
         mainwindow.cpp \
         reporter.cpp \
         reporter_local.cpp \
         addlocaldialog.cpp \
         article.cpp \
         chyron.cpp \
-    settingsdialog.cpp
+        settingsdialog.cpp \
 
 HEADERS  += mainwindow.h \
             reporter.h \
@@ -52,8 +52,10 @@ HEADERS  += mainwindow.h \
             specialize.h \
             article.h \
             chyron.h \
-    settingsdialog.h
+            settingsdialog.h \
+            animentrytype.def \
+            animexittype.def
 
 FORMS    += mainwindow.ui \
             addlocaldialog.ui \
-    settingsdialog.ui
+            settingsdialog.ui

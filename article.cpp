@@ -10,7 +10,8 @@
 Article::Article(const QUrl& story,
                  const QString& article,
                  QWidget* parent)
-    : story(story),
+    : ignore(false),
+      story(story),
       article(article),
       QWidget(parent)
 {
@@ -18,7 +19,6 @@ Article::Article(const QUrl& story,
 
 void Article::configure(const QFont& font, bool stay_visible)
 {
-
     // https://stackoverflow.com/questions/18316710/frameless-and-transparent-window-qt5
     if(stay_visible)
         setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);

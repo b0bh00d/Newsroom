@@ -24,6 +24,8 @@ public:
     void            set_always_visible(bool visible);
     void            set_screens(int primary_screen, int screen_count);
     void            set_animation_entry_and_exit(AnimEntryType entry_type, AnimExitType exit_type);
+    void            set_train_fixed_width(int width = 0);
+    void            set_train_age_effects(AgeEffects effect, int percent = 0);
 
     int             get_display();
     LocalTrigger    get_trigger();
@@ -31,9 +33,16 @@ public:
     bool            get_always_visible();
     AnimEntryType   get_animation_entry_type();
     AnimExitType    get_animation_exit_type();
+    int             get_train_fixed_width();
+    AgeEffects      get_train_age_effects(int& percent);
 
 protected:
     void            showEvent(QShowEvent *);
+
+protected slots:
+    void            slot_entry_type_changed(int index);
+    void            slot_train_fixed_width_clicked(bool checked);
+    void            slot_train_reduce_opacity_clicked(bool checked);
 
 private:
     Ui::AddLocalDialog *ui;

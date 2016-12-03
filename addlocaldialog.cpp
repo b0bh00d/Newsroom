@@ -34,6 +34,12 @@ AddLocalDialog::AddLocalDialog(QWidget *parent) :
 
     setWindowTitle(tr("Newsroom: Add Story"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
+
+    connect(ui->combo_EntryType, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &AddLocalDialog::slot_entry_type_changed);
+    connect(ui->check_TrainFixedWidth, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_fixed_width_clicked);
+    connect(ui->radio_TrainReduceOpacityFixed, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
+    connect(ui->radio_TrainReduceOpacityByAge, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
 }
 
 AddLocalDialog::~AddLocalDialog()
@@ -87,6 +93,27 @@ void AddLocalDialog::set_animation_entry_and_exit(AnimEntryType entry_type, Anim
 {
     ui->combo_EntryType->setCurrentIndex(static_cast<int>(entry_type));
     ui->combo_ExitType->setCurrentIndex(static_cast<int>(exit_type));
+
+    slot_entry_type_changed(ui->combo_EntryType->currentIndex());
+}
+
+void AddLocalDialog::set_train_fixed_width(int width)
+{
+    ui->check_TrainFixedWidth->setEnabled(width != 0);
+    if(width)
+        ui->edit_TrainFixedWidth->setText(QString::number(width));
+}
+
+void AddLocalDialog::set_train_age_effects(AgeEffects effect, int percent)
+{
+    ui->edit_TrainFixedWidth->clear();
+
+    ui->group_AgeEffects->setEnabled(effect != AgeEffects::None);
+    ui->radio_TrainReduceOpacityFixed->setEnabled(effect == AgeEffects::ReduceOpacityFixed);
+    if(percent)
+        ui->edit_TrainReduceOpacity->setText(QString::number(percent));
+    ui->edit_TrainReduceOpacity->setEnabled(effect == AgeEffects::ReduceOpacityFixed);
+    ui->radio_TrainReduceOpacityFixed->setEnabled(effect == AgeEffects::ReduceOpacityByAge);
 }
 
 LocalTrigger AddLocalDialog::get_trigger()
@@ -127,4 +154,43 @@ AnimEntryType AddLocalDialog::get_animation_entry_type()
 AnimExitType AddLocalDialog::get_animation_exit_type()
 {
     return static_cast<AnimExitType>(ui->combo_ExitType->currentIndex());
+}
+
+int AddLocalDialog::get_train_fixed_width()
+{
+    if(!ui->check_TrainFixedWidth->isChecked() || ui->edit_TrainFixedWidth->text().isEmpty())
+        return 0;
+    return ui->edit_TrainFixedWidth->text().toInt();
+}
+
+AgeEffects AddLocalDialog::get_train_age_effects(int& percent)
+{
+    if(!ui->group_AgeEffects->isEnabled())
+        return AgeEffects::None;
+
+    percent = ui->edit_TrainReduceOpacity->text().toInt();
+    return (ui->radio_TrainReduceOpacityFixed->isChecked() ? AgeEffects::ReduceOpacityFixed : AgeEffects::ReduceOpacityByAge);
+}
+
+void AddLocalDialog::slot_entry_type_changed(int index)
+{
+    bool is_train = ui->combo_EntryType->itemText(index).startsWith(tr("Train"));
+    ui->combo_ExitType->setEnabled(!is_train);
+    ui->group_Train->setEnabled(is_train);
+
+//    if(is_train)
+//    {
+//        slot_train_fixed_width_clicked(ui->check_TrainFixedWidth->isChecked());
+//        slot_train_reduce_opacity_clicked(ui->check_TrainReduceOpacity->isChecked());
+//    }
+}
+
+void AddLocalDialog::slot_train_fixed_width_clicked(bool checked)
+{
+    ui->edit_TrainFixedWidth->setEnabled(checked);
+}
+
+void AddLocalDialog::slot_train_reduce_opacity_clicked(bool checked)
+{
+    ui->edit_TrainReduceOpacity->setEnabled(ui->radio_TrainReduceOpacityFixed->isChecked());
 }
