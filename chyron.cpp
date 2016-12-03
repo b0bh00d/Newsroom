@@ -1,3 +1,5 @@
+#include <limits>
+
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QGraphicsOpacityEffect>
@@ -15,6 +17,9 @@ Chyron::Chyron(const QUrl&      story,
                AnimEntryType    entry_type,
                AnimExitType     exit_type,
                ReportStacking   stacking_type,
+               int              train_fixed_width,
+               AgeEffects       age_effect,
+               int              train_reduce_opacity,
                int              margin,
                QObject*         parent)
     : story(story),
@@ -25,6 +30,9 @@ Chyron::Chyron(const QUrl&      story,
       entry_type(entry_type),
       exit_type(exit_type),
       stacking_type(stacking_type),
+      train_fixed_width(train_fixed_width),
+      age_effect(age_effect),
+      train_reduce_opacity(train_reduce_opacity),
       margin(margin),
       QObject(parent)
 {
@@ -41,7 +49,7 @@ void Chyron::initialize_article(ArticlePointer article)
     int x = 0;
     int y = 0;
     QRect r = article->geometry();
-    int width = r.width();
+    int width = train_fixed_width ? train_fixed_width : r.width();
     int height = r.height();
 
     QDesktopWidget* desktop = QApplication::desktop();
@@ -49,42 +57,52 @@ void Chyron::initialize_article(ArticlePointer article)
     switch(entry_type)
     {
         case AnimEntryType::SlideDownLeftTop:
+        case AnimEntryType::TrainDownLeftTop:
             y = r_desktop.top() - height;
             x = r_desktop.left() + margin;
             break;
         case AnimEntryType::SlideDownCenterTop:
+        case AnimEntryType::TrainDownCenterTop:
             y = r_desktop.top() - height;
             x = r_desktop.left() + (r_desktop.width() - width) / 2;
             break;
         case AnimEntryType::SlideDownRightTop:
+        case AnimEntryType::TrainDownRightTop:
             y = r_desktop.top() - height;
             x = r_desktop.right() - width - margin;
             break;
         case AnimEntryType::SlideInLeftTop:
+        case AnimEntryType::TrainInLeftTop:
             y = r_desktop.top() + margin;
             x = r_desktop.left() - width;
             break;
         case AnimEntryType::SlideInRightTop:
+        case AnimEntryType::TrainInRightTop:
             y = r_desktop.top() + margin;
             x = r_desktop.right() + width;
             break;
         case AnimEntryType::SlideInLeftBottom:
+        case AnimEntryType::TrainInLeftBottom:
             y = r_desktop.bottom() - height - margin;
             x = r_desktop.left() - width;
             break;
         case AnimEntryType::SlideInRightBottom:
+        case AnimEntryType::TrainInRightBottom:
             y = r_desktop.bottom() - height - margin;
             x = r_desktop.right() + width;
             break;
         case AnimEntryType::SlideUpLeftBottom:
+        case AnimEntryType::TrainUpLeftBottom:
             y = r_desktop.bottom() + height;
             x = r_desktop.left() + margin;
             break;
         case AnimEntryType::SlideUpRightBottom:
+        case AnimEntryType::TrainUpRightBottom:
             y = r_desktop.bottom() + height;
             x = r_desktop.right() - width - margin;
             break;
         case AnimEntryType::SlideUpCenterBottom:
+        case AnimEntryType::TrainUpCenterBottom:
             y = r_desktop.bottom() + height;
             x = r_desktop.left() + (r_desktop.width() - width) / 2;
             break;
@@ -139,6 +157,16 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::SlideUpLeftBottom:
         case AnimEntryType::SlideUpRightBottom:
         case AnimEntryType::SlideUpCenterBottom:
+        case AnimEntryType::TrainDownLeftTop:
+        case AnimEntryType::TrainDownCenterTop:
+        case AnimEntryType::TrainDownRightTop:
+        case AnimEntryType::TrainInLeftTop:
+        case AnimEntryType::TrainInRightTop:
+        case AnimEntryType::TrainInLeftBottom:
+        case AnimEntryType::TrainInRightBottom:
+        case AnimEntryType::TrainUpLeftBottom:
+        case AnimEntryType::TrainUpRightBottom:
+        case AnimEntryType::TrainUpCenterBottom:
             article->animation = new QPropertyAnimation(article.data(), "geometry");
             article->animation->setDuration(speed);
             article->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
@@ -154,6 +182,9 @@ void Chyron::start_article_entry(ArticlePointer article)
                     posted_article->animation = new QPropertyAnimation(posted_article.data(), "geometry");
                     connect(posted_article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
                 }
+
+                if(entry_type >= AnimEntryType::TrainDownLeftTop && entry_type <= AnimEntryType::TrainUpCenterBottom)
+                    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_train_expire_articles);
             }
             break;
 
@@ -172,7 +203,7 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::FadeLeftBottom:
         case AnimEntryType::FadeRightBottom:
             {
-                //article->setAttribute(Qt::WA_TranslucentBackground, true);
+                article->setAttribute(Qt::WA_TranslucentBackground, true);
 
                 QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
                 eff->setOpacity(0.0);
@@ -200,6 +231,9 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::SlideDownLeftTop:
         case AnimEntryType::SlideDownCenterTop:
         case AnimEntryType::SlideDownRightTop:
+        case AnimEntryType::TrainDownLeftTop:
+        case AnimEntryType::TrainDownCenterTop:
+        case AnimEntryType::TrainDownRightTop:
             article->animation->setEndValue(QRect(r.x(), margin, r.width(), r.height()));
 
             if(animation_group)
@@ -213,6 +247,7 @@ void Chyron::start_article_entry(ArticlePointer article)
             }
             break;
         case AnimEntryType::SlideInLeftTop:
+        case AnimEntryType::TrainInLeftTop:
             article->animation->setEndValue(QRect(margin, margin, r.width(), r.height()));
 
             if(animation_group)
@@ -226,6 +261,7 @@ void Chyron::start_article_entry(ArticlePointer article)
             }
             break;
         case AnimEntryType::SlideInRightTop:
+        case AnimEntryType::TrainInRightTop:
             article->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, margin, r.width(), r.height()));
 
             if(animation_group)
@@ -239,6 +275,7 @@ void Chyron::start_article_entry(ArticlePointer article)
             }
             break;
         case AnimEntryType::SlideInLeftBottom:
+        case AnimEntryType::TrainInLeftBottom:
             article->animation->setEndValue(QRect(margin, r.y(), r.width(), r.height()));
 
             if(animation_group)
@@ -252,6 +289,7 @@ void Chyron::start_article_entry(ArticlePointer article)
             }
             break;
         case AnimEntryType::SlideInRightBottom:
+        case AnimEntryType::TrainInRightBottom:
             article->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, r.y(), r.width(), r.height()));
 
             if(animation_group)
@@ -267,6 +305,9 @@ void Chyron::start_article_entry(ArticlePointer article)
         case AnimEntryType::SlideUpLeftBottom:
         case AnimEntryType::SlideUpRightBottom:
         case AnimEntryType::SlideUpCenterBottom:
+        case AnimEntryType::TrainUpLeftBottom:
+        case AnimEntryType::TrainUpRightBottom:
+        case AnimEntryType::TrainUpCenterBottom:
             article->animation->setEndValue(QRect(r.x(), r_desktop.bottom() - r.height() - margin, r.width(), r.height()));
 
             if(animation_group)
@@ -303,84 +344,111 @@ void Chyron::start_article_entry(ArticlePointer article)
         article->animation->start();
 }
 
+//
 void Chyron::start_article_exit(ArticlePointer article)
 {
+    // the time-to-display has expired
+
     QDesktopWidget* desktop = QApplication::desktop();
     QRect r_desktop = desktop->screenGeometry(display);
     QRect r = article->geometry();
 
     int speed = 500;
 
-    switch(exit_type)
+    if(entry_type >= AnimEntryType::TrainDownLeftTop && entry_type <= AnimEntryType::TrainUpCenterBottom)
     {
-        case AnimExitType::SlideLeft:
-        case AnimExitType::SlideRight:
-        case AnimExitType::SlideUp:
-        case AnimExitType::SlideDown:
-        case AnimExitType::SlideFadeLeft:
-        case AnimExitType::SlideFadeRight:
-        case AnimExitType::SlideFadeUp:
-        case AnimExitType::SlideFadeDown:
-            article->animation = new QPropertyAnimation(article.data(), "geometry");
+        if(age_effect == AgeEffects::ReduceOpacityFixed)
+        {
+            article->setAttribute(Qt::WA_TranslucentBackground, true);
+
+            QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+            eff->setOpacity(1.0);
+            article->setGraphicsEffect(eff);
+            article->animation = new QPropertyAnimation(eff, "opacity");
             article->animation->setDuration(speed);
-            article->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+            article->animation->setStartValue(1.0);
+            article->animation->setEndValue(train_reduce_opacity / 100.0);
             article->animation->setEasingCurve(QEasingCurve::InCubic);
-            connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_expired);
-            prop_anim_map[article->animation] = article;
-            break;
+            connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
-        case AnimExitType::Fade:
-            {
-                article->setAttribute(Qt::WA_TranslucentBackground, true);
+            article->animation->start();
+        }
 
-                QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
-                eff->setOpacity(1.0);
-                article->setGraphicsEffect(eff);
-                article->animation = new QPropertyAnimation(eff, "opacity");
+        article->ignore = true;     // ignore subsequent 'aging' activities on this one
+    }
+    else
+    {
+        switch(exit_type)
+        {
+            case AnimExitType::SlideLeft:
+            case AnimExitType::SlideRight:
+            case AnimExitType::SlideUp:
+            case AnimExitType::SlideDown:
+            case AnimExitType::SlideFadeLeft:
+            case AnimExitType::SlideFadeRight:
+            case AnimExitType::SlideFadeUp:
+            case AnimExitType::SlideFadeDown:
+                article->animation = new QPropertyAnimation(article.data(), "geometry");
                 article->animation->setDuration(speed);
-                article->animation->setStartValue(1.0);
-                article->animation->setEndValue(0.0);
+                article->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
                 article->animation->setEasingCurve(QEasingCurve::InCubic);
                 connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_expired);
                 prop_anim_map[article->animation] = article;
-            }
-            break;
+                break;
 
-        case AnimExitType::Pop:
-            article_list.removeAll(article);
-            article->hide();
-            article.clear();
-            break;
+            case AnimExitType::Fade:
+                {
+                    article->setAttribute(Qt::WA_TranslucentBackground, true);
+
+                    QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+                    eff->setOpacity(1.0);
+                    article->setGraphicsEffect(eff);
+                    article->animation = new QPropertyAnimation(eff, "opacity");
+                    article->animation->setDuration(speed);
+                    article->animation->setStartValue(1.0);
+                    article->animation->setEndValue(0.0);
+                    article->animation->setEasingCurve(QEasingCurve::InCubic);
+                    connect(article->animation, &QPropertyAnimation::finished, this, &Chyron::slot_article_expired);
+                    prop_anim_map[article->animation] = article;
+                }
+                break;
+
+            case AnimExitType::Pop:
+                article_list.removeAll(article);
+                article->hide();
+                article.clear();
+                break;
+        }
+
+        switch(exit_type)
+        {
+            case AnimExitType::SlideLeft:
+                article->animation->setEndValue(QRect(-r.width(), r.y(), r.width(), r.height()));
+                break;
+            case AnimExitType::SlideRight:
+                article->animation->setEndValue(QRect(r_desktop.width() + r.width(), r.y(), r.width(), r.height()));
+                break;
+            case AnimExitType::SlideUp:
+                article->animation->setEndValue(QRect(r.x(), -r.height(), r.width(), r.height()));
+                break;
+            case AnimExitType::SlideDown:
+                article->animation->setEndValue(QRect(r.x(), r_desktop.height() + r.height(), r.width(), r.height()));
+                break;
+            case AnimExitType::SlideFadeLeft:
+            case AnimExitType::SlideFadeRight:
+            case AnimExitType::SlideFadeUp:
+            case AnimExitType::SlideFadeDown:
+                break;
+
+            case AnimExitType::Fade:
+                break;
+        }
+
+        exiting_map[article] = true;
+        article_list.removeAll(article);
+
+        article->animation->start();
     }
-
-    switch(exit_type)
-    {
-        case AnimExitType::SlideLeft:
-            article->animation->setEndValue(QRect(-r.width(), r.y(), r.width(), r.height()));
-            break;
-        case AnimExitType::SlideRight:
-            article->animation->setEndValue(QRect(r_desktop.width() + r.width(), r.y(), r.width(), r.height()));
-            break;
-        case AnimExitType::SlideUp:
-            article->animation->setEndValue(QRect(r.x(), -r.height(), r.width(), r.height()));
-            break;
-        case AnimExitType::SlideDown:
-            article->animation->setEndValue(QRect(r.x(), r_desktop.height() + r.height(), r.width(), r.height()));
-            break;
-        case AnimExitType::SlideFadeLeft:
-        case AnimExitType::SlideFadeRight:
-        case AnimExitType::SlideFadeUp:
-        case AnimExitType::SlideFadeDown:
-            break;
-
-        case AnimExitType::Fade:
-            break;
-    }
-
-    exiting_map[article] = true;
-    article_list.removeAll(article);
-
-    article->animation->start();
 }
 
 void Chyron::slot_file_article(ArticlePointer article)
@@ -444,11 +512,41 @@ void Chyron::slot_age_articles()
     {
         foreach(ArticlePointer article, article_list)
         {
-            if((now - article->viewed) > ttl)
+            if(!article->ignore)
             {
-                start_article_exit(article);
-                break;
+                if((now - article->viewed) > ttl)
+                {
+                    start_article_exit(article);
+                    break;
+                }
             }
         }
+    }
+}
+
+void Chyron::slot_train_expire_articles()
+{
+    // each headline that is no longer visible on the primary
+    // display will be expired
+
+    QDesktopWidget* desktop = QApplication::desktop();
+    QRect r_desktop = desktop->screenGeometry(display);
+
+    ArticleList expired_list;
+    foreach(ArticlePointer article, article_list)
+    {
+        QRect r = article->geometry();
+        if(!r_desktop.contains(QPoint(r.x(), r.y())) &&
+           !r_desktop.contains(QPoint(r.x(), r.y() + r.height())) &&
+           !r_desktop.contains(r.x() + r.width(), r.y() + r.height()) &&
+           !r_desktop.contains(r.x() + r.width(), r.y()))
+            expired_list.append(article);
+    }
+
+    foreach(ArticlePointer expired, expired_list)
+    {
+        article_list.removeAll(expired);
+        expired->hide();
+        expired.clear();
     }
 }

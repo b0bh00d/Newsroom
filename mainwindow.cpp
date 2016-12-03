@@ -147,6 +147,10 @@ void MainWindow::dropEvent(QDropEvent* event)
 
                 // see if this story already has a chyron
                 if(stories.find(story) == stories.end())
+                {
+                    int percent;
+                    AgeEffects effect = dlg.get_train_age_effects(percent);
+
                     stories[story] = ChyronPointer(new Chyron(story,
                                                              dlg.get_ttl(),
                                                              dlg.get_display(),
@@ -154,7 +158,10 @@ void MainWindow::dropEvent(QDropEvent* event)
                                                              dlg.get_always_visible(),
                                                              dlg.get_animation_entry_type(),
                                                              dlg.get_animation_exit_type(),
-                                                             chyron_stacking));
+                                                             chyron_stacking,
+                                                             dlg.get_train_fixed_width(),
+                                                             effect, percent));
+                }
                 ChyronPointer chyron = stories[story];
                 if(!stacking.contains(entry_type))
                     stacking[entry_type] = StoryVector();
