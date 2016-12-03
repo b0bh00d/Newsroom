@@ -5,19 +5,19 @@
 
 #include <QtCore/QUrl>
 
-#include "article.h"
+#include "headline.h"
 
-Article::Article(const QUrl& story,
-                 const QString& article,
+Headline::Headline(const QUrl& story,
+                 const QString& headline,
                  QWidget* parent)
     : ignore(false),
       story(story),
-      article(article),
+      headline(headline),
       QWidget(parent)
 {
 }
 
-void Article::configure(const QFont& font, bool stay_visible)
+void Headline::configure(const QFont& font, bool stay_visible)
 {
     // https://stackoverflow.com/questions/18316710/frameless-and-transparent-window-qt5
     if(stay_visible)
@@ -35,7 +35,7 @@ void Article::configure(const QFont& font, bool stay_visible)
 
     QLabel* label = new QLabel(this);
     label->setMargin(5);
-    label->setText(article);
+    label->setText(headline);
     label->setStyleSheet("color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;");
 
     //QFont f = label->font();

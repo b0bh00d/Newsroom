@@ -9,7 +9,7 @@
 
 #include "types.h"
 #include "specialize.h"
-#include "article.h"
+#include "headline.h"
 
 /// @class Chyron
 /// @brief Manages headlines submitted by Reporters
@@ -42,26 +42,26 @@ public:
     void        set_stacking_lane(int /*lane*/) {}
 
 public slots:
-    void        slot_file_article(ArticlePointer article);
+    void        slot_file_headline(HeadlinePointer headline);
 
 protected slots:
-    void        slot_age_articles();
-    void        slot_article_posted();
-    void        slot_article_expired();
+    void        slot_age_headlines();
+    void        slot_headline_posted();
+    void        slot_headline_expired();
     void        slot_release_animation();
-    void        slot_train_expire_articles();
+    void        slot_train_expire_headlines();
 
 protected:  // typedefs and enums
-    SPECIALIZE_LIST(ArticlePointer, Article)            // "ArticleList"
-    SPECIALIZE_QUEUE(ArticlePointer, Transition)        // "TransitionQueue"
-    SPECIALIZE_MAP(QPropertyAnimation*, ArticlePointer, PropertyAnimation) // "PropertyAnimationMap"
-    SPECIALIZE_MAP(ArticlePointer, bool, Entering)      // "EnteringMap"
-    SPECIALIZE_MAP(ArticlePointer, bool, Exiting)       // "ExitingMap"
+    SPECIALIZE_LIST(HeadlinePointer, Headline)          // "HeadlineList"
+    SPECIALIZE_QUEUE(HeadlinePointer, Transition)       // "TransitionQueue"
+    SPECIALIZE_MAP(QPropertyAnimation*, HeadlinePointer, PropertyAnimation) // "PropertyAnimationMap"
+    SPECIALIZE_MAP(HeadlinePointer, bool, Entering)     // "EnteringMap"
+    SPECIALIZE_MAP(HeadlinePointer, bool, Exiting)      // "ExitingMap"
 
 protected:  // methods
-    void        initialize_article(ArticlePointer article);
-    void        start_article_entry(ArticlePointer article);
-    void        start_article_exit(ArticlePointer article);
+    void        initialize_headline(HeadlinePointer headline);
+    void        start_headline_entry(HeadlinePointer headline);
+    void        start_headline_exit(HeadlinePointer headline);
 
 protected:  // data members
     QUrl            story;
@@ -79,9 +79,9 @@ protected:  // data members
 
     QTimer*         age_timer;
 
-    TransitionQueue incoming_articles;
-    ArticleList     article_list;
-    ArticleList     reduce_list;
+    TransitionQueue incoming_headlines;
+    HeadlineList    headline_list;
+    HeadlineList    reduce_list;
 
     PropertyAnimationMap prop_anim_map;
     EnteringMap     entering_map;

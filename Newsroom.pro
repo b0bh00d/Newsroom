@@ -40,7 +40,7 @@ SOURCES += main.cpp \
         reporter.cpp \
         reporter_local.cpp \
         addlocaldialog.cpp \
-        article.cpp \
+        headline.cpp \
         chyron.cpp \
         settingsdialog.cpp \
 
@@ -50,7 +50,7 @@ HEADERS  += mainwindow.h \
             addlocaldialog.h \
             types.h \
             specialize.h \
-            article.h \
+            headline.h \
             chyron.h \
             settingsdialog.h \
             animentrytype.def \

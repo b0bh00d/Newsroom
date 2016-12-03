@@ -49,10 +49,10 @@ void ReporterLocal::slot_poll()
 
         if(trigger_type == LocalTrigger::FileChange)
         {
-            // this is enough to trigger an article
+            // this is enough to trigger an headline
             report = QString("Story '%1' was updated on %2").arg(story.toString()).arg(target.lastModified().toString());
-            ArticlePointer article(new Article(story, report));
-            emit signal_new_article(article);
+            HeadlinePointer headline(new Headline(story, report));
+            emit signal_new_headline(headline);
         }
         else if(trigger_type == LocalTrigger::NewContent)
         {
@@ -65,9 +65,9 @@ void ReporterLocal::slot_poll()
                     target_file.seek(seek_offset);
                     QByteArray data = target_file.readAll();
 
-                    // file an article with the new content
-                    ArticlePointer article(new Article(story, QString(data)));
-                    emit signal_new_article(article);
+                    // file an headline with the new content
+                    HeadlinePointer headline(new Headline(story, QString(data)));
+                    emit signal_new_headline(headline);
                 }
             }
 

@@ -55,8 +55,8 @@ private:    // typedefs and enums
     SPECIALIZE_MAP(QString, QByteArray, Window)             // "WindowMap"
     SPECIALIZE_MAP(QUrl, ChyronPointer, Story)              // "StoryMap"
     SPECIALIZE_LIST(ReporterPointer, Reporter)              // "ReporterList"
-    SPECIALIZE_QUEUE(ArticlePointer, Article)               // "ArticleQueue"
-    SPECIALIZE_MAP(QUrl, ArticleQueue, Article)             // "ArticleMap"
+    SPECIALIZE_QUEUE(HeadlinePointer, Headline)               // "HeadlineQueue"
+    SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)             // "HeadlineMap"
     SPECIALIZE_VECTOR(ChyronPointer, Story)                 // "StoryVector"
     SPECIALIZE_MAP(AnimEntryType, StoryVector, Stacking)    // "StackingMap"
 
