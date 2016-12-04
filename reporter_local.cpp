@@ -4,9 +4,15 @@
 
 #include "reporter_local.h"
 
-ReporterLocal::ReporterLocal(const QUrl& story, LocalTrigger trigger_type, QObject *parent)
+ReporterLocal::ReporterLocal(const QUrl& story,
+                             const QFont& font,
+                             const QString& normal_stylesheet,
+                             const QString& alert_stylesheet,
+                             const QStringList& alert_keywords,
+                             LocalTrigger trigger_type,
+                             QObject *parent)
     : trigger_type(trigger_type),
-      Reporter(story, parent)
+      Reporter(story, font, normal_stylesheet, alert_stylesheet, alert_keywords, parent)
 {
     target.setFile(story.toLocalFile());
 }
@@ -52,6 +58,12 @@ void ReporterLocal::slot_poll()
             // this is enough to trigger an headline
             report = QString("Story '%1' was updated on %2").arg(story.toString()).arg(target.lastModified().toString());
             HeadlinePointer headline(new Headline(story, report));
+
+            headline->set_font(headline_font);
+            headline->set_normal_stylesheet(headline_stylesheet_normal);
+            headline->set_alert_stylesheet(headline_stylesheet_alert);
+            headline->set_alert_keywords(headline_alert_keywords);
+
             emit signal_new_headline(headline);
         }
         else if(trigger_type == LocalTrigger::NewContent)
@@ -67,6 +79,12 @@ void ReporterLocal::slot_poll()
 
                     // file an headline with the new content
                     HeadlinePointer headline(new Headline(story, QString(data)));
+
+                    headline->set_font(headline_font);
+                    headline->set_normal_stylesheet(headline_stylesheet_normal);
+                    headline->set_alert_stylesheet(headline_stylesheet_alert);
+                    headline->set_alert_keywords(headline_alert_keywords);
+
                     emit signal_new_headline(headline);
                 }
             }

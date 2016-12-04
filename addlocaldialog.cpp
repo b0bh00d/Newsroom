@@ -190,7 +190,7 @@ void AddLocalDialog::slot_train_fixed_width_clicked(bool checked)
     ui->edit_TrainFixedWidth->setEnabled(checked);
 }
 
-void AddLocalDialog::slot_train_reduce_opacity_clicked(bool checked)
+void AddLocalDialog::slot_train_reduce_opacity_clicked(bool /*checked*/)
 {
     ui->edit_TrainReduceOpacity->setEnabled(ui->radio_TrainReduceOpacityFixed->isChecked());
 }

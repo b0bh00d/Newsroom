@@ -10,11 +10,24 @@
 #include "specialize.h"
 #include "headline.h"
 
+/// @class Reporter
+/// @brief Covers a story
+///
+/// The Reporter class covers an assigned story, submitting Headlines for
+/// display on the Chyron.
+///
+/// This is an Interface class that other types of Reporter inherit from.
+
 class Reporter : public QObject
 {
     Q_OBJECT
 public:
-    explicit Reporter(const QUrl& story = QUrl(), QObject *parent = 0);
+    explicit Reporter(const QUrl& story,
+                      const QFont& font,
+                      const QString& normal_stylesheet,
+                      const QString& alert_stylesheet,
+                      const QStringList& alert_keywords,
+                      QObject *parent = 0);
 
     QUrl            get_story()         const   { return story; }
 
@@ -29,6 +42,11 @@ signals:
 
 protected:
     QUrl            story;
+
+    QFont           headline_font;
+    QString         headline_stylesheet_normal;
+    QString         headline_stylesheet_alert;
+    QStringList     headline_alert_keywords;
 };
 
 SPECIALIZE_SHAREDPTR(Reporter, Reporter)        // "ReporterPointer"

@@ -467,7 +467,7 @@
                  <item>
                   <widget class="QRadioButton" name="radio_TrainReduceOpacityFixed">
                    <property name="text">
-                    <string>Reduce headline opacity by</string>
+                    <string>Reduce headline opacity to</string>
                    </property>
                   </widget>
                  </item>
@@ -512,7 +512,7 @@
                <item>
                 <widget class="QRadioButton" name="radio_TrainReduceOpacityByAge">
                  <property name="text">
-                  <string>Reduce headline opacity by age</string>
+                  <string>Gradually reduce headline opacity by age</string>
                  </property>
                 </widget>
                </item>

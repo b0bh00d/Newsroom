@@ -12,7 +12,6 @@
 Chyron::Chyron(const QUrl&      story,
                uint             ttl,
                int              display,
-               const QFont&     font,
                bool             always_visible,
                AnimEntryType    entry_type,
                AnimExitType     exit_type,
@@ -25,7 +24,6 @@ Chyron::Chyron(const QUrl&      story,
     : story(story),
       ttl(ttl),
       display(display),
-      font(font),
       always_visible(always_visible),
       entry_type(entry_type),
       exit_type(exit_type),
@@ -42,9 +40,18 @@ Chyron::Chyron(const QUrl&      story,
     age_timer->start();
 }
 
+Chyron::~Chyron()
+{
+    foreach(HeadlinePointer headline, headline_list)
+    {
+        headline->hide();
+        headline.clear();
+    }
+}
+
 void Chyron::initialize_headline(HeadlinePointer headline)
 {
-    headline->configure(font, always_visible);
+    headline->configure(always_visible);
 
     int x = 0;
     int y = 0;

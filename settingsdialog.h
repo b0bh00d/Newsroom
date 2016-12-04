@@ -21,11 +21,17 @@ public:
 
     void            set_autostart(bool autostart);
     void            set_font(const QFont& font);
+    void            set_normal_stylesheet(const QString& stylesheet);
+    void            set_alert_stylesheet(const QString& stylesheet);
+    void            set_alert_keywords(const QStringList& alert_words);
     void            set_stacking(ReportStacking stack_type);
     void            set_stories(const QList<QUrl>& stories);
 
     bool            get_autostart();
     QFont           get_font();
+    QString         get_normal_stylesheet();
+    QString         get_alert_stylesheet();
+    QStringList     get_alert_keywords();
     ReportStacking  get_stacking();
     QList<QUrl>     get_stories();
 
@@ -34,6 +40,8 @@ protected slots:
     void            slot_update_font_size(int index);
     void            slot_story_update();
     void            slot_remove_story();
+    void            slot_apply_normal_stylesheet();
+    void            slot_apply_alert_stylesheet();
 
 private:
     Ui::SettingsDialog *ui;
