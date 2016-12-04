@@ -92,7 +92,7 @@ private:    // data members
     bool                start_automatically;
     bool                settings_modified;
 
-    QFont               chyron_font;
+    QFont               headline_font;
     ReportStacking      chyron_stacking;
 
     QMimeDatabase       mime_db;
@@ -100,4 +100,8 @@ private:    // data members
     StoryMap            stories;
     ReporterList        reporters;
     StackingMap         stacking;
+
+    QString             headline_stylesheet_normal;
+    QString             headline_stylesheet_alert;
+    QStringList         headline_alert_keywords;
 };

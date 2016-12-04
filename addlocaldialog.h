@@ -10,6 +10,13 @@ namespace Ui {
 class AddLocalDialog;
 }
 
+/// @class AddLocalDialog
+/// @brief A dialog for configuration a local Reporter instance.
+///
+/// When a local story is submitted to the Newsroom, a local Reporter
+/// instance is assigned to cover it.  This dialog gathers information
+/// for the Reporter when it submits Headlines for display on the Chyron.
+
 class AddLocalDialog : public QDialog
 {
     Q_OBJECT

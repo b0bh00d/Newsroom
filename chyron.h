@@ -23,7 +23,6 @@ public:
     explicit Chyron(const QUrl& story,
                     uint ttl,
                     int display,
-                    const QFont& font,
                     bool always_visible,
                     AnimEntryType entry_type,
                     AnimExitType exit_type,
@@ -33,6 +32,7 @@ public:
                     int train_reduce_opacity = 0,
                     int margin = 5,
                     QObject* parent = nullptr);
+    ~Chyron();
 
     AnimEntryType   get_entry_type()    const   { return entry_type; }
     AnimExitType    get_exit_type()     const   { return exit_type; }
@@ -67,7 +67,6 @@ protected:  // data members
     QUrl            story;
     uint            ttl;
     int             display;
-    QFont           font;
     bool            always_visible;
     AnimEntryType   entry_type;
     AnimExitType    exit_type;

@@ -1,3 +1,5 @@
+//#include <windows.h>
+
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QVBoxLayout>
@@ -17,14 +19,23 @@ Headline::Headline(const QUrl& story,
 {
 }
 
-void Headline::configure(const QFont& font, bool stay_visible)
+//void Headline::showEvent(QShowEvent *event)
+//{
+//    QWidget::showEvent(event);
+
+////    QRect r = geometry();
+////    SetWindowPos((HWND)winId(), HWND_BOTTOM, r.x(), r.y(), r.width(), r.height(), SWP_NOACTIVATE|SWP_SHOWWINDOW);
+////    SetWindowPos((HWND)winId(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOSIZE);
+//}
+
+void Headline::configure(bool stay_visible)
 {
     // https://stackoverflow.com/questions/18316710/frameless-and-transparent-window-qt5
     if(stay_visible)
         setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     else
-        setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
-    setParent(0); // Create TopLevel-Widget
+        setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnBottomHint);
+//    setParent(0); // Create TopLevel-Widget
     setAttribute(Qt::WA_ShowWithoutActivating);
 //    setAttribute(Qt::WA_NoSystemBackground, true);
     setAttribute(Qt::WA_TranslucentBackground, true);
@@ -36,10 +47,17 @@ void Headline::configure(const QFont& font, bool stay_visible)
     QLabel* label = new QLabel(this);
     label->setMargin(5);
     label->setText(headline);
-    label->setStyleSheet("color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;");
+    QString stylesheet = normal_stylesheet;
+    foreach(const QString& keyword, alert_keywords)
+    {
+        if(headline.contains(keyword))
+        {
+            stylesheet = alert_stylesheet;
+            break;
+        }
+    }
 
-    //QFont f = label->font();
-    //f.setPointSize(f.pointSize() + 5);
+    label->setStyleSheet(stylesheet);
     label->setFont(font);
 
     main_layout->addWidget(label);

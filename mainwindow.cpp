@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    chyron_font = ui->label->font();
+    headline_font = ui->label->font();
 
 //    QPixmap bkgnd(":/images/Add.png");
 //    bkgnd = bkgnd.scaled(this->size(), Qt::IgnoreAspectRatio);
@@ -145,7 +145,7 @@ void MainWindow::dropEvent(QDropEvent* event)
             {
                 AnimEntryType entry_type = dlg.get_animation_entry_type();
 
-                // see if this story already has a chyron
+                // see if this story is already being covered by a Reporter
                 if(stories.find(story) == stories.end())
                 {
                     int percent;
@@ -154,7 +154,6 @@ void MainWindow::dropEvent(QDropEvent* event)
                     stories[story] = ChyronPointer(new Chyron(story,
                                                              dlg.get_ttl(),
                                                              dlg.get_display(),
-                                                             chyron_font,
                                                              dlg.get_always_visible(),
                                                              dlg.get_animation_entry_type(),
                                                              dlg.get_animation_exit_type(),
@@ -162,14 +161,21 @@ void MainWindow::dropEvent(QDropEvent* event)
                                                              dlg.get_train_fixed_width(),
                                                              effect, percent));
                 }
+
                 ChyronPointer chyron = stories[story];
                 if(!stacking.contains(entry_type))
                     stacking[entry_type] = StoryVector();
                 stacking[entry_type].append(chyron);
                 chyron->set_stacking_lane(stacking[entry_type].length() - 1);
 
-                // add this reporter to the payroll
-                ReporterPointer reporter(new ReporterLocal(story, dlg.get_trigger(), this));
+                // assign a new Reporter to cover the the story
+                ReporterPointer reporter(new ReporterLocal(story,
+                                                           headline_font,
+                                                           headline_stylesheet_normal,
+                                                           headline_stylesheet_alert,
+                                                           headline_alert_keywords,
+                                                           dlg.get_trigger(),
+                                                           this));
                 reporters.push_back(reporter);
                 connect(reporter.data(), &Reporter::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
 
@@ -276,8 +282,12 @@ void MainWindow::save_application_settings()
 //    settings.endArray();
 
     settings.setValue("auto_start", false);
-    settings.setValue("chyron.font", chyron_font.toString());
+    settings.setValue("chyron.font", headline_font.toString());
     settings.setValue("chyron.stacking", static_cast<int>(chyron_stacking));
+
+    settings.setValue("settings.headline.stylesheet.normal", headline_stylesheet_normal);
+    settings.setValue("settings.headline.stylesheet.alert", headline_stylesheet_alert);
+    settings.setValue("settings.headline.alert.keywords", headline_alert_keywords);
 
     if(window_data.size())
     {
@@ -309,8 +319,12 @@ void MainWindow::load_application_settings()
     QFont f = ui->label->font();
     QString font_str = settings.value("chyron.font", QString()).toString();
     if(!font_str.isEmpty())
-        chyron_font.fromString(font_str);
+        headline_font.fromString(font_str);
     chyron_stacking = static_cast<ReportStacking>(settings.value("chyron.stacking", ReportStacking::Stacked).toInt());
+
+    headline_stylesheet_normal = settings.value("settings.headline.stylesheet.normal", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;").toString();
+    headline_stylesheet_alert = settings.value("settings.headline.stylesheet.alert", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 0, 0, 255), stop:1 rgba(255, 0, 0, 255)); border: 1px solid black; border-radius: 10px;").toString();
+    headline_alert_keywords = settings.value("settings.headline.alert.keywords", QStringList()).toStringList();
 
     int windata_size = settings.beginReadArray("window_data");
     if(windata_size)
@@ -382,7 +396,10 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     SettingsDialog dlg;
 
     dlg.set_autostart(false);
-    dlg.set_font(chyron_font);
+    dlg.set_font(headline_font);
+    dlg.set_normal_stylesheet(headline_stylesheet_normal);
+    dlg.set_alert_stylesheet(headline_stylesheet_alert);
+    dlg.set_alert_keywords(headline_alert_keywords);
     dlg.set_stacking(chyron_stacking);
     dlg.set_stories(stories.keys());
 
@@ -391,9 +408,13 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     if(dlg.exec() == QDialog::Accepted)
     {
         (void)dlg.get_autostart();
-        chyron_font = dlg.get_font();
-        chyron_stacking = dlg.get_stacking();
+        headline_font               = dlg.get_font();
+        chyron_stacking             = dlg.get_stacking();
+        headline_stylesheet_normal  = dlg.get_normal_stylesheet();
+        headline_stylesheet_alert   = dlg.get_alert_stylesheet();
+        headline_alert_keywords     = dlg.get_alert_keywords();
         QList<QUrl> remaining_stories = dlg.get_stories();
+
         if(remaining_stories.count() != stories.count())
         {
             // stories have been deleted
