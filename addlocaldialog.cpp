@@ -37,9 +37,13 @@ AddLocalDialog::AddLocalDialog(QWidget *parent) :
 
     connect(ui->combo_EntryType, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &AddLocalDialog::slot_entry_type_changed);
-    connect(ui->check_TrainFixedWidth, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_fixed_width_clicked);
+    connect(ui->check_HeadlinesFixedWidth, &QCheckBox::clicked, this, &AddLocalDialog::slot_headlines_fixed_width_clicked);
+    connect(ui->check_HeadlinesFixedHeight, &QCheckBox::clicked, this, &AddLocalDialog::slot_headlines_fixed_height_clicked);
     connect(ui->radio_TrainReduceOpacityFixed, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
     connect(ui->radio_TrainReduceOpacityByAge, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
+
+    ui->radio_HeadlinesSizeTextScale->setChecked(true);
+    ui->radio_TrainReduceOpacityFixed->setChecked(true);
 }
 
 AddLocalDialog::~AddLocalDialog()
@@ -69,12 +73,12 @@ void AddLocalDialog::set_ttl(uint ttl)
     ui->edit_TTL->setText(QString::number(ttl));
 }
 
-void AddLocalDialog::set_always_visible(bool visible)
+void AddLocalDialog::set_headlines_always_visible(bool visible)
 {
     ui->check_KeepOnTop->setChecked(visible);
 }
 
-void AddLocalDialog::set_screens(int primary_screen, int screen_count)
+void AddLocalDialog::set_display(int primary_screen, int screen_count)
 {
     QVector<QRadioButton*> buttons { ui->radio_Monitor1, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
     for(int i = 0; i < 4;++i)
@@ -89,6 +93,30 @@ void AddLocalDialog::set_screens(int primary_screen, int screen_count)
         ui->radio_Monitor1->setDisabled(true);
 }
 
+void AddLocalDialog::set_headlines_lock_width(int width)
+{
+    ui->edit_HeadlinesFixedWidth->setEnabled(width != 0);
+    if(width)
+        ui->edit_HeadlinesFixedWidth->setText(QString::number(width));
+
+    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedWidth->isChecked() || ui->check_HeadlinesFixedHeight->isChecked());
+}
+
+void AddLocalDialog::set_headlines_lock_height(int height)
+{
+    ui->edit_HeadlinesFixedHeight->setEnabled(height != 0);
+    if(height)
+        ui->edit_HeadlinesFixedHeight->setText(QString::number(height));
+
+    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedWidth->isChecked() || ui->check_HeadlinesFixedHeight->isChecked());
+}
+
+void AddLocalDialog::set_headlines_fixed_text(FixedText fixed_type)
+{
+    ui->radio_HeadlinesSizeTextScale->setChecked(fixed_type == FixedText::None || fixed_type == FixedText::ScaleToFit);
+    ui->radio_HeadlinesSizeTextClip->setChecked(fixed_type == FixedText::ClipToFit);
+}
+
 void AddLocalDialog::set_animation_entry_and_exit(AnimEntryType entry_type, AnimExitType exit_type)
 {
     ui->combo_EntryType->setCurrentIndex(static_cast<int>(entry_type));
@@ -97,17 +125,8 @@ void AddLocalDialog::set_animation_entry_and_exit(AnimEntryType entry_type, Anim
     slot_entry_type_changed(ui->combo_EntryType->currentIndex());
 }
 
-void AddLocalDialog::set_train_fixed_width(int width)
-{
-    ui->check_TrainFixedWidth->setEnabled(width != 0);
-    if(width)
-        ui->edit_TrainFixedWidth->setText(QString::number(width));
-}
-
 void AddLocalDialog::set_train_age_effects(AgeEffects effect, int percent)
 {
-    ui->edit_TrainFixedWidth->clear();
-
     ui->group_AgeEffects->setEnabled(effect != AgeEffects::None);
     ui->radio_TrainReduceOpacityFixed->setEnabled(effect == AgeEffects::ReduceOpacityFixed);
     if(percent)
@@ -129,7 +148,7 @@ uint AddLocalDialog::get_ttl()
     return value.toInt();
 }
 
-bool AddLocalDialog::get_always_visible()
+bool AddLocalDialog::get_headlines_always_visible()
 {
     return ui->check_KeepOnTop->isChecked();
 }
@@ -146,6 +165,27 @@ int AddLocalDialog::get_display()
     return 0;
 }
 
+int AddLocalDialog::get_headlines_lock_width()
+{
+    if(!ui->check_HeadlinesFixedWidth->isChecked() || ui->edit_HeadlinesFixedWidth->text().isEmpty())
+        return 0;
+    return ui->edit_HeadlinesFixedWidth->text().toInt();
+}
+
+int AddLocalDialog::get_headlines_lock_height()
+{
+    if(!ui->check_HeadlinesFixedHeight->isChecked() || ui->edit_HeadlinesFixedHeight->text().isEmpty())
+        return 0;
+    return ui->edit_HeadlinesFixedHeight->text().toInt();
+}
+
+FixedText AddLocalDialog::get_headlines_fixed_text()
+{
+    if(!ui->check_HeadlinesFixedWidth->isChecked() && !ui->check_HeadlinesFixedHeight->isChecked())
+        return FixedText::None;
+    return ui->radio_HeadlinesSizeTextScale->isChecked() ? FixedText::ScaleToFit : FixedText::ClipToFit;
+}
+
 AnimEntryType AddLocalDialog::get_animation_entry_type()
 {
     return static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());
@@ -154,13 +194,6 @@ AnimEntryType AddLocalDialog::get_animation_entry_type()
 AnimExitType AddLocalDialog::get_animation_exit_type()
 {
     return static_cast<AnimExitType>(ui->combo_ExitType->currentIndex());
-}
-
-int AddLocalDialog::get_train_fixed_width()
-{
-    if(!ui->check_TrainFixedWidth->isChecked() || ui->edit_TrainFixedWidth->text().isEmpty())
-        return 0;
-    return ui->edit_TrainFixedWidth->text().toInt();
 }
 
 AgeEffects AddLocalDialog::get_train_age_effects(int& percent)
@@ -185,9 +218,16 @@ void AddLocalDialog::slot_entry_type_changed(int index)
 //    }
 }
 
-void AddLocalDialog::slot_train_fixed_width_clicked(bool checked)
+void AddLocalDialog::slot_headlines_fixed_width_clicked(bool checked)
 {
-    ui->edit_TrainFixedWidth->setEnabled(checked);
+    ui->edit_HeadlinesFixedWidth->setEnabled(checked);
+    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedWidth->isChecked() || ui->check_HeadlinesFixedHeight->isChecked());
+}
+
+void AddLocalDialog::slot_headlines_fixed_height_clicked(bool checked)
+{
+    ui->edit_HeadlinesFixedHeight->setEnabled(checked);
+    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedWidth->isChecked() || ui->check_HeadlinesFixedHeight->isChecked());
 }
 
 void AddLocalDialog::slot_train_reduce_opacity_clicked(bool /*checked*/)

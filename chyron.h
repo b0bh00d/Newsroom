@@ -20,22 +20,39 @@ class Chyron : public QObject
 {
     Q_OBJECT
 public:
-    explicit Chyron(const QUrl& story,
-                    uint ttl,
-                    int display,
-                    bool always_visible,
-                    AnimEntryType entry_type,
-                    AnimExitType exit_type,
-                    ReportStacking stacking_type,
-                    int train_fixed_width = 0,
-                    AgeEffects effect = AgeEffects::None,
-                    int train_reduce_opacity = 0,
-                    int margin = 5,
-                    QObject* parent = nullptr);
+    struct Settings
+    {
+        uint            ttl;
+        int             display;
+        bool            always_visible;
+        AnimEntryType   entry_type;
+        AnimExitType    exit_type;
+        ReportStacking  stacking_type;
+        int             headline_fixed_width;
+        int             headline_fixed_height;
+        AgeEffects      effect;
+        int             train_reduce_opacity;
+        int             margin;
+
+        Settings()
+            : headline_fixed_width(0),
+              headline_fixed_height(0),
+              effect(AgeEffects::None),
+              train_reduce_opacity(0),
+              margin(5)
+        {}
+
+        Settings(const Settings& source)
+        {
+            *this = source;
+        }
+    };
+
+    explicit Chyron(const QUrl& story, const Chyron::Settings& chyron_settings, QObject* parent = nullptr);
     ~Chyron();
 
-    AnimEntryType   get_entry_type()    const   { return entry_type; }
-    AnimExitType    get_exit_type()     const   { return exit_type; }
+    AnimEntryType   get_entry_type()    const   { return settings.entry_type; }
+    AnimExitType    get_exit_type()     const   { return settings.exit_type; }
 
     // stacking priority determines the lane occupied by the chyron
     // among identical entry types
@@ -65,16 +82,7 @@ protected:  // methods
 
 protected:  // data members
     QUrl            story;
-    uint            ttl;
-    int             display;
-    bool            always_visible;
-    AnimEntryType   entry_type;
-    AnimExitType    exit_type;
-    ReportStacking  stacking_type;
-    int             margin;
-    int             train_fixed_width;
-    AgeEffects      age_effect;
-    int             train_reduce_opacity;
+    Settings        settings;
 
     QTimer*         age_timer;
 

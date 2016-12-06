@@ -9,29 +9,9 @@
 
 #include "chyron.h"
 
-Chyron::Chyron(const QUrl&      story,
-               uint             ttl,
-               int              display,
-               bool             always_visible,
-               AnimEntryType    entry_type,
-               AnimExitType     exit_type,
-               ReportStacking   stacking_type,
-               int              train_fixed_width,
-               AgeEffects       age_effect,
-               int              train_reduce_opacity,
-               int              margin,
-               QObject*         parent)
+Chyron::Chyron(const QUrl& story, const Chyron::Settings& chyron_settings, QObject* parent)
     : story(story),
-      ttl(ttl),
-      display(display),
-      always_visible(always_visible),
-      entry_type(entry_type),
-      exit_type(exit_type),
-      stacking_type(stacking_type),
-      train_fixed_width(train_fixed_width),
-      age_effect(age_effect),
-      train_reduce_opacity(train_reduce_opacity),
-      margin(margin),
+      settings(chyron_settings),
       QObject(parent)
 {
     age_timer = new QTimer(this);
@@ -51,22 +31,22 @@ Chyron::~Chyron()
 
 void Chyron::initialize_headline(HeadlinePointer headline)
 {
-    headline->configure(always_visible);
+    headline->configure(settings.always_visible);
 
     int x = 0;
     int y = 0;
     QRect r = headline->geometry();
-    int width = train_fixed_width ? train_fixed_width : r.width();
+    int width = settings.headline_fixed_width ? settings.headline_fixed_width : r.width();
     int height = r.height();
 
     QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(display);
-    switch(entry_type)
+    QRect r_desktop = desktop->screenGeometry(settings.display);
+    switch(settings.entry_type)
     {
         case AnimEntryType::SlideDownLeftTop:
         case AnimEntryType::TrainDownLeftTop:
             y = r_desktop.top() - height;
-            x = r_desktop.left() + margin;
+            x = r_desktop.left() + settings.margin;
             break;
         case AnimEntryType::SlideDownCenterTop:
         case AnimEntryType::TrainDownCenterTop:
@@ -76,37 +56,37 @@ void Chyron::initialize_headline(HeadlinePointer headline)
         case AnimEntryType::SlideDownRightTop:
         case AnimEntryType::TrainDownRightTop:
             y = r_desktop.top() - height;
-            x = r_desktop.right() - width - margin;
+            x = r_desktop.right() - width - settings.margin;
             break;
         case AnimEntryType::SlideInLeftTop:
         case AnimEntryType::TrainInLeftTop:
-            y = r_desktop.top() + margin;
+            y = r_desktop.top() + settings.margin;
             x = r_desktop.left() - width;
             break;
         case AnimEntryType::SlideInRightTop:
         case AnimEntryType::TrainInRightTop:
-            y = r_desktop.top() + margin;
+            y = r_desktop.top() + settings.margin;
             x = r_desktop.right() + width;
             break;
         case AnimEntryType::SlideInLeftBottom:
         case AnimEntryType::TrainInLeftBottom:
-            y = r_desktop.bottom() - height - margin;
+            y = r_desktop.bottom() - height - settings.margin;
             x = r_desktop.left() - width;
             break;
         case AnimEntryType::SlideInRightBottom:
         case AnimEntryType::TrainInRightBottom:
-            y = r_desktop.bottom() - height - margin;
+            y = r_desktop.bottom() - height - settings.margin;
             x = r_desktop.right() + width;
             break;
         case AnimEntryType::SlideUpLeftBottom:
         case AnimEntryType::TrainUpLeftBottom:
             y = r_desktop.bottom() + height;
-            x = r_desktop.left() + margin;
+            x = r_desktop.left() + settings.margin;
             break;
         case AnimEntryType::SlideUpRightBottom:
         case AnimEntryType::TrainUpRightBottom:
             y = r_desktop.bottom() + height;
-            x = r_desktop.right() - width - margin;
+            x = r_desktop.right() - width - settings.margin;
             break;
         case AnimEntryType::SlideUpCenterBottom:
         case AnimEntryType::TrainUpCenterBottom:
@@ -120,23 +100,23 @@ void Chyron::initialize_headline(HeadlinePointer headline)
             break;
         case AnimEntryType::FadeLeftTop:
         case AnimEntryType::PopLeftTop:
-            y = r_desktop.top() + margin;
-            x = r_desktop.left() + margin;
+            y = r_desktop.top() + settings.margin;
+            x = r_desktop.left() + settings.margin;
             break;
         case AnimEntryType::FadeRightTop:
         case AnimEntryType::PopRightTop:
-            y = r_desktop.top() + margin;
-            x = r_desktop.right() - width - margin;
+            y = r_desktop.top() + settings.margin;
+            x = r_desktop.right() - width - settings.margin;
             break;
         case AnimEntryType::FadeLeftBottom:
         case AnimEntryType::PopLeftBottom:
-            y = r_desktop.bottom() - height - margin;
-            x = r_desktop.left() + margin;
+            y = r_desktop.bottom() - height - settings.margin;
+            x = r_desktop.left() + settings.margin;
             break;
         case AnimEntryType::FadeRightBottom:
         case AnimEntryType::PopRightBottom:
-            y = r_desktop.bottom() - height - margin;
-            x = r_desktop.right() - width - margin;
+            y = r_desktop.bottom() - height - settings.margin;
+            x = r_desktop.right() - width - settings.margin;
             break;
     }
 
@@ -149,10 +129,10 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
 
     QParallelAnimationGroup* animation_group = nullptr;
     QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(display);
+    QRect r_desktop = desktop->screenGeometry(settings.display);
     QRect r = headline->geometry();
 
-    switch(entry_type)
+    switch(settings.entry_type)
     {
         case AnimEntryType::SlideDownLeftTop:
         case AnimEntryType::SlideDownCenterTop:
@@ -190,7 +170,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                     connect(posted_headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
                 }
 
-                if(entry_type >= AnimEntryType::TrainDownLeftTop && entry_type <= AnimEntryType::TrainUpCenterBottom)
+                if(settings.entry_type >= AnimEntryType::TrainDownLeftTop && settings.entry_type <= AnimEntryType::TrainUpCenterBottom)
                     connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_train_expire_headlines);
             }
             break;
@@ -233,7 +213,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         anim->setEasingCurve(QEasingCurve::InCubic);
     };
 
-    switch(entry_type)
+    switch(settings.entry_type)
     {
         case AnimEntryType::SlideDownLeftTop:
         case AnimEntryType::SlideDownCenterTop:
@@ -241,7 +221,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         case AnimEntryType::TrainDownLeftTop:
         case AnimEntryType::TrainDownCenterTop:
         case AnimEntryType::TrainDownRightTop:
-            headline->animation->setEndValue(QRect(r.x(), margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r.x(), r_desktop.top() + settings.margin, r.width(), r.height()));
 
             if(animation_group)
             {
@@ -249,13 +229,13 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x(), posted_r.y() + r.height() + margin, posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x(), posted_r.y() + r.height() + settings.margin, posted_r.width(), posted_r.height()));
                 }
             }
             break;
         case AnimEntryType::SlideInLeftTop:
         case AnimEntryType::TrainInLeftTop:
-            headline->animation->setEndValue(QRect(margin, margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r_desktop.left() + settings.margin, r_desktop.top() + settings.margin, r.width(), r.height()));
 
             if(animation_group)
             {
@@ -263,13 +243,13 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x() + r.width() + margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x() + r.width() + settings.margin, posted_r.y(), posted_r.width(), posted_r.height()));
                 }
             }
             break;
         case AnimEntryType::SlideInRightTop:
         case AnimEntryType::TrainInRightTop:
-            headline->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r_desktop.width() - r.width() - settings.margin, r_desktop.top() + settings.margin, r.width(), r.height()));
 
             if(animation_group)
             {
@@ -277,13 +257,13 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x() - r.width() - margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x() - r.width() - settings.margin, posted_r.y(), posted_r.width(), posted_r.height()));
                 }
             }
             break;
         case AnimEntryType::SlideInLeftBottom:
         case AnimEntryType::TrainInLeftBottom:
-            headline->animation->setEndValue(QRect(margin, r.y(), r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r_desktop.left() + settings.margin, r.y(), r.width(), r.height()));
 
             if(animation_group)
             {
@@ -291,13 +271,13 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x() + r.width() + margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x() + r.width() + settings.margin, posted_r.y(), posted_r.width(), posted_r.height()));
                 }
             }
             break;
         case AnimEntryType::SlideInRightBottom:
         case AnimEntryType::TrainInRightBottom:
-            headline->animation->setEndValue(QRect(r_desktop.width() - r.width() - margin, r.y(), r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r_desktop.width() - r.width() - settings.margin, r.y(), r.width(), r.height()));
 
             if(animation_group)
             {
@@ -305,7 +285,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x() - r.width() - margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x() - r.width() - settings.margin, posted_r.y(), posted_r.width(), posted_r.height()));
                 }
             }
             break;
@@ -315,7 +295,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         case AnimEntryType::TrainUpLeftBottom:
         case AnimEntryType::TrainUpRightBottom:
         case AnimEntryType::TrainUpCenterBottom:
-            headline->animation->setEndValue(QRect(r.x(), r_desktop.bottom() - r.height() - margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r.x(), r_desktop.bottom() - r.height() - settings.margin, r.width(), r.height()));
 
             if(animation_group)
             {
@@ -323,7 +303,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x(), posted_r.y() - r.height() - margin, posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x(), posted_r.y() - r.height() - settings.margin, posted_r.width(), posted_r.height()));
                 }
             }
             break;
@@ -357,14 +337,14 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
     // the time-to-display has expired
 
     QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(display);
+    QRect r_desktop = desktop->screenGeometry(settings.display);
     QRect r = headline->geometry();
 
     int speed = 500;
 
-    if(entry_type >= AnimEntryType::TrainDownLeftTop && entry_type <= AnimEntryType::TrainUpCenterBottom)
+    if(settings.entry_type >= AnimEntryType::TrainDownLeftTop && settings.entry_type <= AnimEntryType::TrainUpCenterBottom)
     {
-        if(age_effect == AgeEffects::ReduceOpacityFixed)
+        if(settings.effect == AgeEffects::ReduceOpacityFixed)
         {
             headline->setAttribute(Qt::WA_TranslucentBackground, true);
 
@@ -374,7 +354,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
             headline->animation = new QPropertyAnimation(eff, "opacity");
             headline->animation->setDuration(speed);
             headline->animation->setStartValue(1.0);
-            headline->animation->setEndValue(train_reduce_opacity / 100.0);
+            headline->animation->setEndValue(settings.train_reduce_opacity / 100.0);
             headline->animation->setEasingCurve(QEasingCurve::InCubic);
             connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
@@ -385,7 +365,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
     }
     else
     {
-        switch(exit_type)
+        switch(settings.exit_type)
         {
             case AnimExitType::SlideLeft:
             case AnimExitType::SlideRight:
@@ -427,7 +407,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 break;
         }
 
-        switch(exit_type)
+        switch(settings.exit_type)
         {
             case AnimExitType::SlideLeft:
                 headline->animation->setEndValue(QRect(-r.width(), r.y(), r.width(), r.height()));
@@ -521,7 +501,7 @@ void Chyron::slot_age_headlines()
         {
             if(!headline->ignore)
             {
-                if((now - headline->viewed) > ttl)
+                if((now - headline->viewed) > settings.ttl)
                 {
                     start_headline_exit(headline);
                     break;
@@ -537,7 +517,7 @@ void Chyron::slot_train_expire_headlines()
     // display will be expired
 
     QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(display);
+    QRect r_desktop = desktop->screenGeometry(settings.display);
 
     HeadlineList expired_list;
     foreach(HeadlinePointer headline, headline_list)

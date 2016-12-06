@@ -152,13 +152,9 @@ void SettingsDialog::slot_update_font_size(int index)
 
 void SettingsDialog::slot_story_update()
 {
-    if(ui->list_Stories->count() == 0)
-        ui->group_Stories->setEnabled(false);
-    else
-    {
-        QList<QListWidgetItem *> selections = ui->list_Stories->selectedItems();
-        ui->button_RemoveStory->setEnabled(selections.length() != 0);
-    }
+    ui->group_Stories->setEnabled(ui->list_Stories->count() != 0);
+    QList<QListWidgetItem *> selections = ui->list_Stories->selectedItems();
+    ui->button_RemoveStory->setEnabled(selections.length() != 0);
 }
 
 void SettingsDialog::slot_remove_story()

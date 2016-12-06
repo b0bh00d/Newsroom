@@ -23,6 +23,8 @@ Headline::Headline(const QUrl& story,
 //{
 //    QWidget::showEvent(event);
 
+////    SetWindowLong((HWND)winId(), GWL_STYLE, GetWindowLong((HWND)winId(), GWL_STYLE) | WS_EX_TRANSPARENT);
+
 ////    QRect r = geometry();
 ////    SetWindowPos((HWND)winId(), HWND_BOTTOM, r.x(), r.y(), r.width(), r.height(), SWP_NOACTIVATE|SWP_SHOWWINDOW);
 ////    SetWindowPos((HWND)winId(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOSIZE);
@@ -65,3 +67,7 @@ void Headline::configure(bool stay_visible)
     setLayout(main_layout);
     adjustSize();
 }
+
+//bool Headline::winEvent(MSG* message, long* result)
+//{
+//}
