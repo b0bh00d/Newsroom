@@ -12,6 +12,7 @@
 #include "types.h"
 #include "specialize.h"
 
+class QLabel;
 class QPropertyAnimation;
 
 /// @class Headline
@@ -39,18 +40,22 @@ public:
 
 protected:  // methods
 //    void    showEvent(QShowEvent *event);
-
 //    bool winEvent(MSG* message, long* result);
 
     /*!
-      This method is employed by the Chyron class to configure the Headline for display.
+      This method is employed by the Chyron class to perform configuration of
+      the Headline for display.  Dependending upon the value of 'fixed_text',
+      the Headline will initialize differently.
 
-      \param font This is the font that the Headline should use when displaying information.
       \param stay_visible Indicates whether or not the widget should be top-most in the Z order
+      \param fixed_text Selects how to handle text that exceeds the size of the fixed sizes.  If this is FixedText::None, then default initialization is performed.
+      \param width The fixed width the Headline will use.
+      \param height The fixed height the Headline will use.
      */
-    void    configure(bool stay_visible);    // Chyron
+    void    initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron
 
 protected:  // data members
+    int             margin;
     QUrl            story;
     QString         headline;
     QFont           font;
@@ -61,6 +66,8 @@ protected:  // data members
     bool                ignore;     // Chyron
     uint                viewed;     // Chyron
     QPropertyAnimation* animation;  // Chyron
+
+    QLabel*         label;
 
     friend class Chyron;        // the Chyron manages the headlines on the screen
 };

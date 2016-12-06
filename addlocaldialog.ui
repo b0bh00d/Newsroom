@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>402</width>
-    <height>700</height>
+    <height>672</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -290,9 +290,9 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_3">
               <item>
-               <widget class="QCheckBox" name="check_HeadlinesFixedWidth">
+               <widget class="QCheckBox" name="check_HeadlinesFixedSize">
                 <property name="text">
-                 <string>Lock headline widths to</string>
+                 <string>Headlines have a fixed size of</string>
                 </property>
                </widget>
               </item>
@@ -315,31 +315,7 @@
               <item>
                <widget class="QLabel" name="label_6">
                 <property name="text">
-                 <string>pixels</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_4">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_6">
-              <item>
-               <widget class="QCheckBox" name="check_HeadlinesFixedHeight">
-                <property name="text">
-                 <string>Lock headline heights to</string>
+                 <string>x</string>
                 </property>
                </widget>
               </item>
@@ -360,14 +336,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QLabel" name="label_9">
-                <property name="text">
-                 <string>pixels</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_6">
+               <spacer name="horizontalSpacer_4">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>

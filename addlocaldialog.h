@@ -38,8 +38,7 @@ public:
                     //   Headlines
     void            set_headlines_always_visible(bool visible);
                     //   Size
-    void            set_headlines_lock_width(int width = 0);
-    void            set_headlines_lock_height(int height = 0);
+    void            set_headlines_lock_size(int width = 0, int height = 0);
     void            set_headlines_fixed_text(FixedText fixed_type = FixedText::None);
                     // Animation
     void            set_animation_entry_and_exit(AnimEntryType entry_type, AnimExitType exit_type);
@@ -52,8 +51,7 @@ public:
 
     int             get_display();
     bool            get_headlines_always_visible();
-    int             get_headlines_lock_width();
-    int             get_headlines_lock_height();
+    bool            get_headlines_lock_size(int& width, int& height);
     FixedText       get_headlines_fixed_text();
 
     AnimEntryType   get_animation_entry_type();
@@ -65,8 +63,7 @@ protected:
 
 protected slots:
     void            slot_entry_type_changed(int index);
-    void            slot_headlines_fixed_width_clicked(bool checked);
-    void            slot_headlines_fixed_height_clicked(bool checked);
+    void            slot_headlines_fixed_size_clicked(bool checked);
     void            slot_train_reduce_opacity_clicked(bool checked);
 
 private:
