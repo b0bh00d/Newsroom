@@ -1,14 +1,11 @@
 #pragma once
 
-#include <QMetaType>
-
 enum class AnimEntryType
 {
 #   define X(a) a,
 #   include "animentrytype.def"
 #   undef X
 };
-Q_DECLARE_METATYPE(AnimEntryType)
 
 enum class AnimExitType
 {
@@ -16,21 +13,19 @@ enum class AnimExitType
 #   include "animexittype.def"
 #   undef X
 };
-Q_DECLARE_METATYPE(AnimExitType)
 
 enum class ReportStacking
 {
-    Stacked,
-    Intermixed
+#   define X(a) a,
+#   include "reportstacking.def"
+#   undef X
 };
-Q_DECLARE_METATYPE(ReportStacking)
 
 enum class LocalTrigger
 {
     NewContent,
     FileChange
 };
-Q_DECLARE_METATYPE(LocalTrigger)
 
 enum class AgeEffects
 {
@@ -38,7 +33,6 @@ enum class AgeEffects
     ReduceOpacityFixed,
     ReduceOpacityByAge
 };
-Q_DECLARE_METATYPE(AgeEffects)
 
 enum class FixedText
 {
@@ -46,4 +40,3 @@ enum class FixedText
     ScaleToFit,
     ClipToFit
 };
-Q_DECLARE_METATYPE(FixedText)

@@ -30,6 +30,7 @@ public:
         ReportStacking  stacking_type;
         int             headline_fixed_width;
         int             headline_fixed_height;
+        FixedText       headline_fixed_text;
         AgeEffects      effect;
         int             train_reduce_opacity;
         int             margin;
@@ -37,6 +38,7 @@ public:
         Settings()
             : headline_fixed_width(0),
               headline_fixed_height(0),
+              headline_fixed_text(FixedText::None),
               effect(AgeEffects::None),
               train_reduce_opacity(0),
               margin(5)

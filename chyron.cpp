@@ -31,13 +31,14 @@ Chyron::~Chyron()
 
 void Chyron::initialize_headline(HeadlinePointer headline)
 {
-    headline->configure(settings.always_visible);
+    if(!settings.headline_fixed_width && !settings.headline_fixed_height)
+        headline->initialize(settings.always_visible);
 
     int x = 0;
     int y = 0;
     QRect r = headline->geometry();
     int width = settings.headline_fixed_width ? settings.headline_fixed_width : r.width();
-    int height = r.height();
+    int height = settings.headline_fixed_height ? settings.headline_fixed_height : r.height();
 
     QDesktopWidget* desktop = QApplication::desktop();
     QRect r_desktop = desktop->screenGeometry(settings.display);
@@ -121,6 +122,9 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     }
 
     headline->setGeometry(x, y, width, height);
+
+    if(settings.headline_fixed_width || settings.headline_fixed_height)
+        headline->initialize(settings.always_visible, settings.headline_fixed_text, width, height);
 }
 
 void Chyron::start_headline_entry(HeadlinePointer headline)

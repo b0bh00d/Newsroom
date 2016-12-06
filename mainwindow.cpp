@@ -17,6 +17,13 @@
 #include "settingsdialog.h"
 #include "chyron.h"
 
+static const QVector<ReportStacking> reportstacking_vec
+{
+#   define X(a) ReportStacking::a,
+#   include "reportstacking.def"
+#   undef X
+};
+
 MainWindow::MainWindow(QWidget *parent)
     : trayIconMenu(0),
       window_geometry_save_enabled(true),
@@ -138,8 +145,7 @@ void MainWindow::dropEvent(QDropEvent* event)
             dlg.set_trigger(LocalTrigger::NewContent);
             dlg.set_display(desktop->primaryScreen(), desktop->screenCount());
             dlg.set_headlines_always_visible(true);
-            dlg.set_headlines_lock_width();
-            dlg.set_headlines_lock_height();
+            dlg.set_headlines_lock_size();
             dlg.set_headlines_fixed_text();
             dlg.set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
 //            dlg.set_train_age_effects();
@@ -155,13 +161,17 @@ void MainWindow::dropEvent(QDropEvent* event)
                 // see if this story is already being covered by a Reporter
                 if(stories.find(story) == stories.end())
                 {
+                    int width, height;
+                    bool use_fixed = dlg.get_headlines_lock_size(width, height);
+
                     chyron_settings.ttl                   = dlg.get_ttl();
                     chyron_settings.display               = dlg.get_display();
                     chyron_settings.always_visible        = dlg.get_headlines_always_visible();
                     chyron_settings.exit_type             = dlg.get_animation_exit_type();
                     chyron_settings.stacking_type         = chyron_stacking;
-                    chyron_settings.headline_fixed_width  = dlg.get_headlines_lock_width();
-                    chyron_settings.headline_fixed_height = dlg.get_headlines_lock_height();
+                    chyron_settings.headline_fixed_width  = use_fixed ? width : 0;
+                    chyron_settings.headline_fixed_height = use_fixed ? height : 0;
+                    chyron_settings.headline_fixed_text   = dlg.get_headlines_fixed_text();
                     chyron_settings.effect                = dlg.get_train_age_effects(chyron_settings.train_reduce_opacity);
 
                     stories[story] = ChyronPointer(new Chyron(story, chyron_settings));
@@ -288,7 +298,7 @@ void MainWindow::save_application_settings()
 
     settings.setValue("auto_start", false);
     settings.setValue("chyron.font", headline_font.toString());
-    settings.setValue("chyron.stacking", QVariant::fromValue<ReportStacking>(chyron_stacking));
+    settings.setValue("chyron.stacking", reportstacking_vec.indexOf(chyron_stacking));
 
     settings.setValue("settings.headline.stylesheet.normal", headline_stylesheet_normal);
     settings.setValue("settings.headline.stylesheet.alert", headline_stylesheet_alert);
@@ -325,7 +335,7 @@ void MainWindow::load_application_settings()
     QString font_str = settings.value("chyron.font", QString()).toString();
     if(!font_str.isEmpty())
         headline_font.fromString(font_str);
-    chyron_stacking = settings.value("chyron.stacking", QVariant::fromValue<ReportStacking>(ReportStacking::Stacked)).value<ReportStacking>();
+    chyron_stacking = reportstacking_vec[settings.value("chyron.stacking", 0).toInt()];
 
     headline_stylesheet_normal = settings.value("settings.headline.stylesheet.normal", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;").toString();
     headline_stylesheet_alert = settings.value("settings.headline.stylesheet.alert", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 0, 0, 255), stop:1 rgba(255, 0, 0, 255)); border: 1px solid black; border-radius: 10px;").toString();

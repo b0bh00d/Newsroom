@@ -1,5 +1,8 @@
+#include <QtGui/QRegExpValidator>
+
 #include <QtCore/QDir>
 #include <QtCore/QStringList>
+#include <QtCore/QRegExp>
 
 #include "addlocaldialog.h"
 #include "ui_addlocaldialog.h"
@@ -37,10 +40,15 @@ AddLocalDialog::AddLocalDialog(QWidget *parent) :
 
     connect(ui->combo_EntryType, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &AddLocalDialog::slot_entry_type_changed);
-    connect(ui->check_HeadlinesFixedWidth, &QCheckBox::clicked, this, &AddLocalDialog::slot_headlines_fixed_width_clicked);
-    connect(ui->check_HeadlinesFixedHeight, &QCheckBox::clicked, this, &AddLocalDialog::slot_headlines_fixed_height_clicked);
+    connect(ui->check_HeadlinesFixedSize, &QCheckBox::clicked, this, &AddLocalDialog::slot_headlines_fixed_size_clicked);
     connect(ui->radio_TrainReduceOpacityFixed, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
     connect(ui->radio_TrainReduceOpacityByAge, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
+
+    QRegExp rx("\\d+");
+    ui->edit_TTL->setValidator(new QRegExpValidator(rx, this));
+    ui->edit_HeadlinesFixedWidth->setValidator(new QRegExpValidator(rx, this));
+    ui->edit_HeadlinesFixedHeight->setValidator(new QRegExpValidator(rx, this));
+    ui->edit_TrainReduceOpacity->setValidator(new QIntValidator(10, 90, this));
 
     ui->radio_HeadlinesSizeTextScale->setChecked(true);
     ui->radio_TrainReduceOpacityFixed->setChecked(true);
@@ -93,22 +101,17 @@ void AddLocalDialog::set_display(int primary_screen, int screen_count)
         ui->radio_Monitor1->setDisabled(true);
 }
 
-void AddLocalDialog::set_headlines_lock_width(int width)
+void AddLocalDialog::set_headlines_lock_size(int width, int height)
 {
-    ui->edit_HeadlinesFixedWidth->setEnabled(width != 0);
+    ui->check_HeadlinesFixedSize->setChecked(width != 0 && height != 0);
+    ui->edit_HeadlinesFixedWidth->setEnabled(ui->check_HeadlinesFixedSize->isChecked());
+    ui->edit_HeadlinesFixedHeight->setEnabled(ui->check_HeadlinesFixedSize->isChecked());
     if(width)
         ui->edit_HeadlinesFixedWidth->setText(QString::number(width));
-
-    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedWidth->isChecked() || ui->check_HeadlinesFixedHeight->isChecked());
-}
-
-void AddLocalDialog::set_headlines_lock_height(int height)
-{
-    ui->edit_HeadlinesFixedHeight->setEnabled(height != 0);
     if(height)
         ui->edit_HeadlinesFixedHeight->setText(QString::number(height));
 
-    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedWidth->isChecked() || ui->check_HeadlinesFixedHeight->isChecked());
+    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedSize->isChecked());
 }
 
 void AddLocalDialog::set_headlines_fixed_text(FixedText fixed_type)
@@ -165,23 +168,20 @@ int AddLocalDialog::get_display()
     return 0;
 }
 
-int AddLocalDialog::get_headlines_lock_width()
+bool AddLocalDialog::get_headlines_lock_size(int& width, int& height)
 {
-    if(!ui->check_HeadlinesFixedWidth->isChecked() || ui->edit_HeadlinesFixedWidth->text().isEmpty())
-        return 0;
-    return ui->edit_HeadlinesFixedWidth->text().toInt();
-}
-
-int AddLocalDialog::get_headlines_lock_height()
-{
-    if(!ui->check_HeadlinesFixedHeight->isChecked() || ui->edit_HeadlinesFixedHeight->text().isEmpty())
-        return 0;
-    return ui->edit_HeadlinesFixedHeight->text().toInt();
+    width = 0;
+    height = 0;
+    if(!ui->check_HeadlinesFixedSize->isChecked())
+        return false;
+    width = ui->edit_HeadlinesFixedWidth->text().toInt();
+    height = ui->edit_HeadlinesFixedHeight->text().toInt();
+    return true;
 }
 
 FixedText AddLocalDialog::get_headlines_fixed_text()
 {
-    if(!ui->check_HeadlinesFixedWidth->isChecked() && !ui->check_HeadlinesFixedHeight->isChecked())
+    if(!ui->check_HeadlinesFixedSize->isChecked())
         return FixedText::None;
     return ui->radio_HeadlinesSizeTextScale->isChecked() ? FixedText::ScaleToFit : FixedText::ClipToFit;
 }
@@ -218,16 +218,11 @@ void AddLocalDialog::slot_entry_type_changed(int index)
 //    }
 }
 
-void AddLocalDialog::slot_headlines_fixed_width_clicked(bool checked)
+void AddLocalDialog::slot_headlines_fixed_size_clicked(bool checked)
 {
     ui->edit_HeadlinesFixedWidth->setEnabled(checked);
-    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedWidth->isChecked() || ui->check_HeadlinesFixedHeight->isChecked());
-}
-
-void AddLocalDialog::slot_headlines_fixed_height_clicked(bool checked)
-{
     ui->edit_HeadlinesFixedHeight->setEnabled(checked);
-    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedWidth->isChecked() || ui->check_HeadlinesFixedHeight->isChecked());
+    ui->group_HeadlinesSizeText->setEnabled(checked);
 }
 
 void AddLocalDialog::slot_train_reduce_opacity_clicked(bool /*checked*/)
