@@ -1,5 +1,7 @@
 #pragma once
 
+#include <windows.h>
+
 #include <QWidget>
 
 #include <QtGui/QFont>
@@ -37,6 +39,8 @@ public:
 
 protected:  // methods
 //    void    showEvent(QShowEvent *event);
+
+//    bool winEvent(MSG* message, long* result);
 
     /*!
       This method is employed by the Chyron class to configure the Headline for display.
