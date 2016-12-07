@@ -13,6 +13,11 @@ TEMPLATE = app
 
 CONFIG += C++11
 
+
+CONFIG(debug, debug|release) {
+    CONFIG += highlight_lanes
+}
+
 RESOURCES += ./Newsroom.qrc
 
 mac {
@@ -43,6 +48,7 @@ SOURCES += main.cpp \
         headline.cpp \
         chyron.cpp \
         settingsdialog.cpp \
+    lanemanager.cpp
 
 HEADERS  += mainwindow.h \
             reporter.h \
@@ -54,8 +60,15 @@ HEADERS  += mainwindow.h \
             chyron.h \
             settingsdialog.h \
             animentrytype.def \
-            animexittype.def
+            animexittype.def \
+    lanemanager.h
 
 FORMS    += mainwindow.ui \
             addlocaldialog.ui \
             settingsdialog.ui
+
+highlight_lanes {
+    SOURCES += highlightwidget.cpp
+    HEADERS += highlightwidget.h
+    DEFINES += HIGHLIGHT_LANES
+}

@@ -9,12 +9,18 @@
 
 #include "types.h"
 #include "specialize.h"
+
+#include "lanemanager.h"
 #include "headline.h"
 
 /// @class Chyron
 /// @brief Manages headlines submitted by Reporters
 ///
 /// The Chyron class manages the display of headlines submitted by Reporters.
+
+#ifdef HIGHLIGHT_LANES
+class HighlightWidget;
+#endif
 
 class Chyron : public QObject
 {
@@ -55,10 +61,7 @@ public:
 
     AnimEntryType   get_entry_type()    const   { return settings.entry_type; }
     AnimExitType    get_exit_type()     const   { return settings.exit_type; }
-
-    // stacking priority determines the lane occupied by the chyron
-    // among identical entry types
-    void        set_stacking_lane(int /*lane*/) {}
+    int             get_display()       const   { return settings.display; }
 
 public slots:
     void        slot_file_headline(HeadlinePointer headline);
@@ -95,6 +98,12 @@ protected:  // data members
     PropertyAnimationMap prop_anim_map;
     EnteringMap     entering_map;
     ExitingMap      exiting_map;
+
+    QRect           lane_position, lane_boundaries;
+
+#ifdef HIGHLIGHT_LANES
+    HighlightWidget*    highlight;
+#endif
 };
 
 SPECIALIZE_SHAREDPTR(Chyron, Chyron)        // "ChyronPointer"

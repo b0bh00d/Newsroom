@@ -42,6 +42,7 @@ protected:  // methods
 //    void    showEvent(QShowEvent *event);
 //    bool winEvent(MSG* message, long* result);
 
+
     /*!
       This method is employed by the Chyron class to perform configuration of
       the Headline for display.  Dependending upon the value of 'fixed_text',

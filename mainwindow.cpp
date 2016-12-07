@@ -178,10 +178,10 @@ void MainWindow::dropEvent(QDropEvent* event)
                 }
 
                 ChyronPointer chyron = stories[story];
-                if(!stacking.contains(chyron_settings.entry_type))
-                    stacking[chyron_settings.entry_type] = StoryVector();
-                stacking[chyron_settings.entry_type].append(chyron);
-                chyron->set_stacking_lane(stacking[chyron_settings.entry_type].length() - 1);
+//                if(!stacking.contains(chyron_settings.entry_type))
+//                    stacking[chyron_settings.entry_type] = StoryVector();
+//                stacking[chyron_settings.entry_type].append(chyron);
+//                chyron->set_stacking_lane(stacking[chyron_settings.entry_type].length() - 1);
 
                 // assign a new Reporter to cover the the story
                 ReporterPointer reporter(new ReporterLocal(story,
@@ -444,16 +444,16 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
             foreach(const QUrl& story, deleted_stories)
                 stories.remove(story);
 
-            // adjust stacking orders
-            stacking.clear();
-            foreach(const QUrl& story, stories.keys())
-            {
-                AnimEntryType entry_type = stories[story]->get_entry_type();
-                if(!stacking.contains(entry_type))
-                    stacking[entry_type] = StoryVector();
-                stacking[entry_type].append(stories[story]);
-                stories[story]->set_stacking_lane(stacking[entry_type].length() - 1);
-            }
+//            // adjust stacking orders
+//            stacking.clear();
+//            foreach(const QUrl& story, stories.keys())
+//            {
+//                AnimEntryType entry_type = stories[story]->get_entry_type();
+//                if(!stacking.contains(entry_type))
+//                    stacking[entry_type] = StoryVector();
+//                stacking[entry_type].append(stories[story]);
+//                stories[story]->set_stacking_lane(stacking[entry_type].length() - 1);
+//            }
         }
 
         save_application_settings();

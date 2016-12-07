@@ -8,16 +8,203 @@
 #include <QtCore/QDateTime>
 
 #include "chyron.h"
+#ifdef HIGHLIGHT_LANES
+#include "highlightwidget.h"
+#endif
 
 Chyron::Chyron(const QUrl& story, const Chyron::Settings& chyron_settings, QObject* parent)
     : story(story),
       settings(chyron_settings),
+      lane_position(QRect(0,0,0,0)),
+#ifdef HIGHLIGHT_LANES
+      highlight(nullptr),
+#endif
       QObject(parent)
 {
     age_timer = new QTimer(this);
     age_timer->setInterval(100);
     connect(age_timer, &QTimer::timeout, this, &Chyron::slot_age_headlines);
     age_timer->start();
+
+    QDesktopWidget* desktop = QApplication::desktop();
+    QRect r_desktop = desktop->screenGeometry(settings.display);
+
+    int width = r_desktop.width();
+    int height = r_desktop.height();
+    int left = r_desktop.left();
+    int top = r_desktop.top();
+    int right = r_desktop.left() + r_desktop.width();
+    int bottom = r_desktop.top() + r_desktop.height();
+
+    switch(settings.entry_type)
+    {
+        case AnimEntryType::SlideDownLeftTop:
+        case AnimEntryType::TrainDownLeftTop:
+        case AnimEntryType::SlideUpLeftBottom:
+        case AnimEntryType::TrainUpLeftBottom:
+            lane_position.setTopLeft(QPoint(left, top));
+            lane_position.setBottomRight(QPoint(left, bottom));
+            break;
+        case AnimEntryType::SlideDownCenterTop:
+        case AnimEntryType::TrainDownCenterTop:
+        case AnimEntryType::SlideUpCenterBottom:
+        case AnimEntryType::TrainUpCenterBottom:
+            lane_position.setTopLeft(QPoint(width / 2, top));
+            lane_position.setBottomRight(QPoint(width / 2, bottom));
+            break;
+        case AnimEntryType::SlideDownRightTop:
+        case AnimEntryType::TrainDownRightTop:
+        case AnimEntryType::SlideUpRightBottom:
+        case AnimEntryType::TrainUpRightBottom:
+            lane_position.setTopLeft(QPoint(right, top));
+            lane_position.setBottomRight(QPoint(right, bottom));
+            break;
+        case AnimEntryType::SlideInLeftTop:
+        case AnimEntryType::TrainInLeftTop:
+        case AnimEntryType::SlideInRightTop:
+        case AnimEntryType::TrainInRightTop:
+            lane_position.setTopLeft(QPoint(left, top));
+            lane_position.setBottomRight(QPoint(right, top));
+            break;
+        case AnimEntryType::SlideInLeftBottom:
+        case AnimEntryType::TrainInLeftBottom:
+        case AnimEntryType::SlideInRightBottom:
+        case AnimEntryType::TrainInRightBottom:
+            lane_position.setTopLeft(QPoint(left, bottom));
+            lane_position.setBottomRight(QPoint(right, bottom));
+            break;
+
+        // boundaries defined for these depend upon their corresponding exit type
+        case AnimEntryType::FadeCenter:
+        case AnimEntryType::PopCenter:
+            switch(settings.exit_type)
+            {
+                case AnimExitType::SlideLeft:
+                case AnimExitType::SlideRight:
+                case AnimExitType::SlideFadeLeft:
+                case AnimExitType::SlideFadeRight:
+                    lane_position.setTopLeft(QPoint(left, top + (height / 2)));
+                    lane_position.setBottomRight(QPoint(right, top + (height / 2)));
+                    break;
+                case AnimExitType::SlideUp:
+                case AnimExitType::SlideDown:
+                case AnimExitType::SlideFadeUp:
+                case AnimExitType::SlideFadeDown:
+                    lane_position.setTopLeft(QPoint(left + (width / 2), top));
+                    lane_position.setBottomRight(QPoint(left + (width / 2), bottom));
+                    break;
+                case AnimExitType::Fade:
+                case AnimExitType::Pop:
+                    lane_position.setTopLeft(QPoint(left + (width / 2), top + (height / 2)));
+                    lane_position.setBottomRight(QPoint(left + (width / 2), top + (height / 2)));
+                    break;
+            }
+            break;
+        case AnimEntryType::FadeLeftTop:
+        case AnimEntryType::PopLeftTop:
+            switch(settings.exit_type)
+            {
+                case AnimExitType::SlideLeft:
+                case AnimExitType::SlideRight:
+                case AnimExitType::SlideFadeLeft:
+                case AnimExitType::SlideFadeRight:
+                    lane_position.setTopLeft(QPoint(left, top));
+                    lane_position.setBottomRight(QPoint(right, top));
+                    break;
+                case AnimExitType::SlideUp:
+                case AnimExitType::SlideDown:
+                case AnimExitType::SlideFadeUp:
+                case AnimExitType::SlideFadeDown:
+                    lane_position.setTopLeft(QPoint(left, top));
+                    lane_position.setBottomRight(QPoint(left, bottom));
+                    break;
+                case AnimExitType::Fade:
+                case AnimExitType::Pop:
+                    lane_position.setTopLeft(QPoint(left, top));
+                    lane_position.setBottomRight(QPoint(left, top));
+                    break;
+            }
+            break;
+        case AnimEntryType::FadeRightTop:
+        case AnimEntryType::PopRightTop:
+            switch(settings.exit_type)
+            {
+                case AnimExitType::SlideLeft:
+                case AnimExitType::SlideRight:
+                case AnimExitType::SlideFadeLeft:
+                case AnimExitType::SlideFadeRight:
+                    lane_position.setTopLeft(QPoint(left, top));
+                    lane_position.setBottomRight(QPoint(right, top));
+                    break;
+                case AnimExitType::SlideUp:
+                case AnimExitType::SlideDown:
+                case AnimExitType::SlideFadeUp:
+                case AnimExitType::SlideFadeDown:
+                    lane_position.setTopLeft(QPoint(right, top));
+                    lane_position.setBottomRight(QPoint(right, bottom));
+                    break;
+                case AnimExitType::Fade:
+                case AnimExitType::Pop:
+                    lane_position.setTopLeft(QPoint(right, top));
+                    lane_position.setBottomRight(QPoint(right, top));
+                    break;
+            }
+            break;
+        case AnimEntryType::FadeLeftBottom:
+        case AnimEntryType::PopLeftBottom:
+            switch(settings.exit_type)
+            {
+                case AnimExitType::SlideLeft:
+                case AnimExitType::SlideRight:
+                case AnimExitType::SlideFadeLeft:
+                case AnimExitType::SlideFadeRight:
+                    lane_position.setTopLeft(QPoint(left, bottom));
+                    lane_position.setBottomRight(QPoint(right, bottom));
+                    break;
+                case AnimExitType::SlideUp:
+                case AnimExitType::SlideDown:
+                case AnimExitType::SlideFadeUp:
+                case AnimExitType::SlideFadeDown:
+                    lane_position.setTopLeft(QPoint(left, top));
+                    lane_position.setBottomRight(QPoint(left, bottom));
+                    break;
+                case AnimExitType::Fade:
+                case AnimExitType::Pop:
+                    lane_position.setTopLeft(QPoint(left, bottom));
+                    lane_position.setBottomRight(QPoint(left, bottom));
+                    break;
+            }
+            break;
+        case AnimEntryType::FadeRightBottom:
+        case AnimEntryType::PopRightBottom:
+            switch(settings.exit_type)
+            {
+                case AnimExitType::SlideLeft:
+                case AnimExitType::SlideRight:
+                case AnimExitType::SlideFadeLeft:
+                case AnimExitType::SlideFadeRight:
+                    lane_position.setTopLeft(QPoint(left, bottom));
+                    lane_position.setBottomRight(QPoint(right, bottom));
+                    break;
+                case AnimExitType::SlideUp:
+                case AnimExitType::SlideDown:
+                case AnimExitType::SlideFadeUp:
+                case AnimExitType::SlideFadeDown:
+                    lane_position.setTopLeft(QPoint(right, top));
+                    lane_position.setBottomRight(QPoint(right, bottom));
+                    break;
+                case AnimExitType::Fade:
+                case AnimExitType::Pop:
+                    lane_position.setTopLeft(QPoint(right, bottom));
+                    lane_position.setBottomRight(QPoint(right, bottom));
+                    break;
+            }
+            break;
+    }
+
+#ifdef HIGHLIGHT_LANES
+    highlight = new HighlightWidget();
+#endif
 }
 
 Chyron::~Chyron()
@@ -31,6 +218,10 @@ Chyron::~Chyron()
 
 void Chyron::initialize_headline(HeadlinePointer headline)
 {
+#ifdef HIGHLIGHT_LANES
+    highlight->hide();
+#endif
+
     if(!settings.headline_fixed_width && !settings.headline_fixed_height)
         headline->initialize(settings.always_visible);
 
@@ -40,84 +231,86 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     int width = settings.headline_fixed_width ? settings.headline_fixed_width : r.width();
     int height = settings.headline_fixed_height ? settings.headline_fixed_height : r.height();
 
-    QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(settings.display);
     switch(settings.entry_type)
     {
         case AnimEntryType::SlideDownLeftTop:
         case AnimEntryType::TrainDownLeftTop:
-            y = r_desktop.top() - height;
-            x = r_desktop.left() + settings.margin;
+            y = lane_position.top() - height;
+            x = lane_position.left() + settings.margin;
             break;
         case AnimEntryType::SlideDownCenterTop:
         case AnimEntryType::TrainDownCenterTop:
-            y = r_desktop.top() - height;
-            x = r_desktop.left() + (r_desktop.width() - width) / 2;
+            y = lane_position.top() - height;
+            // left() is already positioned in the center
+            x = lane_position.left() - (width / 2);
             break;
         case AnimEntryType::SlideDownRightTop:
         case AnimEntryType::TrainDownRightTop:
-            y = r_desktop.top() - height;
-            x = r_desktop.right() - width - settings.margin;
+            y = lane_position.top() - height;
+            x = lane_position.right() - width - settings.margin;
             break;
         case AnimEntryType::SlideInLeftTop:
         case AnimEntryType::TrainInLeftTop:
-            y = r_desktop.top() + settings.margin;
-            x = r_desktop.left() - width;
+            y = lane_position.top() + settings.margin;
+            x = lane_position.left() - width;
             break;
         case AnimEntryType::SlideInRightTop:
         case AnimEntryType::TrainInRightTop:
-            y = r_desktop.top() + settings.margin;
-            x = r_desktop.right() + width;
+            y = lane_position.top() + settings.margin;
+            x = lane_position.right() + width;
             break;
         case AnimEntryType::SlideInLeftBottom:
         case AnimEntryType::TrainInLeftBottom:
-            y = r_desktop.bottom() - height - settings.margin;
-            x = r_desktop.left() - width;
+            y = lane_position.bottom() - height - settings.margin;
+            x = lane_position.left() - width;
             break;
         case AnimEntryType::SlideInRightBottom:
         case AnimEntryType::TrainInRightBottom:
-            y = r_desktop.bottom() - height - settings.margin;
-            x = r_desktop.right() + width;
+            y = lane_position.bottom() - height - settings.margin;
+            x = lane_position.right() + width;
             break;
         case AnimEntryType::SlideUpLeftBottom:
         case AnimEntryType::TrainUpLeftBottom:
-            y = r_desktop.bottom() + height;
-            x = r_desktop.left() + settings.margin;
+            y = lane_position.bottom() + height;
+            x = lane_position.left() + settings.margin;
             break;
         case AnimEntryType::SlideUpRightBottom:
         case AnimEntryType::TrainUpRightBottom:
-            y = r_desktop.bottom() + height;
-            x = r_desktop.right() - width - settings.margin;
+            y = lane_position.bottom() + height;
+            x = lane_position.right() - width - settings.margin;
             break;
         case AnimEntryType::SlideUpCenterBottom:
         case AnimEntryType::TrainUpCenterBottom:
-            y = r_desktop.bottom() + height;
-            x = r_desktop.left() + (r_desktop.width() - width) / 2;
+            y = lane_position.bottom() + height;
+            // left() is already positioned in the center
+            x = lane_position.left() - (width / 2);
             break;
         case AnimEntryType::FadeCenter:
         case AnimEntryType::PopCenter:
-            y = r_desktop.top() + (r_desktop.height() - height) / 2;
-            x = r_desktop.left() + (r_desktop.width() - width) / 2;
+            // top() is already positioned in the center
+            y = lane_position.top() - (height / 2);
+            // left() is already positioned in the center
+            x = lane_position.left() - (width / 2);
             break;
         case AnimEntryType::FadeLeftTop:
         case AnimEntryType::PopLeftTop:
-            y = r_desktop.top() + settings.margin;
-            x = r_desktop.left() + settings.margin;
+            y = lane_position.top() + settings.margin;
+            x = lane_position.left() + settings.margin;
             break;
         case AnimEntryType::FadeRightTop:
         case AnimEntryType::PopRightTop:
-            y = r_desktop.top() + settings.margin;
-            x = r_desktop.right() - width - settings.margin;
+            y = lane_position.top() + settings.margin;
+            x = lane_position.right() - width - settings.margin;
             break;
         case AnimEntryType::FadeLeftBottom:
         case AnimEntryType::PopLeftBottom:
-            y = r_desktop.bottom() - height - settings.margin;
-            x = r_desktop.left() + settings.margin;
+            y = lane_position.bottom() - height - settings.margin;
+            x = lane_position.left() + settings.margin;
             break;
         case AnimEntryType::FadeRightBottom:
         case AnimEntryType::PopRightBottom:
-            y = r_desktop.bottom() - height - settings.margin;
-            x = r_desktop.right() - width - settings.margin;
+            y = lane_position.bottom() - height - settings.margin;
+            x = lane_position.right() - width - settings.margin;
             break;
     }
 
@@ -125,6 +318,36 @@ void Chyron::initialize_headline(HeadlinePointer headline)
 
     if(settings.headline_fixed_width || settings.headline_fixed_height)
         headline->initialize(settings.always_visible, settings.headline_fixed_text, width, height);
+
+    // update lane_boundaries, if necessary
+    lane_boundaries = lane_position;
+
+    foreach(HeadlinePointer headline, headline_list)
+    {
+        QRect r = headline->geometry();
+        if(r.x() < lane_boundaries.left())
+            lane_boundaries.setLeft(r.x());
+        if(r.y() < lane_boundaries.top())
+            lane_boundaries.setTop(r.y());
+        if((r.x() + r.width()) > lane_boundaries.right())
+            lane_boundaries.setRight(r.x() + r.width());
+        if((r.y() + r.height()) > lane_boundaries.bottom())
+            lane_boundaries.setBottom(r.y() + r.height());
+    }
+
+    if(x < lane_boundaries.left())
+        lane_boundaries.setLeft(x);
+    if(y < lane_boundaries.top())
+        lane_boundaries.setTop(y);
+    if((x + width) > lane_boundaries.right())
+        lane_boundaries.setRight(x + width);
+    if((y + height) > lane_boundaries.bottom())
+        lane_boundaries.setBottom(y + height);
+
+#ifdef HIGHLIGHT_LANES
+    highlight->setGeometry(lane_boundaries);
+    highlight->show();
+#endif
 }
 
 void Chyron::start_headline_entry(HeadlinePointer headline)
@@ -432,6 +655,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 break;
 
             case AnimExitType::Fade:
+            case AnimExitType::Pop:
                 break;
         }
 
