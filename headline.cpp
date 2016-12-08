@@ -1,4 +1,4 @@
-//#include <windows.h>
+#include <windows.h>
 
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
@@ -14,7 +14,8 @@
 Headline::Headline(const QUrl& story,
                  const QString& headline,
                  QWidget* parent)
-    : margin(5),
+    : stay_visible(false),
+      margin(5),
       ignore(false),
       story(story),
       headline(headline),
@@ -33,8 +34,53 @@ Headline::Headline(const QUrl& story,
 ////    SetWindowPos((HWND)winId(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOSIZE);
 //}
 
+bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *result)
+{
+    *result = 0L;
+
+    if(!stay_visible)
+    {
+        if(!QString(eventType).compare("windows_generic_MSG"))
+        {
+            MSG* msg = (MSG*)message;
+
+            if(msg->message == WM_WINDOWPOSCHANGING)
+            {
+                RECT    r;
+                HWND    bottom = nullptr;
+
+                // assume a window consuming the entire virtual desktop
+                // size IS the desktop (e.g., "Program Manager"), and
+                // glue ourselves right on top of it
+                int desktop_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                int desktop_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+                HWND w = GetTopWindow(NULL);
+                while(w)
+                {
+                    GetWindowRect(w, &r);
+                    if((r.right - r.left) == desktop_width && (r.bottom - r.top) == desktop_height)
+                        break;
+                    if(IsWindowVisible(w))
+                        bottom = w;
+                    w = GetNextWindow(w, GW_HWNDNEXT);
+                }
+
+                auto pwpos = (WINDOWPOS*)msg->lParam;
+                pwpos->hwndInsertAfter = bottom;
+                pwpos->flags &= (~SWP_NOZORDER);
+                // fall through to the return
+            }
+        }
+    }
+
+    return false;
+}
+
 void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, int height)
 {
+    this->stay_visible = stay_visible;
+
     // https://stackoverflow.com/questions/18316710/frameless-and-transparent-window-qt5
     if(stay_visible)
         setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
@@ -131,7 +177,3 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
     setGeometry(r.x(), r.y(), width, height);
     label->setGeometry(0, 0, width, height);
 }
-
-//bool Headline::winEvent(MSG* message, long* result)
-//{
-//}

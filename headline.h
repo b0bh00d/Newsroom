@@ -1,6 +1,6 @@
 #pragma once
 
-#include <windows.h>
+//#include <windows.h>
 
 #include <QWidget>
 
@@ -41,7 +41,7 @@ public:
 protected:  // methods
 //    void    showEvent(QShowEvent *event);
 //    bool winEvent(MSG* message, long* result);
-
+    bool    nativeEvent(const QByteArray &eventType, void *message, long *result);
 
     /*!
       This method is employed by the Chyron class to perform configuration of
@@ -56,6 +56,7 @@ protected:  // methods
     void    initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron
 
 protected:  // data members
+    bool            stay_visible;
     int             margin;
     QUrl            story;
     QString         headline;
