@@ -48,7 +48,7 @@ SOURCES += main.cpp \
         headline.cpp \
         chyron.cpp \
         settingsdialog.cpp \
-    lanemanager.cpp
+        lanemanager.cpp \
 
 HEADERS  += mainwindow.h \
             reporter.h \
@@ -59,9 +59,10 @@ HEADERS  += mainwindow.h \
             headline.h \
             chyron.h \
             settingsdialog.h \
+            lanemanager.h \
             animentrytype.def \
             animexittype.def \
-    lanemanager.h
+            reportstacking.def \
 
 FORMS    += mainwindow.ui \
             addlocaldialog.ui \

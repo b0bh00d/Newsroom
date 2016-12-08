@@ -14,6 +14,8 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     connect(ui->button_RemoveStory, &QPushButton::clicked, this, &SettingsDialog::slot_remove_story);
     connect(ui->edit_HeadlineStylesheetNormal, &QLineEdit::editingFinished, this, &SettingsDialog::slot_apply_normal_stylesheet);
     connect(ui->edit_HeadlineStylesheetAlert, &QLineEdit::editingFinished, this, &SettingsDialog::slot_apply_alert_stylesheet);
+    connect(ui->combo_Styles, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::slot_apply_predefined_style);
 
     setWindowTitle(tr("Newsroom: Settings"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
@@ -172,4 +174,21 @@ void SettingsDialog::slot_apply_normal_stylesheet()
 void SettingsDialog::slot_apply_alert_stylesheet()
 {
     ui->label_HeadlineAlert->setStyleSheet(ui->edit_HeadlineStylesheetAlert->text());
+}
+
+void SettingsDialog::slot_apply_predefined_style(int index)
+{
+    if(index == 0)
+    {
+        ui->edit_HeadlineStylesheetNormal->setText("color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;");
+        ui->edit_HeadlineStylesheetAlert->setText("color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 0, 0, 255), stop:1 rgba(255, 0, 0, 255)); border: 1px solid black; border-radius: 10px;");
+    }
+    else if(index == 1)
+    {
+        ui->edit_HeadlineStylesheetNormal->setText("color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;");
+        ui->edit_HeadlineStylesheetAlert->setText("color: rgb(255, 200, 200); background-color: rgb(75, 0, 0); border: 1px solid black;");
+    }
+
+    slot_apply_normal_stylesheet();
+    slot_apply_alert_stylesheet();
 }

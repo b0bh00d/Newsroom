@@ -13,7 +13,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include "addlocaldialog.h"
 #include "settingsdialog.h"
 #include "chyron.h"
 
@@ -50,6 +49,18 @@ MainWindow::MainWindow(QWidget *parent)
 
     setAcceptDrops(true);
 
+    lane_manager = LaneManagerPointer(new LaneManager(this));
+
+    QDesktopWidget* desktop = QApplication::desktop();
+
+    addlocal_dlg = new AddLocalDialog(this);
+    addlocal_dlg->set_trigger(LocalTrigger::NewContent);
+    addlocal_dlg->set_display(desktop->primaryScreen(), desktop->screenCount());
+    addlocal_dlg->set_headlines_always_visible(true);
+    addlocal_dlg->set_headlines_lock_size();
+    addlocal_dlg->set_headlines_fixed_text();
+    addlocal_dlg->set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
+
     // Tray
 
     trayIcon = new QSystemTrayIcon(this);
@@ -71,6 +82,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    addlocal_dlg->deleteLater();
     delete ui;
 }
 
@@ -137,51 +149,39 @@ void MainWindow::dropEvent(QDropEvent* event)
     {
         if(story.isLocalFile())
         {
-            QDesktopWidget* desktop = QApplication::desktop();
             text = story.toLocalFile();
 
-            AddLocalDialog dlg;
-            dlg.set_target(text);
-            dlg.set_trigger(LocalTrigger::NewContent);
-            dlg.set_display(desktop->primaryScreen(), desktop->screenCount());
-            dlg.set_headlines_always_visible(true);
-            dlg.set_headlines_lock_size();
-            dlg.set_headlines_fixed_text();
-            dlg.set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
+            addlocal_dlg->set_target(text);
 //            dlg.set_train_age_effects();
 
-            restore_window_data(&dlg);
+            restore_window_data(addlocal_dlg);
 
-            if(dlg.exec() == QDialog::Accepted)
+            if(addlocal_dlg->exec() == QDialog::Accepted)
             {
                 Chyron::Settings chyron_settings;
 
-                chyron_settings.entry_type = dlg.get_animation_entry_type();
+                chyron_settings.entry_type = addlocal_dlg->get_animation_entry_type();
 
                 // see if this story is already being covered by a Reporter
                 if(stories.find(story) == stories.end())
                 {
                     int width, height;
-                    bool use_fixed = dlg.get_headlines_lock_size(width, height);
+                    bool use_fixed = addlocal_dlg->get_headlines_lock_size(width, height);
 
-                    chyron_settings.ttl                   = dlg.get_ttl();
-                    chyron_settings.display               = dlg.get_display();
-                    chyron_settings.always_visible        = dlg.get_headlines_always_visible();
-                    chyron_settings.exit_type             = dlg.get_animation_exit_type();
+                    chyron_settings.ttl                   = addlocal_dlg->get_ttl();
+                    chyron_settings.display               = addlocal_dlg->get_display();
+                    chyron_settings.always_visible        = addlocal_dlg->get_headlines_always_visible();
+                    chyron_settings.exit_type             = addlocal_dlg->get_animation_exit_type();
                     chyron_settings.stacking_type         = chyron_stacking;
                     chyron_settings.headline_fixed_width  = use_fixed ? width : 0;
                     chyron_settings.headline_fixed_height = use_fixed ? height : 0;
-                    chyron_settings.headline_fixed_text   = dlg.get_headlines_fixed_text();
-                    chyron_settings.effect                = dlg.get_train_age_effects(chyron_settings.train_reduce_opacity);
+                    chyron_settings.headline_fixed_text   = addlocal_dlg->get_headlines_fixed_text();
+                    chyron_settings.effect                = addlocal_dlg->get_train_age_effects(chyron_settings.train_reduce_opacity);
 
-                    stories[story] = ChyronPointer(new Chyron(story, chyron_settings));
+                    stories[story] = ChyronPointer(new Chyron(story, chyron_settings, lane_manager));
                 }
 
                 ChyronPointer chyron = stories[story];
-//                if(!stacking.contains(chyron_settings.entry_type))
-//                    stacking[chyron_settings.entry_type] = StoryVector();
-//                stacking[chyron_settings.entry_type].append(chyron);
-//                chyron->set_stacking_lane(stacking[chyron_settings.entry_type].length() - 1);
 
                 // assign a new Reporter to cover the the story
                 ReporterPointer reporter(new ReporterLocal(story,
@@ -189,7 +189,7 @@ void MainWindow::dropEvent(QDropEvent* event)
                                                            headline_stylesheet_normal,
                                                            headline_stylesheet_alert,
                                                            headline_alert_keywords,
-                                                           dlg.get_trigger(),
+                                                           addlocal_dlg->get_trigger(),
                                                            this));
                 reporters.push_back(reporter);
                 connect(reporter.data(), &Reporter::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
@@ -197,7 +197,7 @@ void MainWindow::dropEvent(QDropEvent* event)
                 reporter->start_covering_story();
             }
 
-            save_window_data(&dlg);
+            save_window_data(addlocal_dlg);
         }
         else
             text = story.toString();
@@ -444,16 +444,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
             foreach(const QUrl& story, deleted_stories)
                 stories.remove(story);
 
-//            // adjust stacking orders
-//            stacking.clear();
-//            foreach(const QUrl& story, stories.keys())
-//            {
-//                AnimEntryType entry_type = stories[story]->get_entry_type();
-//                if(!stacking.contains(entry_type))
-//                    stacking[entry_type] = StoryVector();
-//                stacking[entry_type].append(stories[story]);
-//                stories[story]->set_stacking_lane(stacking[entry_type].length() - 1);
-//            }
+            // TODO: adjust stacking orders
         }
 
         save_application_settings();

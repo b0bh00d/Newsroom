@@ -56,12 +56,22 @@ public:
         }
     };
 
-    explicit Chyron(const QUrl& story, const Chyron::Settings& chyron_settings, QObject* parent = nullptr);
+    explicit Chyron(const QUrl& story,
+                    const Chyron::Settings& chyron_settings,
+                    LaneManagerPointer lane_manager,
+                    QObject* parent = nullptr);
     ~Chyron();
 
-    AnimEntryType   get_entry_type()    const   { return settings.entry_type; }
-    AnimExitType    get_exit_type()     const   { return settings.exit_type; }
-    int             get_display()       const   { return settings.display; }
+    const Settings& get_settings()      const   { return settings; }
+
+    // These methods are used by the Lane Manager to adjust lanes
+    // when a Chyron is deleted.  This does an immediate move of
+    // any visible Headlines in the current lane.
+
+    void            shift_left(int amount);
+    void            shift_right(int amount);
+    void            shift_up(int amount);
+    void            shift_down(int amount);
 
 public slots:
     void        slot_file_headline(HeadlinePointer headline);
@@ -99,7 +109,9 @@ protected:  // data members
     EnteringMap     entering_map;
     ExitingMap      exiting_map;
 
-    QRect           lane_position, lane_boundaries;
+    LaneManagerPointer  lane_manager;
+
+//    QRect           lane_position, lane_boundaries;
 
 #ifdef HIGHLIGHT_LANES
     HighlightWidget*    highlight;

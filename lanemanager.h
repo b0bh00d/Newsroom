@@ -2,6 +2,8 @@
 
 #include <QObject>
 
+#include <QtCore/QRect>
+
 #include "types.h"
 #include "specialize.h"
 
@@ -16,7 +18,8 @@ public:
     void    subscribe(Chyron* chyron);
     void    unsubscribe(Chyron* chyron);
 
-    QRect&  get_lane_position(Chyron* chyron);
+    const QRect&  get_base_lane_position(Chyron* chyron);
+    QRect&  get_lane_boundaries(Chyron* chyron);
 
 private:    // typedefs and enums
     struct LaneData
@@ -28,14 +31,14 @@ private:    // typedefs and enums
 
     SPECIALIZE_SHAREDPTR(LaneData, LaneData)        // "LaneDataPointer"
     SPECIALIZE_LIST(LaneDataPointer, Lane)          // "LaneList"
-    SPECIALIZE_MAP(Chyron*, LaneDataPointer, Data)  // "DataMap"
     SPECIALIZE_MAP(AnimEntryType, LaneList, Lane)   // "LaneMap"
+    SPECIALIZE_MAP(Chyron*, LaneDataPointer, Data)  // "DataMap"
 
 private:    // methods
-    void        calculate_lane_position(LaneDataPointer data);
+    void        calculate_base_lane_position(Chyron* chyron);
 
 private:    // datamembers
-    LaneMap     lanes;
+    LaneMap     lane_map;
     DataMap     data_map;
 };
 
