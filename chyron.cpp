@@ -12,10 +12,11 @@
 #include "highlightwidget.h"
 #endif
 
-Chyron::Chyron(const QUrl& story, const Chyron::Settings& chyron_settings, QObject* parent)
+Chyron::Chyron(const QUrl& story, const Chyron::Settings& chyron_settings, LaneManagerPointer lane_manager, QObject* parent)
     : story(story),
       settings(chyron_settings),
-      lane_position(QRect(0,0,0,0)),
+//      lane_position(QRect(0,0,0,0)),
+      lane_manager(lane_manager),
 #ifdef HIGHLIGHT_LANES
       highlight(nullptr),
 #endif
@@ -26,181 +27,7 @@ Chyron::Chyron(const QUrl& story, const Chyron::Settings& chyron_settings, QObje
     connect(age_timer, &QTimer::timeout, this, &Chyron::slot_age_headlines);
     age_timer->start();
 
-    QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(settings.display);
-
-    int width = r_desktop.width();
-    int height = r_desktop.height();
-    int left = r_desktop.left();
-    int top = r_desktop.top();
-    int right = r_desktop.left() + r_desktop.width();
-    int bottom = r_desktop.top() + r_desktop.height();
-
-    switch(settings.entry_type)
-    {
-        case AnimEntryType::SlideDownLeftTop:
-        case AnimEntryType::TrainDownLeftTop:
-        case AnimEntryType::SlideUpLeftBottom:
-        case AnimEntryType::TrainUpLeftBottom:
-            lane_position.setTopLeft(QPoint(left, top));
-            lane_position.setBottomRight(QPoint(left, bottom));
-            break;
-        case AnimEntryType::SlideDownCenterTop:
-        case AnimEntryType::TrainDownCenterTop:
-        case AnimEntryType::SlideUpCenterBottom:
-        case AnimEntryType::TrainUpCenterBottom:
-            lane_position.setTopLeft(QPoint(width / 2, top));
-            lane_position.setBottomRight(QPoint(width / 2, bottom));
-            break;
-        case AnimEntryType::SlideDownRightTop:
-        case AnimEntryType::TrainDownRightTop:
-        case AnimEntryType::SlideUpRightBottom:
-        case AnimEntryType::TrainUpRightBottom:
-            lane_position.setTopLeft(QPoint(right, top));
-            lane_position.setBottomRight(QPoint(right, bottom));
-            break;
-        case AnimEntryType::SlideInLeftTop:
-        case AnimEntryType::TrainInLeftTop:
-        case AnimEntryType::SlideInRightTop:
-        case AnimEntryType::TrainInRightTop:
-            lane_position.setTopLeft(QPoint(left, top));
-            lane_position.setBottomRight(QPoint(right, top));
-            break;
-        case AnimEntryType::SlideInLeftBottom:
-        case AnimEntryType::TrainInLeftBottom:
-        case AnimEntryType::SlideInRightBottom:
-        case AnimEntryType::TrainInRightBottom:
-            lane_position.setTopLeft(QPoint(left, bottom));
-            lane_position.setBottomRight(QPoint(right, bottom));
-            break;
-
-        // boundaries defined for these depend upon their corresponding exit type
-        case AnimEntryType::FadeCenter:
-        case AnimEntryType::PopCenter:
-            switch(settings.exit_type)
-            {
-                case AnimExitType::SlideLeft:
-                case AnimExitType::SlideRight:
-                case AnimExitType::SlideFadeLeft:
-                case AnimExitType::SlideFadeRight:
-                    lane_position.setTopLeft(QPoint(left, top + (height / 2)));
-                    lane_position.setBottomRight(QPoint(right, top + (height / 2)));
-                    break;
-                case AnimExitType::SlideUp:
-                case AnimExitType::SlideDown:
-                case AnimExitType::SlideFadeUp:
-                case AnimExitType::SlideFadeDown:
-                    lane_position.setTopLeft(QPoint(left + (width / 2), top));
-                    lane_position.setBottomRight(QPoint(left + (width / 2), bottom));
-                    break;
-                case AnimExitType::Fade:
-                case AnimExitType::Pop:
-                    lane_position.setTopLeft(QPoint(left + (width / 2), top + (height / 2)));
-                    lane_position.setBottomRight(QPoint(left + (width / 2), top + (height / 2)));
-                    break;
-            }
-            break;
-        case AnimEntryType::FadeLeftTop:
-        case AnimEntryType::PopLeftTop:
-            switch(settings.exit_type)
-            {
-                case AnimExitType::SlideLeft:
-                case AnimExitType::SlideRight:
-                case AnimExitType::SlideFadeLeft:
-                case AnimExitType::SlideFadeRight:
-                    lane_position.setTopLeft(QPoint(left, top));
-                    lane_position.setBottomRight(QPoint(right, top));
-                    break;
-                case AnimExitType::SlideUp:
-                case AnimExitType::SlideDown:
-                case AnimExitType::SlideFadeUp:
-                case AnimExitType::SlideFadeDown:
-                    lane_position.setTopLeft(QPoint(left, top));
-                    lane_position.setBottomRight(QPoint(left, bottom));
-                    break;
-                case AnimExitType::Fade:
-                case AnimExitType::Pop:
-                    lane_position.setTopLeft(QPoint(left, top));
-                    lane_position.setBottomRight(QPoint(left, top));
-                    break;
-            }
-            break;
-        case AnimEntryType::FadeRightTop:
-        case AnimEntryType::PopRightTop:
-            switch(settings.exit_type)
-            {
-                case AnimExitType::SlideLeft:
-                case AnimExitType::SlideRight:
-                case AnimExitType::SlideFadeLeft:
-                case AnimExitType::SlideFadeRight:
-                    lane_position.setTopLeft(QPoint(left, top));
-                    lane_position.setBottomRight(QPoint(right, top));
-                    break;
-                case AnimExitType::SlideUp:
-                case AnimExitType::SlideDown:
-                case AnimExitType::SlideFadeUp:
-                case AnimExitType::SlideFadeDown:
-                    lane_position.setTopLeft(QPoint(right, top));
-                    lane_position.setBottomRight(QPoint(right, bottom));
-                    break;
-                case AnimExitType::Fade:
-                case AnimExitType::Pop:
-                    lane_position.setTopLeft(QPoint(right, top));
-                    lane_position.setBottomRight(QPoint(right, top));
-                    break;
-            }
-            break;
-        case AnimEntryType::FadeLeftBottom:
-        case AnimEntryType::PopLeftBottom:
-            switch(settings.exit_type)
-            {
-                case AnimExitType::SlideLeft:
-                case AnimExitType::SlideRight:
-                case AnimExitType::SlideFadeLeft:
-                case AnimExitType::SlideFadeRight:
-                    lane_position.setTopLeft(QPoint(left, bottom));
-                    lane_position.setBottomRight(QPoint(right, bottom));
-                    break;
-                case AnimExitType::SlideUp:
-                case AnimExitType::SlideDown:
-                case AnimExitType::SlideFadeUp:
-                case AnimExitType::SlideFadeDown:
-                    lane_position.setTopLeft(QPoint(left, top));
-                    lane_position.setBottomRight(QPoint(left, bottom));
-                    break;
-                case AnimExitType::Fade:
-                case AnimExitType::Pop:
-                    lane_position.setTopLeft(QPoint(left, bottom));
-                    lane_position.setBottomRight(QPoint(left, bottom));
-                    break;
-            }
-            break;
-        case AnimEntryType::FadeRightBottom:
-        case AnimEntryType::PopRightBottom:
-            switch(settings.exit_type)
-            {
-                case AnimExitType::SlideLeft:
-                case AnimExitType::SlideRight:
-                case AnimExitType::SlideFadeLeft:
-                case AnimExitType::SlideFadeRight:
-                    lane_position.setTopLeft(QPoint(left, bottom));
-                    lane_position.setBottomRight(QPoint(right, bottom));
-                    break;
-                case AnimExitType::SlideUp:
-                case AnimExitType::SlideDown:
-                case AnimExitType::SlideFadeUp:
-                case AnimExitType::SlideFadeDown:
-                    lane_position.setTopLeft(QPoint(right, top));
-                    lane_position.setBottomRight(QPoint(right, bottom));
-                    break;
-                case AnimExitType::Fade:
-                case AnimExitType::Pop:
-                    lane_position.setTopLeft(QPoint(right, bottom));
-                    lane_position.setBottomRight(QPoint(right, bottom));
-                    break;
-            }
-            break;
-    }
+    lane_manager->subscribe(this);
 
 #ifdef HIGHLIGHT_LANES
     highlight = new HighlightWidget();
@@ -209,6 +36,12 @@ Chyron::Chyron(const QUrl& story, const Chyron::Settings& chyron_settings, QObje
 
 Chyron::~Chyron()
 {
+#ifdef HIGHLIGHT_LANES
+    highlight->deleteLater();
+#endif
+
+    lane_manager->unsubscribe(this);
+
     foreach(HeadlinePointer headline, headline_list)
     {
         headline->hide();
@@ -221,6 +54,8 @@ void Chyron::initialize_headline(HeadlinePointer headline)
 #ifdef HIGHLIGHT_LANES
     highlight->hide();
 #endif
+
+    const QRect& lane_position = lane_manager->get_base_lane_position(this);
 
     if(!settings.headline_fixed_width && !settings.headline_fixed_height)
         headline->initialize(settings.always_visible);
@@ -319,8 +154,10 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     if(settings.headline_fixed_width || settings.headline_fixed_height)
         headline->initialize(settings.always_visible, settings.headline_fixed_text, width, height);
 
-    // update lane_boundaries, if necessary
-    lane_boundaries = lane_position;
+    // update lane's boundaries (this updates the data in the
+    // Lane Manager for lower-priority lanes to reference)
+
+    QRect& lane_boundaries = lane_manager->get_lane_boundaries(this);
 
     foreach(HeadlinePointer headline, headline_list)
     {
@@ -462,7 +299,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             break;
         case AnimEntryType::SlideInLeftTop:
         case AnimEntryType::TrainInLeftTop:
-            headline->animation->setEndValue(QRect(r_desktop.left() + settings.margin, r_desktop.top() + settings.margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r_desktop.left() + settings.margin, r.y(), r.width(), r.height()));
 
             if(animation_group)
             {
@@ -476,7 +313,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             break;
         case AnimEntryType::SlideInRightTop:
         case AnimEntryType::TrainInRightTop:
-            headline->animation->setEndValue(QRect(r_desktop.width() - r.width() - settings.margin, r_desktop.top() + settings.margin, r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r_desktop.width() - r.width() - settings.margin, r.y(), r.width(), r.height()));
 
             if(animation_group)
             {
@@ -666,6 +503,110 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
     }
 }
 
+void Chyron::shift_left(int amount)
+{
+    int speed = 500;
+
+    if(!headline_list.length())
+        return;     // no headlines visible
+
+    QParallelAnimationGroup* animation_group = new QParallelAnimationGroup();
+    foreach(HeadlinePointer headline, headline_list)
+    {
+        QRect r = headline->geometry();
+        headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+        headline->animation->setDuration(speed);
+        headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+        headline->animation->setEasingCurve(QEasingCurve::InCubic);
+        headline->animation->setEndValue(QRect(r.x() - amount, r.y(), r.width(), r.height()));
+
+        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+
+        animation_group->addAnimation(headline->animation);
+    }
+
+    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
+    animation_group->start();
+}
+
+void Chyron::shift_right(int amount)
+{
+    int speed = 500;
+
+    if(!headline_list.length())
+        return;     // no headlines visible
+
+    QParallelAnimationGroup* animation_group = new QParallelAnimationGroup();
+    foreach(HeadlinePointer headline, headline_list)
+    {
+        QRect r = headline->geometry();
+        headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+        headline->animation->setDuration(speed);
+        headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+        headline->animation->setEasingCurve(QEasingCurve::InCubic);
+        headline->animation->setEndValue(QRect(r.x() + amount, r.y(), r.width(), r.height()));
+
+        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+
+        animation_group->addAnimation(headline->animation);
+    }
+
+    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
+    animation_group->start();
+}
+
+void Chyron::shift_up(int amount)
+{
+    int speed = 500;
+
+    if(!headline_list.length())
+        return;     // no headlines visible
+
+    QParallelAnimationGroup* animation_group = new QParallelAnimationGroup();
+    foreach(HeadlinePointer headline, headline_list)
+    {
+        QRect r = headline->geometry();
+        headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+        headline->animation->setDuration(speed);
+        headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+        headline->animation->setEasingCurve(QEasingCurve::InCubic);
+        headline->animation->setEndValue(QRect(r.x(), r.y() - amount, r.width(), r.height()));
+
+        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+
+        animation_group->addAnimation(headline->animation);
+    }
+
+    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
+    animation_group->start();
+}
+
+void Chyron::shift_down(int amount)
+{
+    int speed = 500;
+
+    if(!headline_list.length())
+        return;     // no headlines visible
+
+    QParallelAnimationGroup* animation_group = new QParallelAnimationGroup();
+    foreach(HeadlinePointer headline, headline_list)
+    {
+        QRect r = headline->geometry();
+        headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+        headline->animation->setDuration(speed);
+        headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+        headline->animation->setEasingCurve(QEasingCurve::InCubic);
+        headline->animation->setEndValue(QRect(r.x(), r.y() + amount, r.width(), r.height()));
+
+        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+
+        animation_group->addAnimation(headline->animation);
+    }
+
+    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
+    animation_group->start();
+}
+
 void Chyron::slot_file_headline(HeadlinePointer headline)
 {
     if(headline->story.toString().compare(story.toString()))
@@ -703,8 +644,15 @@ void Chyron::slot_headline_expired()
 
 void Chyron::slot_release_animation()
 {
-    QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(sender());
-    anim->deleteLater();
+    QPropertyAnimation* prop_anim = qobject_cast<QPropertyAnimation*>(sender());
+    if(prop_anim)
+        prop_anim->deleteLater();
+    else
+    {
+        QParallelAnimationGroup* group_anim = qobject_cast<QParallelAnimationGroup*>(sender());
+        if(group_anim)
+            group_anim->deleteLater();
+    }
 }
 
 void Chyron::slot_age_headlines()

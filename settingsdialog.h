@@ -42,6 +42,7 @@ protected slots:
     void            slot_remove_story();
     void            slot_apply_normal_stylesheet();
     void            slot_apply_alert_stylesheet();
+    void            slot_apply_predefined_style(int index);
 
 private:
     Ui::SettingsDialog *ui;

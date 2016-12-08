@@ -23,7 +23,10 @@
 
 #include "specialize.h"
 #include "chyron.h"
+#include "lanemanager.h"
 #include "reporter_local.h"
+
+#include "addlocaldialog.h"
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
@@ -58,7 +61,6 @@ private:    // typedefs and enums
     SPECIALIZE_QUEUE(HeadlinePointer, Headline)             // "HeadlineQueue"
     SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)           // "HeadlineMap"
     SPECIALIZE_VECTOR(ChyronPointer, Story)                 // "StoryVector"
-//    SPECIALIZE_MAP(AnimEntryType, StoryVector, Stacking)    // "StackingMap"
 
 private slots:
     void            slot_quit();
@@ -99,9 +101,12 @@ private:    // data members
 
     StoryMap            stories;
     ReporterList        reporters;
-//    StackingMap         stacking;
 
     QString             headline_stylesheet_normal;
     QString             headline_stylesheet_alert;
     QStringList         headline_alert_keywords;
+
+    LaneManagerPointer  lane_manager;
+
+    AddLocalDialog*     addlocal_dlg;
 };
