@@ -64,6 +64,9 @@ HEADERS  += mainwindow.h \
             animexittype.def \
             reportstacking.def \
 
+# Plug-in interfaces
+HEADERS += plugins/interfaces/ipluginrest.h
+
 FORMS    += mainwindow.ui \
             addlocaldialog.ui \
             settingsdialog.ui
