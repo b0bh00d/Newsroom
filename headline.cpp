@@ -23,17 +23,6 @@ Headline::Headline(const QUrl& story,
 {
 }
 
-//void Headline::showEvent(QShowEvent *event)
-//{
-//    QWidget::showEvent(event);
-
-////    SetWindowLong((HWND)winId(), GWL_STYLE, GetWindowLong((HWND)winId(), GWL_STYLE) | WS_EX_TRANSPARENT);
-
-////    QRect r = geometry();
-////    SetWindowPos((HWND)winId(), HWND_BOTTOM, r.x(), r.y(), r.width(), r.height(), SWP_NOACTIVATE|SWP_SHOWWINDOW);
-////    SetWindowPos((HWND)winId(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOSIZE);
-//}
-
 bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *result)
 {
     *result = 0L;
@@ -49,9 +38,9 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
                 RECT    r;
                 HWND    bottom = nullptr;
 
-                // assume a window consuming the entire virtual desktop
-                // size IS the desktop (e.g., "Program Manager"), and
-                // glue ourselves right on top of it
+                // assume the first window consuming the entire virtual
+                // desktop size IS the desktop (e.g., "Program Manager"),
+                // and glue ourselves right on top of it
                 int desktop_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
                 int desktop_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 
