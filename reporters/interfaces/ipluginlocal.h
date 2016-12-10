@@ -2,21 +2,18 @@
 
 #include <QtCore/QtPlugin>
 #include <QtCore/QString>
-#include <QtCore/QUrl>
 #include <QtCore/QByteArray>
 
-/// @class IPluginREST
-/// @brief A plug-in that knows how to handle a particular REST API
+/// @class IPluginLocal
+/// @brief A plug-in that knows how to handle a local file system entity.
 ///
 /// This Interface class defines the interfaces for use with a Qt-based plug-in
-/// that knows how to interact with a specific REST API.  For example, a REST
-/// plug-in for TeamCity would know how to query a server to retrieve
-/// information about the status of a particular project.
+/// that knows how to process an entity on the local file system.
 
-class IPluginREST
+class IPluginLocal
 {
 public:     // methods
-    virtual ~IPluginREST() {}
+    virtual ~IPluginLocal() {}
 
     /*!
       If a method returns an unexpected value, the host may retrieve any
@@ -45,30 +42,24 @@ public:     // methods
     virtual QByteArray PluginID() const = 0;
 
     /*!
-      This method returns a list of parameter names that it requires in order
-      to perform its function.  Each parameter name is followed by a type,
-      one of "string", "password", "integer" or "float".  The host should post
-      a dialog requesting these parameters and types from the user, and then
-      provide them back to the plug-in via the SetStory() method.
+      This method tells the host if it can process the indicated file.  It is
+      up to the plug-in to determine if it is a file format whose contents it
+      can monitor, and from which provide meaningful Headlines.
 
-      \returns A string list of parameter names and types.
+      \param file A fully qualify path to an entity on the local file system.
+      \returns A Boolean true if the plug-in can provide meaningful Headlines for this file, otherwise false.
      */
-    virtual QStringList Requires() const = 0;
+    virtual bool CanGrok(const QString& file) const = 0;
 
     /*!
-      Sets the Story (URL) for the REST plug-in to cover.  Username and
-      Password press credentials are provided if they are required by the
-      particular REST API.
+      Sets the Story (file system entity) for the Local plug-in to cover.
 
-      \param url The URL for the REST API.
-      \param parameters A list of string values that match the parameters/types indicated by the Requires() method.  The plug-in will convert the string values into the appropriate data types, as needed.
-      \returns A true value if the provided parameters are sufficient to perform the plug-in's function, otherwise false.
+      \param file A fully qualify path to an entity on the local file system.
      */
-    virtual bool SetStory(const QUrl& url, const QStringList& parameters) = 0;
+    virtual void SetStory(const QString& file) = 0;
 
     /*!
-      Start covering the Story.  The plug-in should begin any actions required
-      to retrieve status information from the REST API when this method is invoked.
+      Start covering the Story.
 
       \returns A true value if Story coverage began, otherwise false.
      */
@@ -92,5 +83,5 @@ public:     // methods
 };
 
 QT_BEGIN_NAMESPACE
-Q_DECLARE_INTERFACE(IPluginREST, "org.lucidgears.Newsroom.IPluginREST")
+Q_DECLARE_INTERFACE(IPluginLocal, "org.lucidgears.Newsroom.IPluginLocal")
 QT_END_NAMESPACE
