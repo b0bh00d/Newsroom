@@ -38,8 +38,9 @@ UI_DIR = $$INTERMEDIATE_NAME/ui
 
 SOURCES += teamcity.cpp
 
-HEADERS += teamcity.h\
-        teamcity_global.h
+HEADERS += teamcity.h \
+        teamcity_global.h \
+        ../../interfaces/ipluginrest.h \
 
 unix {
     target.path = /usr/lib
