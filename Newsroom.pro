@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -65,7 +65,8 @@ HEADERS  += mainwindow.h \
             reportstacking.def \
 
 # Plug-in interfaces
-HEADERS += reporters/interfaces/ipluginrest.h
+HEADERS += reporters/interfaces/ipluginrest.h \
+           reporters/interfaces/ipluginlocal.h
 
 FORMS    += mainwindow.ui \
             addlocaldialog.ui \
