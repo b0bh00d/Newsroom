@@ -65,7 +65,7 @@ HEADERS  += mainwindow.h \
             reportstacking.def \
 
 # Plug-in interfaces
-HEADERS += plugins/interfaces/ipluginrest.h
+HEADERS += reporters/interfaces/ipluginrest.h
 
 FORMS    += mainwindow.ui \
             addlocaldialog.ui \
