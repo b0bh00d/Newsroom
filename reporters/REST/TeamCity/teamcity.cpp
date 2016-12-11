@@ -1,5 +1,6 @@
 #include "teamcity.h"
 
+// IPlugin
 QStringList TeamCity::DisplayName() const
 {
     return QStringList() << QObject::tr("Team City v9") << QObject::tr("Supports the Team City REST API for v9.x");
@@ -8,49 +9,6 @@ QStringList TeamCity::DisplayName() const
 QByteArray TeamCity::PluginID() const
 {
     return "{A34020FD-80CC-48D4-9EC0-DFD52B912B2D}";
-}
-
-QStringList TeamCity::Requires() const
-{
-    return QStringList() << "Username"      << "string" <<
-                            "Password"      << "password" <<
-                            "Project Name"  << "string" <<
-                            "Builder"       << "string";
-}
-
-bool TeamCity::SetRequirements(const QStringList& parameters)
-{
-    if(parameters.count() < 3)
-    {
-        error_message = QStringLiteral("TeamCity: Not enough parameters provided.");
-        return false;
-    }
-
-    username     = parameters[0];
-    password     = parameters[1];
-    project_name = parameters[2];
-    if(parameters.count() > 3)
-        builder_name = parameters[3];
-
-    if(username.isEmpty())
-    {
-        error_message = QStringLiteral("TeamCity: The Username parameter is required.");
-        return false;
-    }
-
-    if(password.isEmpty())
-    {
-        error_message = QStringLiteral("TeamCity: The Password parameter is required.");
-        return false;
-    }
-
-    if(project_name.isEmpty())
-    {
-        error_message = QStringLiteral("TeamCity: The Project ID parameter is required.");
-        return false;
-    }
-
-    return true;
 }
 
 void TeamCity::SetStory(const QUrl& url)
@@ -93,6 +51,50 @@ bool TeamCity::FinishStory()
 {
     error_message = QStringLiteral("TeamCity: Not implemented.");
     return false;
+}
+
+// IPluginREST
+QStringList TeamCity::Requires() const
+{
+    return QStringList() << "Username"      << "string" <<
+                            "Password"      << "password" <<
+                            "Project Name"  << "string" <<
+                            "Builder"       << "string";
+}
+
+bool TeamCity::SetRequirements(const QStringList& parameters)
+{
+    if(parameters.count() < 3)
+    {
+        error_message = QStringLiteral("TeamCity: Not enough parameters provided.");
+        return false;
+    }
+
+    username     = parameters[0];
+    password     = parameters[1];
+    project_name = parameters[2];
+    if(parameters.count() > 3)
+        builder_name = parameters[3];
+
+    if(username.isEmpty())
+    {
+        error_message = QStringLiteral("TeamCity: The Username parameter is required.");
+        return false;
+    }
+
+    if(password.isEmpty())
+    {
+        error_message = QStringLiteral("TeamCity: The Password parameter is required.");
+        return false;
+    }
+
+    if(project_name.isEmpty())
+    {
+        error_message = QStringLiteral("TeamCity: The Project ID parameter is required.");
+        return false;
+    }
+
+    return true;
 }
 
 void TeamCity::process_reply()

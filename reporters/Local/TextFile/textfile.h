@@ -25,6 +25,7 @@ public:
     QString PluginClass() const                 { return "Local"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     void SetStory(const QUrl& story) Q_DECL_OVERRIDE;
+    void SetCoverage(bool notices_only) Q_DECL_OVERRIDE;
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
 
@@ -44,4 +45,6 @@ protected:
     QTimer*         poll_timer;
 
     QString         report;
+
+    bool            notices_only;
 };

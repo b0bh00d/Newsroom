@@ -62,6 +62,15 @@ public:     // methods
     virtual void SetStory(const QUrl& story) = 0;
 
     /*!
+      Local Reporters can cover stories as notices or in depth.  Notices just
+      make mention of a change in the story (file changes), while in-depth
+      coverage actually produces tangible content (file data deltas).
+
+      \param notices_only True if only file changes will be reported, otherwise file deltas will be provided.
+     */
+    virtual void SetCoverage(bool notices_only = false) = 0;
+
+    /*!
       Start covering the Story.  The plug-in should begin any actions required
       to retrieve status information from the REST API when this method is invoked.
 
