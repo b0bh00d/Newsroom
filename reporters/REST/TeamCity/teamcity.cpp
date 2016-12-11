@@ -1,8 +1,8 @@
 #include "teamcity.h"
 
-QString TeamCity::DisplayName() const
+QStringList TeamCity::DisplayName() const
 {
-    return QStringLiteral("Team City v9");
+    return QStringList() << QStringLiteral("Team City v9") << QStringLiteral("Supports the Team City REST API for v9.x");
 }
 
 QByteArray TeamCity::PluginID() const

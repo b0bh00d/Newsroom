@@ -3,6 +3,7 @@
 #include <QtPlugin>
 
 #include <QtCore/QString>
+#include <QtCore/QStringList>
 #include <QtCore/QByteArray>
 
 /// @class IPlugin
@@ -26,11 +27,12 @@ public:     // methods
     /*!
       This method returns a displayable name for the REST plug-in, something
       meaningful to the user for when they are selecting plug-ins to handle a
-      URL.
+      URL.  It can also optionally return a tooltip value that the host can
+      display to help clarify the support provided by the plug-in.
 
       \returns A displayable name for the plug-in.
      */
-    virtual QString DisplayName() const = 0;
+    virtual QStringList DisplayName() const = 0;
 
     /*!
       This method returns a unique identifier for the plug-in.  This identifier

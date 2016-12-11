@@ -3,9 +3,9 @@
 
 #include "textfile.h"
 
-QString TextFile::DisplayName() const
+QStringList TextFile::DisplayName() const
 {
-    return QStringLiteral("Text File");
+    return QStringList() << QStringLiteral("Text File") << QStringLiteral("Reads a text file containing ASCII characters");
 }
 
 QByteArray TextFile::PluginID() const
