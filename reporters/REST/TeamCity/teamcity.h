@@ -26,9 +26,10 @@ public:
     // IPlugin
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
     QStringList DisplayName() const Q_DECL_OVERRIDE;
-    QString PluginClass() const                 { return "REST"; }
+    QString PluginClass() const Q_DECL_OVERRIDE { return "REST"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
+    void SetCoverage(bool /*notices_only*/) Q_DECL_OVERRIDE {}
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
 

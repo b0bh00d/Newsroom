@@ -43,15 +43,14 @@ UI_DIR = $$INTERMEDIATE_NAME/ui
 
 SOURCES += main.cpp \
         mainwindow.cpp \
-        reporter.cpp \
         addlocaldialog.cpp \
         headline.cpp \
         chyron.cpp \
         settingsdialog.cpp \
         lanemanager.cpp \
+    producer.cpp
 
 HEADERS  += mainwindow.h \
-            reporter.h \
             addlocaldialog.h \
             types.h \
             specialize.h \
@@ -62,6 +61,7 @@ HEADERS  += mainwindow.h \
             animentrytype.def \
             animexittype.def \
             reportstacking.def \
+    producer.h
 
 # Plug-in interfaces
 HEADERS += reporters/interfaces/iplugin \

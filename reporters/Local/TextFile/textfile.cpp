@@ -1,8 +1,10 @@
 #include <QtCore/QFile>
 #include <QtCore/QTextStream>
+#include <QtCore/QDateTime>
 
 #include "textfile.h"
 
+// IPlugin
 QStringList TextFile::DisplayName() const
 {
     return QStringList() << QObject::tr("Text File") << QObject::tr("Reads a text file containing ASCII characters");
@@ -11,11 +13,6 @@ QStringList TextFile::DisplayName() const
 QByteArray TextFile::PluginID() const
 {
     return "{F1949758-2A08-4E8A-8290-90DCD270A8B9}";
-}
-
-bool TextFile::Supports(const QString& /*file*/) const
-{
-    return true;
 }
 
 void TextFile::SetStory(const QUrl& story)
@@ -55,6 +52,17 @@ bool TextFile::FinishStory()
     return true;
 }
 
+// IPluginLocal
+bool TextFile::Supports(const QString& /*file*/) const
+{
+    return true;
+}
+
+void TextFile::SetCoverage(bool notices_only)
+{
+    this->notices_only = notices_only;
+}
+
 void TextFile::slot_poll()
 {
     target.refresh();
@@ -64,19 +72,28 @@ void TextFile::slot_poll()
         stabilize_count = 0;
 //        last_modified = target.lastModified();
 
-        if(target.size() > seek_offset)
+        if(notices_only)
         {
-            // gather the new content
-            QFile target_file(target.absoluteFilePath());
-            if(target_file.open(QIODevice::ReadOnly|QIODevice::Text))
-            {
-                target_file.seek(seek_offset);
-                QByteArray data = target_file.readAll();
-                emit signal_new_data(data);
-            }
+            // this is enough to trigger a headline
+            QString data = QString("Story '%1' was updated on %2").arg(story.toString()).arg(target.lastModified().toString());
+            emit signal_new_data(data.toUtf8());
         }
+        else
+        {
+            if(target.size() > seek_offset)
+            {
+                // gather the new content
+                QFile target_file(target.absoluteFilePath());
+                if(target_file.open(QIODevice::ReadOnly|QIODevice::Text))
+                {
+                    target_file.seek(seek_offset);
+                    QByteArray data = target_file.readAll();
+                    emit signal_new_data(data);
+                }
+            }
 
-        last_size = seek_offset = target.size();
+            last_size = seek_offset = target.size();
+        }
     }
     else
     {

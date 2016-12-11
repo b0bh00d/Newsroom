@@ -243,18 +243,18 @@ void MainWindow::dropEvent(QDropEvent* event)
                     ChyronPointer chyron = stories[story];
 
                     // assign a new Reporter to cover the the story
-                    ReporterPointer reporter(new ReporterWrapper(addlocal_dlg->get_reporter(),
-                                                                 story,
-                                                                 headline_font,
-                                                                 headline_stylesheet_normal,
-                                                                 headline_stylesheet_alert,
-                                                                 headline_alert_keywords,
-                                                                 addlocal_dlg->get_trigger(),
-                                                                 this));
-                    if(reporter->start_covering_story())
+                    ProducerPointer producer(new Producer(addlocal_dlg->get_reporter(),
+                                                          story,
+                                                          headline_font,
+                                                          headline_stylesheet_normal,
+                                                          headline_stylesheet_alert,
+                                                          headline_alert_keywords,
+                                                          addlocal_dlg->get_trigger(),
+                                                          this));
+                    if(producer->start_covering_story())
                     {
-                        reporters.push_back(reporter);
-                        connect(reporter.data(), &ReporterWrapper::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
+                        producers.push_back(producer);
+                        connect(producer.data(), &Producer::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
                     }
                     else
                     {

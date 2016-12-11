@@ -25,7 +25,7 @@
 #include "specialize.h"
 #include "chyron.h"
 #include "lanemanager.h"
-#include "reporter.h"
+#include "producer.h"
 
 #include "addlocaldialog.h"
 
@@ -60,7 +60,7 @@ protected:  // methods
 private:    // typedefs and enums
     SPECIALIZE_MAP(QString, QByteArray, Window)             // "WindowMap"
     SPECIALIZE_MAP(QUrl, ChyronPointer, Story)              // "StoryMap"
-    SPECIALIZE_LIST(ReporterPointer, Reporter)              // "ReporterList"
+    SPECIALIZE_LIST(ProducerPointer, Producer)              // "ProducerList"
     SPECIALIZE_QUEUE(HeadlinePointer, Headline)             // "HeadlineQueue"
     SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)           // "HeadlineMap"
     SPECIALIZE_VECTOR(ChyronPointer, Story)                 // "StoryVector"
@@ -105,7 +105,7 @@ private:    // data members
     QMimeDatabase       mime_db;
 
     StoryMap            stories;
-    ReporterList        reporters;
+    ProducerList        producers;
 
     QString             headline_stylesheet_normal;
     QString             headline_stylesheet_alert;
