@@ -23,7 +23,7 @@ class TEXTFILE_SHARED_EXPORT TextFile : public QObject, public IPluginLocal
 public:
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
 
-    QString DisplayName() const Q_DECL_OVERRIDE;
+    QStringList DisplayName() const Q_DECL_OVERRIDE;
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     bool Supports(const QString& file) const Q_DECL_OVERRIDE;
     void SetStory(const QString& file) Q_DECL_OVERRIDE;

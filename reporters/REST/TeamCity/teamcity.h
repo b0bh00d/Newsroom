@@ -26,7 +26,7 @@ class TEAMCITYSHARED_EXPORT TeamCity : public QObject, public IPluginREST
 public:
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
 
-    QString DisplayName() const Q_DECL_OVERRIDE;
+    QStringList DisplayName() const Q_DECL_OVERRIDE;
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     QStringList Requires() const Q_DECL_OVERRIDE;
     bool SetStory(const QUrl& url, const QStringList& parameters) Q_DECL_OVERRIDE;
