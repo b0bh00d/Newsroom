@@ -609,8 +609,7 @@ void Chyron::shift_down(int amount)
 
 void Chyron::slot_file_headline(HeadlinePointer headline)
 {
-    if(headline->story.toString().compare(story.toString()))
-        return;     // this headline isn't for this story
+    Q_ASSERT(headline->story.toString().compare(story.toString()) == 0);
     incoming_headlines.enqueue(headline);
 }
 

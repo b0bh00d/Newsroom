@@ -19,22 +19,22 @@ class TEXTFILE_SHARED_EXPORT TextFile : public IPluginLocal
     Q_INTERFACES(IPluginLocal)
 
 public:
+    // IPlugin
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
-
     QStringList DisplayName() const Q_DECL_OVERRIDE;
+    QString PluginClass() const                 { return "Local"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
-    bool Supports(const QString& file) const Q_DECL_OVERRIDE;
-    void SetStory(const QString& file) Q_DECL_OVERRIDE;
+    void SetStory(const QUrl& story) Q_DECL_OVERRIDE;
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
-    QString Headline() Q_DECL_OVERRIDE;
+
+    // IPluginLocal
+    bool Supports(const QString& file) const Q_DECL_OVERRIDE;
 
 protected slots:
     void            slot_poll();
 
 protected:
-    QString         error_message;
-
     QFileInfo       target;
     int             stabilize_count;
 //    QDateTime       last_modified;

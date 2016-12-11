@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QtPlugin>
 
+#include <QtCore/QUrl>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QByteArray>
@@ -37,6 +38,14 @@ public:     // methods
     virtual QStringList DisplayName() const = 0;
 
     /*!
+      This method returns the class of the plug-in.  This is used by the host
+      to determine the category of Story that the plug-in can cover.
+
+      \returns A string representing the plug-in class ("Local", "REST", etc.)
+     */
+    virtual QString PluginClass() const = 0;
+
+    /*!
       This method returns a unique identifier for the plug-in.  This identifier
       should be guaranteed to be globally unique (hint: GUID).  It will not be
       shown to the user.
@@ -44,6 +53,13 @@ public:     // methods
       \returns A unique identifier for the plug-in.
      */
     virtual QByteArray PluginID() const = 0;
+
+    /*!
+      Sets the Story (QUrl) for the plug-in to cover.
+
+      \param story A QUrl that indicates the target of the coverage to be performed.
+     */
+    virtual void SetStory(const QUrl& story) = 0;
 
     /*!
       Start covering the Story.  The plug-in should begin any actions required
@@ -61,14 +77,10 @@ public:     // methods
      */
     virtual bool FinishStory() = 0;
 
-    /*!
-      Retrieves a headline for the currently covered Story.  The returned value
-      can be empty if no headline is currently available.
-
-      \returns A headline to be displayed by a Chyron, if one is available..
-     */
-    virtual QString Headline() = 0;
-
 signals:
     void        signal_new_data(const QByteArray& data);
+
+protected:
+    QString         error_message;
+    QUrl            story;
 };

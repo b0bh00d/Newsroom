@@ -2,7 +2,7 @@
 
 QStringList TeamCity::DisplayName() const
 {
-    return QStringList() << QStringLiteral("Team City v9") << QStringLiteral("Supports the Team City REST API for v9.x");
+    return QStringList() << QObject::tr("Team City v9") << QObject::tr("Supports the Team City REST API for v9.x");
 }
 
 QByteArray TeamCity::PluginID() const
@@ -18,7 +18,7 @@ QStringList TeamCity::Requires() const
                             "Builder"       << "string";
 }
 
-bool TeamCity::SetStory(const QUrl& url, const QStringList& parameters)
+bool TeamCity::SetRequirements(const QStringList& parameters)
 {
     if(parameters.count() < 3)
     {
@@ -26,7 +26,6 @@ bool TeamCity::SetStory(const QUrl& url, const QStringList& parameters)
         return false;
     }
 
-    server       = url;
     username     = parameters[0];
     password     = parameters[1];
     project_name = parameters[2];
@@ -54,12 +53,17 @@ bool TeamCity::SetStory(const QUrl& url, const QStringList& parameters)
     return true;
 }
 
+void TeamCity::SetStory(const QUrl& url)
+{
+    story = url;
+}
+
 bool TeamCity::CoverStory()
 {
     state = States::None;
 
     // get project listing first
-    QString projects_url = QString("%1/httpAuth/app/rest/projects").arg(server.toString());
+    QString projects_url = QString("%1/httpAuth/app/rest/projects").arg(story.toString());
     QUrl url(projects_url);
     url.setUserName(username);
     url.setPassword(password);
@@ -91,11 +95,6 @@ bool TeamCity::FinishStory()
     return false;
 }
 
-QString TeamCity::Headline()
-{
-    return QString();
-}
-
 void TeamCity::process_reply()
 {
     if(state == States::GettingProjects)
@@ -119,12 +118,12 @@ void TeamCity::process_reply()
         // get the builders for the project we are watching
 
         if(!json_projects.contains(project_name))
-            error_message = QString("TeamCity: The project id \"%1\" was not found on server \"%2\".").arg(project_name).arg(server.toString());
+            error_message = QString("TeamCity: The project id \"%1\" was not found on server \"%2\".").arg(project_name).arg(story.toString());
         else
         {
             QJsonObject project = json_projects[project_name];
 
-            QString builders_url = QString("%1%2").arg(server.toString()).arg(project["href"].toString());
+            QString builders_url = QString("%1%2").arg(story.toString()).arg(project["href"].toString());
 
             QUrl url(builders_url);
             url.setUserName(username);
@@ -169,7 +168,7 @@ void TeamCity::process_reply()
         {
             if(!json_builders.contains(builder_name))
                 error_message = QString("TeamCity: The build id \"%1\" was not found for project \"%2\" on server \"%3\".")
-                        .arg(builder_name).arg(project_name).arg(server.toString());
+                        .arg(builder_name).arg(project_name).arg(story.toString());
         }
     }
     else if(state == States::GettingDetails)

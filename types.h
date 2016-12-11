@@ -46,7 +46,8 @@ enum class FixedText
 struct PluginInfo
 {
     QString     path;
-    QStringList display;
+    QString     name;
+    QString     tooltip;
     QString     id;
 };
 

@@ -39,16 +39,6 @@ AddLocalDialog::AddLocalDialog(QWidget *parent) :
     setWindowTitle(tr("Newsroom: Add Story"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
 
-    connect(ui->combo_EntryType, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-            this, &AddLocalDialog::slot_entry_type_changed);
-    connect(ui->combo_AvailableReporters, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-            this, &AddLocalDialog::slot_reporter_changed);
-    connect(ui->check_HeadlinesFixedSize, &QCheckBox::clicked, this, &AddLocalDialog::slot_headlines_fixed_size_clicked);
-    connect(ui->radio_TrainReduceOpacityFixed, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
-    connect(ui->radio_TrainReduceOpacityByAge, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
-    connect(ui->combo_LocalTrigger, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-            this, &AddLocalDialog::slot_trigger_changed);
-
     QRegExp rx("\\d+");
     ui->edit_TTL->setValidator(new QRegExpValidator(rx, this));
     ui->edit_HeadlinesFixedWidth->setValidator(new QRegExpValidator(rx, this));
@@ -66,6 +56,16 @@ AddLocalDialog::~AddLocalDialog()
 
 void AddLocalDialog::showEvent(QShowEvent *event)
 {
+    connect(ui->combo_EntryType, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &AddLocalDialog::slot_entry_type_changed);
+    connect(ui->combo_AvailableReporters, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &AddLocalDialog::slot_reporter_changed);
+    connect(ui->check_HeadlinesFixedSize, &QCheckBox::clicked, this, &AddLocalDialog::slot_headlines_fixed_size_clicked);
+    connect(ui->radio_TrainReduceOpacityFixed, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
+    connect(ui->radio_TrainReduceOpacityByAge, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
+    connect(ui->combo_LocalTrigger, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &AddLocalDialog::slot_trigger_changed);
+
     QDialog::showEvent(event);
     activateWindow();
     raise();
@@ -89,12 +89,9 @@ void AddLocalDialog::set_reporters(const PluginsInfoVector& reporters_info)
     ui->combo_AvailableReporters->clear();
     foreach(const PluginInfo& pi_info, reporters_info)
     {
-        ui->combo_AvailableReporters->addItem(pi_info.display[0]);
+        ui->combo_AvailableReporters->addItem(pi_info.name);
         plugin_paths << pi_info.path;
-        if(pi_info.display.count() > 1)
-            plugin_tooltips << pi_info.display[1];
-        else
-            plugin_tooltips << "";
+        plugin_tooltips << pi_info.tooltip;
     }
 
     ui->combo_AvailableReporters->setEnabled(reporters_info.count() > 1);

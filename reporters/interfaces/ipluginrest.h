@@ -32,15 +32,12 @@ public:     // methods
     virtual QStringList Requires() const = 0;
 
     /*!
-      Sets the Story (URL) for the REST plug-in to cover.  Username and
-      Password press credentials are provided if they are required by the
-      particular REST API.
+      Sets the parameters dictated by the Required() method.
 
-      \param url The URL for the REST API.
       \param parameters A list of string values that match the parameters/types indicated by the Requires() method.  The plug-in will convert the string values into the appropriate data types, as needed.
       \returns A true value if the provided parameters are sufficient to perform the plug-in's function, otherwise false.
      */
-    virtual bool SetStory(const QUrl& url, const QStringList& parameters) = 0;
+    virtual bool SetRequirements(const QStringList& parameters) = 0;
 };
 
 QT_BEGIN_NAMESPACE

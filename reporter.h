@@ -36,8 +36,8 @@ public:
 
     QUrl    get_story() const { return story; }
 
-    void    start_covering_story();
-    void    stop_covering_story();
+    bool    start_covering_story();
+    bool    stop_covering_story();
 
     void    save(QSettings& settings);
     void    load(QSettings& settings);
