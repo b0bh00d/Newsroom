@@ -1,7 +1,5 @@
 #pragma once
 
-#include <QObject>
-
 #include <QtCore/QTimer>
 #include <QtCore/QFileInfo>
 #include <QtCore/QByteArray>
@@ -14,7 +12,7 @@
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
-class TEXTFILE_SHARED_EXPORT TextFile : public QObject, public IPluginLocal
+class TEXTFILE_SHARED_EXPORT TextFile : public IPluginLocal
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginLocal" FILE "")
@@ -30,9 +28,6 @@ public:
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
     QString Headline() Q_DECL_OVERRIDE;
-
-signals:
-    void            signal_new_data(const QByteArray& data);
 
 protected slots:
     void            slot_poll();

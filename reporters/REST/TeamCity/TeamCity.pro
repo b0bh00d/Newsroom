@@ -1,13 +1,7 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2016-12-08T14:05:59
-#
-#-------------------------------------------------
-
 QT += network
 QT -= gui
 
-DESTDIR = ../../../plugins
+#DESTDIR = ../../../plugins
 # qtLibraryTarget() adds the 'd' or '_debug' extension, if doing debug builds
 TARGET = $$qtLibraryTarget(TeamCity)
 TEMPLATE = lib
@@ -43,7 +37,20 @@ HEADERS += teamcity.h \
         ../../interfaces/iplugin.h \
         ../../interfaces/ipluginrest.h \
 
-unix {
-    target.path = /usr/lib
-    INSTALLS += target
+target.path = ../../../plugins
+CONFIG(debug, debug|release) {
+    win32 {
+        target.files = debug/*.dll
+    }
+    unix {
+        target.files = debug/*.so
+    }
+} else {
+    win32 {
+        target.files = release/*.dll
+    }
+    unix {
+        target.files = release/*.so
+    }
 }
+INSTALLS += target

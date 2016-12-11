@@ -39,17 +39,17 @@ HEADERS += textfile.h\
 target.path = ../../../plugins
 CONFIG(debug, debug|release) {
     win32 {
-        target.files = debug/TextFiled.dll
+        target.files = debug/*.dll
     }
     unix {
-        target.files = debug/TextFile.so
+        target.files = debug/*.so
     }
 } else {
     win32 {
-        target.files = release/TextFile.dll
+        target.files = release/*.dll
     }
     unix {
-        target.files = release/TextFile.so
+        target.files = release/*.so
     }
 }
 INSTALLS += target

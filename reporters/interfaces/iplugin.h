@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QObject>
 #include <QtPlugin>
 
 #include <QtCore/QString>
@@ -11,8 +12,9 @@
 ///
 /// All Newsroom Reporter plug-ins support this minimal interface.
 
-class IPlugin
+class IPlugin : public QObject
 {
+    Q_OBJECT
 public:     // methods
     virtual ~IPlugin() {}
 
@@ -66,4 +68,7 @@ public:     // methods
       \returns A headline to be displayed by a Chyron, if one is available..
      */
     virtual QString Headline() = 0;
+
+signals:
+    void        signal_new_data(const QByteArray& data);
 };

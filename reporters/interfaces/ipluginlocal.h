@@ -10,6 +10,7 @@
 
 class IPluginLocal : public IPlugin
 {
+    Q_OBJECT
 public:     // methods
     virtual ~IPluginLocal() {}
 
