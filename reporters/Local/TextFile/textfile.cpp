@@ -1,29 +1,29 @@
 #include <QtCore/QFile>
 #include <QtCore/QTextStream>
 
-#include "local.h"
+#include "textfile.h"
 
-QString Local::DisplayName() const
+QString TextFile::DisplayName() const
 {
     return QStringLiteral("Text File");
 }
 
-QByteArray Local::PluginID() const
+QByteArray TextFile::PluginID() const
 {
     return "{F1949758-2A08-4E8A-8290-90DCD270A8B9}";
 }
 
-bool Local::CanGrok(const QString& /*file*/) const
+bool TextFile::Supports(const QString& /*file*/) const
 {
     return true;
 }
 
-void Local::SetStory(const QString& file)
+void TextFile::SetStory(const QString& file)
 {
     target.setFile(file);
 }
 
-bool Local::CoverStory()
+bool TextFile::CoverStory()
 {
     target.refresh();
     stabilize_count = 0;
@@ -33,13 +33,13 @@ bool Local::CoverStory()
 
     poll_timer = new QTimer(this);
     poll_timer->setInterval(1000);
-    connect(poll_timer, &QTimer::timeout, this, &Local::slot_poll);
+    connect(poll_timer, &QTimer::timeout, this, &TextFile::slot_poll);
     poll_timer->start();
 
     return true;
 }
 
-bool Local::FinishStory()
+bool TextFile::FinishStory()
 {
     poll_timer->stop();
     poll_timer->deleteLater();
@@ -48,12 +48,12 @@ bool Local::FinishStory()
     return true;
 }
 
-QString Local::Headline()
+QString TextFile::Headline()
 {
     return QString();
 }
 
-void Local::slot_poll()
+void TextFile::slot_poll()
 {
     target.refresh();
 

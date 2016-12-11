@@ -1,0 +1,55 @@
+QT -= gui
+
+#DESTDIR = ../../../plugins
+# qtLibraryTarget() adds the 'd' or '_debug' extension, if doing debug builds
+TARGET = $$qtLibraryTarget(TextFile)
+TEMPLATE = lib
+
+CONFIG += C++11
+
+DEFINES += TEXTFILE_LIBRARY
+
+INCLUDEPATH += ../../interfaces
+
+mac {
+    DEFINES += QT_OSX
+}
+
+unix:!mac {
+    DEFINES += QT_LINUX
+}
+
+win32 {
+    DEFINES += QT_WIN
+}
+
+INTERMEDIATE_NAME = intermediate
+MOC_DIR = $$INTERMEDIATE_NAME/moc
+OBJECTS_DIR = $$INTERMEDIATE_NAME/obj
+RCC_DIR = $$INTERMEDIATE_NAME/rcc
+UI_DIR = $$INTERMEDIATE_NAME/ui
+
+SOURCES += textfile.cpp
+
+HEADERS += textfile.h\
+           textfile_global.h \
+           ../../interfaces/iplugin.h \
+           ../../interfaces/ipluginlocal.h \
+
+target.path = ../../../plugins
+CONFIG(debug, debug|release) {
+    win32 {
+        target.files = debug/TextFiled.dll
+    }
+    unix {
+        target.files = debug/TextFile.so
+    }
+} else {
+    win32 {
+        target.files = release/TextFile.dll
+    }
+    unix {
+        target.files = release/TextFile.so
+    }
+}
+INSTALLS += target
