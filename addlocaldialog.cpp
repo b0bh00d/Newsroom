@@ -3,6 +3,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QStringList>
 #include <QtCore/QRegExp>
+#include <QtCore/QPluginLoader>
 
 #include "addlocaldialog.h"
 #include "ui_addlocaldialog.h"
@@ -40,9 +41,13 @@ AddLocalDialog::AddLocalDialog(QWidget *parent) :
 
     connect(ui->combo_EntryType, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &AddLocalDialog::slot_entry_type_changed);
+    connect(ui->combo_AvailableReporters, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &AddLocalDialog::slot_reporter_changed);
     connect(ui->check_HeadlinesFixedSize, &QCheckBox::clicked, this, &AddLocalDialog::slot_headlines_fixed_size_clicked);
     connect(ui->radio_TrainReduceOpacityFixed, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
     connect(ui->radio_TrainReduceOpacityByAge, &QCheckBox::clicked, this, &AddLocalDialog::slot_train_reduce_opacity_clicked);
+    connect(ui->combo_LocalTrigger, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &AddLocalDialog::slot_trigger_changed);
 
     QRegExp rx("\\d+");
     ui->edit_TTL->setValidator(new QRegExpValidator(rx, this));
@@ -74,6 +79,25 @@ void AddLocalDialog::set_target(const QString& name)
 void AddLocalDialog::set_trigger(LocalTrigger trigger_type)
 {
     ui->combo_LocalTrigger->setCurrentIndex(static_cast<int>(trigger_type));
+}
+
+void AddLocalDialog::set_reporters(const PluginsInfoVector& reporters_info)
+{
+    plugin_paths.clear();
+    plugin_tooltips.clear();
+
+    ui->combo_AvailableReporters->clear();
+    foreach(const PluginInfo& pi_info, reporters_info)
+    {
+        ui->combo_AvailableReporters->addItem(pi_info.display[0]);
+        plugin_paths << pi_info.path;
+        if(pi_info.display.count() > 1)
+            plugin_tooltips << pi_info.display[1];
+        else
+            plugin_tooltips << "";
+    }
+
+    ui->combo_AvailableReporters->setEnabled(reporters_info.count() > 1);
 }
 
 void AddLocalDialog::set_ttl(uint ttl)
@@ -141,6 +165,15 @@ void AddLocalDialog::set_train_age_effects(AgeEffects effect, int percent)
 LocalTrigger AddLocalDialog::get_trigger()
 {
     return static_cast<LocalTrigger>(ui->combo_LocalTrigger->currentIndex());
+}
+
+QObject* AddLocalDialog::get_reporter()
+{
+    if(static_cast<LocalTrigger>(ui->combo_LocalTrigger->currentIndex()) != LocalTrigger::NewContent)
+        return nullptr;
+
+    QPluginLoader plugin(plugin_paths[ui->combo_AvailableReporters->currentIndex()]);
+    return plugin.instance();
 }
 
 uint AddLocalDialog::get_ttl()
@@ -228,4 +261,16 @@ void AddLocalDialog::slot_headlines_fixed_size_clicked(bool checked)
 void AddLocalDialog::slot_train_reduce_opacity_clicked(bool /*checked*/)
 {
     ui->edit_TrainReduceOpacity->setEnabled(ui->radio_TrainReduceOpacityFixed->isChecked());
+}
+
+void AddLocalDialog::slot_trigger_changed(int /*index*/)
+{
+    ui->combo_AvailableReporters->setEnabled(
+       static_cast<LocalTrigger>(ui->combo_LocalTrigger->currentIndex()) == LocalTrigger::NewContent &&
+       ui->combo_AvailableReporters->count() > 1);
+}
+
+void AddLocalDialog::slot_reporter_changed(int index)
+{
+    ui->combo_AvailableReporters->setToolTip(plugin_tooltips[index]);
 }

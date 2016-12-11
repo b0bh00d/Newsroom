@@ -6,47 +6,67 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QTimer>
 
+#include <iplugin>
+
 #include "types.h"
 #include "specialize.h"
 #include "headline.h"
 
-/// @class Reporter
+/// @class ReporterWrapper
 /// @brief Covers a story
 ///
-/// The Reporter class covers an assigned story, submitting Headlines for
-/// display on the Chyron.
+/// A Reporter covers an assigned story, submitting Headlines for display
+/// on an assigned Chyron.
 ///
-/// This is an Interface class that other types of Reporter inherit from.
+/// ReporterWrapper is a thin wrapper class that interfaces with a Reporter
+/// plug-in, and hooks it into the functioning of the Newsroom application.
 
-class Reporter : public QObject
+class ReporterWrapper : public QObject
 {
     Q_OBJECT
 public:
-    explicit Reporter(const QUrl& story,
-                      const QFont& font,
-                      const QString& normal_stylesheet,
-                      const QString& alert_stylesheet,
-                      const QStringList& alert_keywords,
-                      QObject *parent = 0);
+    explicit ReporterWrapper(QObject* reporter_plugin,
+                             const QUrl& story,
+                             const QFont& font,
+                             const QString& normal_stylesheet,
+                             const QString& alert_stylesheet,
+                             const QStringList& alert_keywords,
+                             LocalTrigger trigger_type,
+                             QObject *parent = 0);
 
-    QUrl            get_story()         const   { return story; }
+    QUrl    get_story() const { return story; }
 
-    virtual void    start_covering_story() = 0;
-    virtual void    stop_covering_story() = 0;
+    void    start_covering_story();
+    void    stop_covering_story();
 
-    virtual void    save(QSettings& settings) = 0;
-    virtual void    load(QSettings& settings) = 0;
+    void    save(QSettings& settings);
+    void    load(QSettings& settings);
 
 signals:
-    void            signal_new_headline(HeadlinePointer headline);
+    void    signal_new_headline(HeadlinePointer headline);
+
+protected slots:
+    void    slot_new_data(const QByteArray& data);
+    void    slot_poll();
 
 protected:
+    QObject*        reporter_plugin;
+    IPluginLocal*   local_instance;
+    IPluginREST*    REST_instance;
+
     QUrl            story;
 
     QFont           headline_font;
     QString         headline_stylesheet_normal;
     QString         headline_stylesheet_alert;
     QStringList     headline_alert_keywords;
+    LocalTrigger    trigger_type;
+
+    QTimer*         poll_timer;
+
+    QFileInfo       target;
+    int             stabilize_count;
+    qint64          last_size;
 };
 
-SPECIALIZE_SHAREDPTR(Reporter, Reporter)        // "ReporterPointer"
+SPECIALIZE_SHAREDPTR(ReporterWrapper, Reporter)    // "ReporterPointer"
