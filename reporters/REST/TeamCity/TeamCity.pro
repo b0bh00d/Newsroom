@@ -1,7 +1,6 @@
 QT += network
 QT -= gui
 
-#DESTDIR = ../../../plugins
 # qtLibraryTarget() adds the 'd' or '_debug' extension, if doing debug builds
 TARGET = $$qtLibraryTarget(TeamCity)
 TEMPLATE = lib
@@ -21,6 +20,7 @@ unix:!mac {
 }
 
 win32 {
+	DLLDESTDIR = ../../../plugins
     DEFINES += QT_WIN
 }
 
