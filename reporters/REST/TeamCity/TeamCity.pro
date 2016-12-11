@@ -4,10 +4,10 @@
 #
 #-------------------------------------------------
 
-QT       += network
+QT += network
+QT -= gui
 
-QT       -= gui
-
+DESTDIR = ../../../plugins
 # qtLibraryTarget() adds the 'd' or '_debug' extension, if doing debug builds
 TARGET = $$qtLibraryTarget(TeamCity)
 TEMPLATE = lib
@@ -40,6 +40,7 @@ SOURCES += teamcity.cpp
 
 HEADERS += teamcity.h \
         teamcity_global.h \
+        ../../interfaces/iplugin.h \
         ../../interfaces/ipluginrest.h \
 
 unix {

@@ -4,8 +4,9 @@
 #
 #-------------------------------------------------
 
-QT       -= gui
+QT -= gui
 
+DESTDIR = ../../plugins
 # qtLibraryTarget() adds the 'd' or '_debug' extension, if doing debug builds
 TARGET = $$qtLibraryTarget(Local)
 TEMPLATE = lib
@@ -37,7 +38,9 @@ UI_DIR = $$INTERMEDIATE_NAME/ui
 SOURCES += local.cpp
 
 HEADERS += local.h\
-           local_global.h
+           local_global.h \
+           ../interfaces/iplugin.h \
+           ../interfaces/ipluginlocal.h \
 
 unix {
     target.path = /usr/lib

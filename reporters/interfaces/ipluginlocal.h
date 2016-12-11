@@ -1,8 +1,5 @@
 #pragma once
 
-#include <QtCore/QString>
-#include <QtCore/QByteArray>
-
 #include "iplugin.h"
 
 /// @class IPluginLocal
