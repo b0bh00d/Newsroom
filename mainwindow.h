@@ -75,7 +75,7 @@ private slots:
     void            slot_edit_settings(bool checked);
 
 private:    // methods
-    void            load_plugin_metadata();
+    bool            load_plugin_metadata();
     void            load_application_settings();
     void            save_application_settings();
     void            save_window_data(QWidget* window);

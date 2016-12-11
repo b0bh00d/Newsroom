@@ -23,13 +23,6 @@ public:     // methods
       \returns A Boolean true if the plug-in can provide meaningful Headlines for this file, otherwise false.
      */
     virtual bool Supports(const QString& file) const = 0;
-
-    /*!
-      Sets the Story (file system entity) for the Local plug-in to cover.
-
-      \param file A fully qualify path to an entity on the local file system.
-     */
-    virtual void SetStory(const QString& file) = 0;
 };
 
 QT_BEGIN_NAMESPACE

@@ -61,11 +61,16 @@ MainWindow::MainWindow(QWidget *parent)
     addlocal_dlg->set_headlines_fixed_text();
     addlocal_dlg->set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
 
-    // Load all the available plug-ins
-    load_plugin_metadata();
-
-//    if(plugins_map.isEmpty())
-//        // we can't do much without reporters
+    // Load all the available Reporter plug-ins
+    if(!load_plugin_metadata())
+    {
+        QMessageBox::critical(0,
+                              tr("Newsroom: Error"),
+                              tr("No Reporter plug-ins were found!\n"
+                                 "The Newsroom cannot function without Reporters."));
+        qApp->quit();
+        return;
+    }
 
     // Tray
 
@@ -92,7 +97,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::load_plugin_metadata()
+bool MainWindow::load_plugin_metadata()
 {
     plugins_map.clear();
 
@@ -108,33 +113,26 @@ void MainWindow::load_plugin_metadata()
             PluginInfo pi_info;
             pi_info.path = plugin_path;
 
-            IPluginLocal* iLocal = qobject_cast<IPluginLocal *>(instance);
-            if(iLocal)
+            IPlugin* iplugin = reinterpret_cast<IPlugin*>(instance);
+            if(iplugin)
             {
-                if(!plugins_map.contains("Local"))
-                    plugins_map["Local"] = PluginsInfoVector();
+                QStringList display = iplugin->DisplayName();
+                pi_info.name = display[0];
+                pi_info.tooltip = display[1];
+                pi_info.id = iplugin->PluginID();
 
-                pi_info.display = iLocal->DisplayName();
-                pi_info.id = iLocal->PluginID();
-                plugins_map["Local"].push_back(pi_info);
-            }
-            else
-            {
-                IPluginREST* iREST= qobject_cast<IPluginREST *>(instance);
-                if(iREST)
-                {
-                    if(!plugins_map.contains("REST"))
-                        plugins_map["REST"] = PluginsInfoVector();
+                QString pi_class = iplugin->PluginClass();
 
-                    pi_info.display = iREST->DisplayName();
-                    pi_info.id = iREST->PluginID();
-                    plugins_map["REST"].push_back(pi_info);
-                }
+                if(!plugins_map.contains(pi_class))
+                    plugins_map[pi_class] = PluginsInfoVector();
+                plugins_map[pi_class].push_back(pi_info);
             }
         }
 
         plugin.unload();
     }
+
+    return plugins_map.count() > 0;
 }
 
 void MainWindow::set_visible(bool visible)
@@ -202,8 +200,9 @@ void MainWindow::dropEvent(QDropEvent* event)
         {
             // if we have no Local plug-ins, we can't process this
             if(!plugins_map.contains("Local"))
-                // post an error message
-                ;
+                QMessageBox::critical(0,
+                                      tr("Newsroom: Error"),
+                                      tr("No Reporter plug-ins are available to cover that Story!"));
             else
             {
                 text = story.toLocalFile();
@@ -252,10 +251,18 @@ void MainWindow::dropEvent(QDropEvent* event)
                                                                  headline_alert_keywords,
                                                                  addlocal_dlg->get_trigger(),
                                                                  this));
-                    reporters.push_back(reporter);
-                    connect(reporter.data(), &ReporterWrapper::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
-
-                    reporter->start_covering_story();
+                    if(reporter->start_covering_story())
+                    {
+                        reporters.push_back(reporter);
+                        connect(reporter.data(), &ReporterWrapper::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
+                    }
+                    else
+                    {
+                        stories.remove(story);
+                        QMessageBox::critical(0,
+                                              tr("Newsroom: Error"),
+                                              tr("The Reporter could not cover the Story!"));
+                    }
                 }
 
                 save_window_data(addlocal_dlg);
@@ -265,8 +272,9 @@ void MainWindow::dropEvent(QDropEvent* event)
         {
             // if we have no REST plug-ins, we can't process this
             if(!plugins_map.contains("REST"))
-                // post an error message
-                ;
+                QMessageBox::critical(0,
+                                      tr("Newsroom: Error"),
+                                      tr("No Reporter plug-ins are available to cover that Story!"));
             else
             {
                 text = story.toString();
@@ -514,8 +522,6 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
             foreach(const QUrl& story, deleted_stories)
                 stories.remove(story);
-
-            // TODO: adjust stacking orders
         }
 
         save_application_settings();

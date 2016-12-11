@@ -24,7 +24,7 @@ ReporterWrapper::ReporterWrapper(
         target.setFile(story.toLocalFile());
 }
 
-void ReporterWrapper::start_covering_story()
+bool ReporterWrapper::start_covering_story()
 {
     if(!reporter_plugin)
     {
@@ -40,28 +40,40 @@ void ReporterWrapper::start_covering_story()
     }
     else
     {
-        IPlugin* plugin = qobject_cast<IPlugin *>(reporter_plugin);
+        IPlugin* plugin = reinterpret_cast<IPlugin *>(reporter_plugin);
         if(plugin)
         {
             connect(plugin, &IPlugin::signal_new_data, this, &ReporterWrapper::slot_new_data);
-            plugin->CoverStory();
+            plugin->SetStory(story);
+            if(!plugin->CoverStory())
+            {
+                disconnect(plugin, &IPlugin::signal_new_data, this, &ReporterWrapper::slot_new_data);
+                return false;
+            }
         }
+
+        return false;
     }
+
+    return true;
 }
 
-void ReporterWrapper::stop_covering_story()
+bool ReporterWrapper::stop_covering_story()
 {
-    if(!reporter_plugin)
-        poll_timer->stop();
-    else
+    if(reporter_plugin)
     {
         IPlugin* plugin = qobject_cast<IPlugin *>(reporter_plugin);
         if(plugin)
         {
             disconnect(plugin, &IPlugin::signal_new_data, this, &ReporterWrapper::slot_new_data);
-            plugin->FinishStory();
+            return plugin->FinishStory();
         }
+
+        return false;
     }
+
+    poll_timer->stop();
+    return true;
 }
 
 void ReporterWrapper::save(QSettings& /*settings*/)
@@ -74,7 +86,7 @@ void ReporterWrapper::load(QSettings& /*settings*/)
 
 void ReporterWrapper::slot_new_data(const QByteArray& data)
 {
-    // file an headline with the new content
+    // file a headline with the new content
     HeadlinePointer headline(new Headline(story, QString(data)));
 
     headline->set_font(headline_font);
@@ -120,25 +132,25 @@ void ReporterWrapper::slot_poll()
             }
         }
     }
-    else
-    {
-        IPlugin* plugin = qobject_cast<IPlugin *>(reporter_plugin);
-        if(plugin)
-        {
-            QString report = plugin->Headline();
-            while(!report.isEmpty())
-            {
-                HeadlinePointer headline(new Headline(story, report));
+//    else
+//    {
+//        IPlugin* plugin = qobject_cast<IPlugin *>(reporter_plugin);
+//        if(plugin)
+//        {
+//            QString report = plugin->Headline();
+//            while(!report.isEmpty())
+//            {
+//                HeadlinePointer headline(new Headline(story, report));
 
-                headline->set_font(headline_font);
-                headline->set_normal_stylesheet(headline_stylesheet_normal);
-                headline->set_alert_stylesheet(headline_stylesheet_alert);
-                headline->set_alert_keywords(headline_alert_keywords);
+//                headline->set_font(headline_font);
+//                headline->set_normal_stylesheet(headline_stylesheet_normal);
+//                headline->set_alert_stylesheet(headline_stylesheet_alert);
+//                headline->set_alert_keywords(headline_alert_keywords);
 
-                emit signal_new_headline(headline);
+//                emit signal_new_headline(headline);
 
-                report = plugin->Headline();
-            }
-        }
-    }
+//                report = plugin->Headline();
+//            }
+//        }
+//    }
 }

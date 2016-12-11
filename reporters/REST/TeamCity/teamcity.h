@@ -23,15 +23,18 @@ class TEAMCITYSHARED_EXPORT TeamCity : public IPluginREST
     Q_INTERFACES(IPluginREST)
 
 public:
+    // IPlugin
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
-
     QStringList DisplayName() const Q_DECL_OVERRIDE;
+    QString PluginClass() const                 { return "REST"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
-    QStringList Requires() const Q_DECL_OVERRIDE;
-    bool SetStory(const QUrl& url, const QStringList& parameters) Q_DECL_OVERRIDE;
+    void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
-    QString Headline() Q_DECL_OVERRIDE;
+
+    // IPluginREST
+    QStringList Requires() const Q_DECL_OVERRIDE;
+    bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
 
 private slots:
     void    slot_get_read();
@@ -53,11 +56,8 @@ private:    // methods
     void        process_reply();
 
 private:    // data members
-    QString     error_message;
-
     States      state;
 
-    QUrl        server;
     QString     username;
     QString     password;
     QString     project_name;

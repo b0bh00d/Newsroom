@@ -5,7 +5,7 @@
 
 QStringList TextFile::DisplayName() const
 {
-    return QStringList() << QStringLiteral("Text File") << QStringLiteral("Reads a text file containing ASCII characters");
+    return QStringList() << QObject::tr("Text File") << QObject::tr("Reads a text file containing ASCII characters");
 }
 
 QByteArray TextFile::PluginID() const
@@ -18,13 +18,20 @@ bool TextFile::Supports(const QString& /*file*/) const
     return true;
 }
 
-void TextFile::SetStory(const QString& file)
+void TextFile::SetStory(const QUrl& story)
 {
-    target.setFile(file);
+    this->story = story;
+    if(story.isLocalFile())
+        target.setFile(story.toLocalFile());
 }
 
 bool TextFile::CoverStory()
 {
+//    if(!story.isValid() || !story.isLocalFile())
+//        return false;
+
+    if(!target.exists())
+        return false;
     target.refresh();
     stabilize_count = 0;
 
@@ -46,11 +53,6 @@ bool TextFile::FinishStory()
     poll_timer = nullptr;
 
     return true;
-}
-
-QString TextFile::Headline()
-{
-    return QString();
 }
 
 void TextFile::slot_poll()
