@@ -1,5 +1,10 @@
 #pragma once
 
+#include <QtPlugin>
+
+#include <QtCore/QString>
+#include <QtCore/QByteArray>
+
 /// @class IPlugin
 /// @brief Base interface for Newsroom plug-ins.
 ///

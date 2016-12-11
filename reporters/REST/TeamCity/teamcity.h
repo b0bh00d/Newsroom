@@ -20,6 +20,7 @@
 class TEAMCITYSHARED_EXPORT TeamCity : public QObject, public IPluginREST
 {
     Q_OBJECT
+    Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginREST" FILE "")
     Q_INTERFACES(IPluginREST)
 
 public:
@@ -56,9 +57,9 @@ private:    // methods
     void        process_reply();
 
 private:    // data members
-    States      state;
-
     QString     error_message;
+
+    States      state;
 
     QUrl        server;
     QString     username;
