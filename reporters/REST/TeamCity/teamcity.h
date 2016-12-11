@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QObject>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkAccessManager>
 
@@ -17,7 +16,7 @@
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
-class TEAMCITYSHARED_EXPORT TeamCity : public QObject, public IPluginREST
+class TEAMCITYSHARED_EXPORT TeamCity : public IPluginREST
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginREST" FILE "")
@@ -33,9 +32,6 @@ public:
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
     QString Headline() Q_DECL_OVERRIDE;
-
-signals:
-    void    signal_headline(const QString& headline);
 
 private slots:
     void    slot_get_read();

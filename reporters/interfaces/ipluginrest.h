@@ -16,6 +16,7 @@
 
 class IPluginREST : public IPlugin
 {
+    Q_OBJECT
 public:     // methods
     virtual ~IPluginREST() {}
 
