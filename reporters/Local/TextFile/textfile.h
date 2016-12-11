@@ -10,11 +10,11 @@
 
 #include "../../specialize.h"
 
-#include "local_global.h"
+#include "textfile_global.h"
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
-class LOCALSHARED_EXPORT Local : public QObject, public IPluginLocal
+class TEXTFILE_SHARED_EXPORT TextFile : public QObject, public IPluginLocal
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginLocal" FILE "")
@@ -25,7 +25,7 @@ public:
 
     QString DisplayName() const Q_DECL_OVERRIDE;
     QByteArray PluginID() const Q_DECL_OVERRIDE;
-    bool CanGrok(const QString& file) const Q_DECL_OVERRIDE;
+    bool Supports(const QString& file) const Q_DECL_OVERRIDE;
     void SetStory(const QString& file) Q_DECL_OVERRIDE;
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;

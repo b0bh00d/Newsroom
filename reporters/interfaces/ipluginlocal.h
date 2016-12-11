@@ -21,7 +21,7 @@ public:     // methods
       \param file A fully qualify path to an entity on the local file system.
       \returns A Boolean true if the plug-in can provide meaningful Headlines for this file, otherwise false.
      */
-    virtual bool CanGrok(const QString& file) const = 0;
+    virtual bool Supports(const QString& file) const = 0;
 
     /*!
       Sets the Story (file system entity) for the Local plug-in to cover.
