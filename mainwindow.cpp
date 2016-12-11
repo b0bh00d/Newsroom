@@ -61,6 +61,12 @@ MainWindow::MainWindow(QWidget *parent)
     addlocal_dlg->set_headlines_fixed_text();
     addlocal_dlg->set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
 
+    // Load all the available plug-ins
+    load_plugin_metadata();
+
+//    if(plugins_map.isEmpty())
+//        // we can't do much without reporters
+
     // Tray
 
     trayIcon = new QSystemTrayIcon(this);
@@ -84,6 +90,51 @@ MainWindow::~MainWindow()
 {
     addlocal_dlg->deleteLater();
     delete ui;
+}
+
+void MainWindow::load_plugin_metadata()
+{
+    plugins_map.clear();
+
+    QDir plugins("plugins");
+    QStringList plugins_list = plugins.entryList(QStringList() << "*.dll" << "*.so", QDir::Files);
+    foreach(const QString& filename, plugins_list)
+    {
+        QString plugin_path = QDir::toNativeSeparators(QString("%1/%2").arg(plugins.absolutePath()).arg(filename));
+        QPluginLoader plugin(plugin_path);
+        QObject* instance = plugin.instance();
+        if(instance)
+        {
+            PluginInfo pi_info;
+            pi_info.path = plugin_path;
+
+            IPluginLocal* iLocal = qobject_cast<IPluginLocal *>(instance);
+            if(iLocal)
+            {
+                if(!plugins_map.contains("Local"))
+                    plugins_map["Local"] = PluginsInfoVector();
+
+                pi_info.display = iLocal->DisplayName();
+                pi_info.id = iLocal->PluginID();
+                plugins_map["Local"].push_back(pi_info);
+            }
+            else
+            {
+                IPluginREST* iREST= qobject_cast<IPluginREST *>(instance);
+                if(iREST)
+                {
+                    if(!plugins_map.contains("REST"))
+                        plugins_map["REST"] = PluginsInfoVector();
+
+                    pi_info.display = iREST->DisplayName();
+                    pi_info.id = iREST->PluginID();
+                    plugins_map["REST"].push_back(pi_info);
+                }
+            }
+        }
+
+        plugin.unload();
+    }
 }
 
 void MainWindow::set_visible(bool visible)
@@ -149,58 +200,78 @@ void MainWindow::dropEvent(QDropEvent* event)
     {
         if(story.isLocalFile())
         {
-            text = story.toLocalFile();
-
-            addlocal_dlg->set_target(text);
-//            dlg.set_train_age_effects();
-
-            restore_window_data(addlocal_dlg);
-
-            if(addlocal_dlg->exec() == QDialog::Accepted)
+            // if we have no Local plug-ins, we can't process this
+            if(!plugins_map.contains("Local"))
+                // post an error message
+                ;
+            else
             {
-                Chyron::Settings chyron_settings;
+                text = story.toLocalFile();
 
-                chyron_settings.entry_type = addlocal_dlg->get_animation_entry_type();
+                addlocal_dlg->set_target(text);
+                addlocal_dlg->set_reporters(plugins_map["Local"]);
+//                dlg.set_train_age_effects();
 
-                // see if this story is already being covered by a Reporter
-                if(stories.find(story) == stories.end())
+                restore_window_data(addlocal_dlg);
+
+                if(addlocal_dlg->exec() == QDialog::Accepted)
                 {
-                    int width, height;
-                    bool use_fixed = addlocal_dlg->get_headlines_lock_size(width, height);
+                    accept = true;
 
-                    chyron_settings.ttl                   = addlocal_dlg->get_ttl();
-                    chyron_settings.display               = addlocal_dlg->get_display();
-                    chyron_settings.always_visible        = addlocal_dlg->get_headlines_always_visible();
-                    chyron_settings.exit_type             = addlocal_dlg->get_animation_exit_type();
-                    chyron_settings.stacking_type         = chyron_stacking;
-                    chyron_settings.headline_fixed_width  = use_fixed ? width : 0;
-                    chyron_settings.headline_fixed_height = use_fixed ? height : 0;
-                    chyron_settings.headline_fixed_text   = addlocal_dlg->get_headlines_fixed_text();
-                    chyron_settings.effect                = addlocal_dlg->get_train_age_effects(chyron_settings.train_reduce_opacity);
+                    Chyron::Settings chyron_settings;
 
-                    stories[story] = ChyronPointer(new Chyron(story, chyron_settings, lane_manager));
+                    chyron_settings.entry_type = addlocal_dlg->get_animation_entry_type();
+
+                    // see if this story is already being covered by a Reporter
+                    if(stories.find(story) == stories.end())
+                    {
+                        int width, height;
+                        bool use_fixed = addlocal_dlg->get_headlines_lock_size(width, height);
+
+                        chyron_settings.ttl                   = addlocal_dlg->get_ttl();
+                        chyron_settings.display               = addlocal_dlg->get_display();
+                        chyron_settings.always_visible        = addlocal_dlg->get_headlines_always_visible();
+                        chyron_settings.exit_type             = addlocal_dlg->get_animation_exit_type();
+                        chyron_settings.stacking_type         = chyron_stacking;
+                        chyron_settings.headline_fixed_width  = use_fixed ? width : 0;
+                        chyron_settings.headline_fixed_height = use_fixed ? height : 0;
+                        chyron_settings.headline_fixed_text   = addlocal_dlg->get_headlines_fixed_text();
+                        chyron_settings.effect                = addlocal_dlg->get_train_age_effects(chyron_settings.train_reduce_opacity);
+
+                        stories[story] = ChyronPointer(new Chyron(story, chyron_settings, lane_manager));
+                    }
+
+                    ChyronPointer chyron = stories[story];
+
+                    // assign a new Reporter to cover the the story
+                    ReporterPointer reporter(new ReporterWrapper(addlocal_dlg->get_reporter(),
+                                                                 story,
+                                                                 headline_font,
+                                                                 headline_stylesheet_normal,
+                                                                 headline_stylesheet_alert,
+                                                                 headline_alert_keywords,
+                                                                 addlocal_dlg->get_trigger(),
+                                                                 this));
+                    reporters.push_back(reporter);
+                    connect(reporter.data(), &ReporterWrapper::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
+
+                    reporter->start_covering_story();
                 }
 
-                ChyronPointer chyron = stories[story];
-
-                // assign a new Reporter to cover the the story
-                ReporterPointer reporter(new ReporterLocal(story,
-                                                           headline_font,
-                                                           headline_stylesheet_normal,
-                                                           headline_stylesheet_alert,
-                                                           headline_alert_keywords,
-                                                           addlocal_dlg->get_trigger(),
-                                                           this));
-                reporters.push_back(reporter);
-                connect(reporter.data(), &Reporter::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
-
-                reporter->start_covering_story();
+                save_window_data(addlocal_dlg);
             }
-
-            save_window_data(addlocal_dlg);
         }
         else
-            text = story.toString();
+        {
+            // if we have no REST plug-ins, we can't process this
+            if(!plugins_map.contains("REST"))
+                // post an error message
+                ;
+            else
+            {
+                text = story.toString();
+            }
+        }
     }
 
     if(accept)

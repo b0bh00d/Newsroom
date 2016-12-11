@@ -13,10 +13,11 @@ TEMPLATE = app
 
 CONFIG += C++11
 
-
 CONFIG(debug, debug|release) {
     CONFIG += highlight_lanes
 }
+
+INCLUDEPATH += reporters/interfaces
 
 RESOURCES += ./Newsroom.qrc
 
@@ -43,7 +44,6 @@ UI_DIR = $$INTERMEDIATE_NAME/ui
 SOURCES += main.cpp \
         mainwindow.cpp \
         reporter.cpp \
-        reporter_local.cpp \
         addlocaldialog.cpp \
         headline.cpp \
         chyron.cpp \
@@ -52,7 +52,6 @@ SOURCES += main.cpp \
 
 HEADERS  += mainwindow.h \
             reporter.h \
-            reporter_local.h \
             addlocaldialog.h \
             types.h \
             specialize.h \
@@ -65,7 +64,9 @@ HEADERS  += mainwindow.h \
             reportstacking.def \
 
 # Plug-in interfaces
-HEADERS += reporters/interfaces/ipluginrest.h \
+HEADERS += reporters/interfaces/iplugin \
+           reporters/interfaces/iplugin.h \
+           reporters/interfaces/ipluginrest.h \
            reporters/interfaces/ipluginlocal.h
 
 FORMS    += mainwindow.ui \

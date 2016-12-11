@@ -1,5 +1,7 @@
 #pragma once
 
+#include "specialize.h"
+
 enum class AnimEntryType
 {
 #   define X(a) a,
@@ -40,3 +42,12 @@ enum class FixedText
     ScaleToFit,
     ClipToFit
 };
+
+struct PluginInfo
+{
+    QString     path;
+    QStringList display;
+    QString     id;
+};
+
+SPECIALIZE_VECTOR(PluginInfo, PluginsInfo)              // "PluginsInfoVector"

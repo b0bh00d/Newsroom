@@ -31,6 +31,7 @@ public:
     void            set_target(const QString& name);
                     // Notifications
     void            set_trigger(LocalTrigger trigger_type);
+    void            set_reporters(const PluginsInfoVector& reporters_info);
     void            set_ttl(uint ttl);
                     // Presentation
                     //   Display
@@ -47,6 +48,7 @@ public:
     void            set_train_age_effects(AgeEffects effect = AgeEffects::None, int percent = 0);
 
     LocalTrigger    get_trigger();
+    QObject*        get_reporter();
     uint            get_ttl();
 
     int             get_display();
@@ -65,7 +67,12 @@ protected slots:
     void            slot_entry_type_changed(int index);
     void            slot_headlines_fixed_size_clicked(bool checked);
     void            slot_train_reduce_opacity_clicked(bool checked);
+    void            slot_trigger_changed(int index);
+    void            slot_reporter_changed(int index);
 
 private:
     Ui::AddLocalDialog *ui;
+
+    QStringList         plugin_paths;
+    QStringList         plugin_tooltips;
 };

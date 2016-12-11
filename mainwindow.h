@@ -20,13 +20,16 @@
 #include <QtCore/QVector>
 #include <QtCore/QByteArray>
 #include <QtCore/QMimeDatabase>
+#include <QtCore/QPluginLoader>
 
 #include "specialize.h"
 #include "chyron.h"
 #include "lanemanager.h"
-#include "reporter_local.h"
+#include "reporter.h"
 
 #include "addlocaldialog.h"
+
+#include "reporters/interfaces/iplugin"
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
@@ -61,6 +64,7 @@ private:    // typedefs and enums
     SPECIALIZE_QUEUE(HeadlinePointer, Headline)             // "HeadlineQueue"
     SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)           // "HeadlineMap"
     SPECIALIZE_VECTOR(ChyronPointer, Story)                 // "StoryVector"
+    SPECIALIZE_MAP(QString, PluginsInfoVector, Plugins)     // "PluginsMap"
 
 private slots:
     void            slot_quit();
@@ -70,7 +74,8 @@ private slots:
     void            slot_restore();
     void            slot_edit_settings(bool checked);
 
-    private:    // methods
+private:    // methods
+    void            load_plugin_metadata();
     void            load_application_settings();
     void            save_application_settings();
     void            save_window_data(QWidget* window);
@@ -109,4 +114,6 @@ private:    // data members
     LaneManagerPointer  lane_manager;
 
     AddLocalDialog*     addlocal_dlg;
+
+    PluginsMap          plugins_map;
 };
