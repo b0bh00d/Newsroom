@@ -43,15 +43,14 @@ UI_DIR = $$INTERMEDIATE_NAME/ui
 
 SOURCES += main.cpp \
         mainwindow.cpp \
-        addlocaldialog.cpp \
         headline.cpp \
         chyron.cpp \
         settingsdialog.cpp \
         lanemanager.cpp \
-    producer.cpp
+    producer.cpp \
+    addstorydialog.cpp
 
 HEADERS  += mainwindow.h \
-            addlocaldialog.h \
             types.h \
             specialize.h \
             headline.h \
@@ -61,17 +60,18 @@ HEADERS  += mainwindow.h \
             animentrytype.def \
             animexittype.def \
             reportstacking.def \
-    producer.h
+    producer.h \
+    addstorydialog.h \
+    reporters/interfaces/ipluginurl.h
 
 # Plug-in interfaces
 HEADERS += reporters/interfaces/iplugin \
            reporters/interfaces/iplugin.h \
-           reporters/interfaces/ipluginrest.h \
            reporters/interfaces/ipluginlocal.h
 
 FORMS    += mainwindow.ui \
-            addlocaldialog.ui \
-            settingsdialog.ui
+            settingsdialog.ui \
+    addstorydialog.ui
 
 highlight_lanes {
     SOURCES += highlightwidget.cpp

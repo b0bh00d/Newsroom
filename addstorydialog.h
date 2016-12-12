@@ -1,13 +1,16 @@
 #pragma once
 
 #include <QtWidgets/QDialog>
+
 #include <QtGui/QShowEvent>
 #include <QtGui/QFont>
+
+#include <QtCore/QBitArray>
 
 #include "types.h"
 
 namespace Ui {
-class AddLocalDialog;
+class AddStoryDialog;
 }
 
 /// @class AddLocalDialog
@@ -20,15 +23,15 @@ class AddLocalDialog;
 /*
 */
 
-class AddLocalDialog : public QDialog
+class AddStoryDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit AddLocalDialog(QWidget *parent = 0);
-    ~AddLocalDialog();
+    explicit AddStoryDialog(QWidget *parent = 0);
+    ~AddStoryDialog();
 
-    void            set_target(const QString& name);
+    void            set_target(const QUrl& story);
                     // Notifications
     void            set_trigger(LocalTrigger trigger_type);
     void            set_reporters(const PluginsInfoVector& reporters_info);
@@ -47,8 +50,12 @@ public:
                     //     Age Effects
     void            set_train_age_effects(AgeEffects effect = AgeEffects::None, int percent = 0);
 
+    void            configure_for_local(bool for_local = true);
+
+    QUrl            get_target();
     LocalTrigger    get_trigger();
     QObject*        get_reporter();
+    QStringList     get_reporter_parameters() const { return reporter_configuration; }
     uint            get_ttl();
 
     int             get_display();
@@ -69,10 +76,16 @@ protected slots:
     void            slot_train_reduce_opacity_clicked(bool checked);
     void            slot_trigger_changed(int index);
     void            slot_reporter_changed(int index);
+    void            slot_configure_reporter(bool checked);
+    void            slot_config_reporter_check_required();
 
 private:
-    Ui::AddLocalDialog *ui;
+    Ui::AddStoryDialog *ui;
 
     QStringList         plugin_paths;
     QStringList         plugin_tooltips;
+
+    QDialog*            params_dialog;
+    QBitArray           required_fields;
+    QStringList         reporter_configuration;
 };

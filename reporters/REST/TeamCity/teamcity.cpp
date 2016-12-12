@@ -56,9 +56,9 @@ bool TeamCity::FinishStory()
 // IPluginREST
 QStringList TeamCity::Requires() const
 {
-    return QStringList() << "Username"      << "string" <<
-                            "Password"      << "password" <<
-                            "Project Name"  << "string" <<
+    return QStringList() << "Username*"     << "string" <<
+                            "Password*"     << "password" <<
+                            "Project Name*" << "string" <<
                             "Builder"       << "string";
 }
 

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AddLocalDialog</class>
- <widget class="QDialog" name="AddLocalDialog">
+ <class>AddStoryDialog</class>
+ <widget class="QDialog" name="AddStoryDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>402</width>
-    <height>700</height>
+    <height>718</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,14 +15,24 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_9">
    <item>
-    <widget class="QLabel" name="label_Entity">
-     <property name="text">
-      <string>TextLabel</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_9">
+     <item>
+      <widget class="QLabel" name="label_Target">
+       <property name="text">
+        <string>Target</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="buddy">
+        <cstring>edit_Target</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="edit_Target"/>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QGroupBox" name="groupBox_4">
@@ -33,7 +43,7 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QLabel" name="label">
+         <widget class="QLabel" name="label_Triggers">
           <property name="minimumSize">
            <size>
             <width>160</width>
@@ -97,6 +107,25 @@
         <item>
          <widget class="QComboBox" name="combo_AvailableReporters"/>
         </item>
+        <item>
+         <widget class="QPushButton" name="button_ConfigureReporter">
+          <property name="minimumSize">
+           <size>
+            <width>60</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Configure</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item>
@@ -120,6 +149,9 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="buddy">
+           <cstring>edit_TTL</cstring>
           </property>
          </widget>
         </item>
@@ -157,6 +189,19 @@
          </spacer>
         </item>
        </layout>
+      </item>
+      <item>
+       <spacer name="verticalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </widget>
@@ -674,6 +719,29 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>edit_Target</tabstop>
+  <tabstop>combo_LocalTrigger</tabstop>
+  <tabstop>combo_AvailableReporters</tabstop>
+  <tabstop>button_ConfigureReporter</tabstop>
+  <tabstop>edit_TTL</tabstop>
+  <tabstop>radio_Monitor1</tabstop>
+  <tabstop>radio_Monitor2</tabstop>
+  <tabstop>radio_Monitor3</tabstop>
+  <tabstop>radio_Monitor4</tabstop>
+  <tabstop>check_KeepOnTop</tabstop>
+  <tabstop>check_HeadlinesFixedSize</tabstop>
+  <tabstop>edit_HeadlinesFixedWidth</tabstop>
+  <tabstop>edit_HeadlinesFixedHeight</tabstop>
+  <tabstop>radio_HeadlinesSizeTextScale</tabstop>
+  <tabstop>radio_HeadlinesSizeTextClip</tabstop>
+  <tabstop>combo_EntryType</tabstop>
+  <tabstop>combo_ExitType</tabstop>
+  <tabstop>group_AgeEffects</tabstop>
+  <tabstop>radio_TrainReduceOpacityFixed</tabstop>
+  <tabstop>edit_TrainReduceOpacity</tabstop>
+  <tabstop>radio_TrainReduceOpacityByAge</tabstop>
+ </tabstops>
  <resources>
   <include location="Newsroom.qrc"/>
  </resources>
@@ -681,12 +749,12 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>AddLocalDialog</receiver>
+   <receiver>AddStoryDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
+     <x>164</x>
+     <y>699</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -697,12 +765,12 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>AddLocalDialog</receiver>
+   <receiver>AddStoryDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
+     <x>164</x>
+     <y>699</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>

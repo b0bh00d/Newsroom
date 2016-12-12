@@ -27,7 +27,7 @@
 #include "lanemanager.h"
 #include "producer.h"
 
-#include "addlocaldialog.h"
+#include "addstorydialog.h"
 
 #include "reporters/interfaces/iplugin"
 
@@ -113,7 +113,7 @@ private:    // data members
 
     LaneManagerPointer  lane_manager;
 
-    AddLocalDialog*     addlocal_dlg;
+    AddStoryDialog*     addstory_dlg;
 
     PluginsMap          plugins_map;
 };

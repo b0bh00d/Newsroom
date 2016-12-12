@@ -53,13 +53,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     QDesktopWidget* desktop = QApplication::desktop();
 
-    addlocal_dlg = new AddLocalDialog(this);
-    addlocal_dlg->set_trigger(LocalTrigger::NewContent);
-    addlocal_dlg->set_display(desktop->primaryScreen(), desktop->screenCount());
-    addlocal_dlg->set_headlines_always_visible(true);
-    addlocal_dlg->set_headlines_lock_size();
-    addlocal_dlg->set_headlines_fixed_text();
-    addlocal_dlg->set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
+    addstory_dlg = new AddStoryDialog(this);
+    addstory_dlg->set_trigger(LocalTrigger::NewContent);
+    addstory_dlg->set_display(desktop->primaryScreen(), desktop->screenCount());
+    addstory_dlg->set_headlines_always_visible(true);
+    addstory_dlg->set_headlines_lock_size();
+    addstory_dlg->set_headlines_fixed_text();
+    addstory_dlg->set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
 
     // Load all the available Reporter plug-ins
     if(!load_plugin_metadata())
@@ -93,7 +93,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    addlocal_dlg->deleteLater();
+    addstory_dlg->deleteLater();
     delete ui;
 }
 
@@ -207,35 +207,37 @@ void MainWindow::dropEvent(QDropEvent* event)
             {
                 text = story.toLocalFile();
 
-                addlocal_dlg->set_target(text);
-                addlocal_dlg->set_reporters(plugins_map["Local"]);
+                addstory_dlg->configure_for_local(true);
+
+                addstory_dlg->set_target(story);
+                addstory_dlg->set_reporters(plugins_map["Local"]);
 //                dlg.set_train_age_effects();
 
-                restore_window_data(addlocal_dlg);
+                restore_window_data(addstory_dlg);
 
-                if(addlocal_dlg->exec() == QDialog::Accepted)
+                if(addstory_dlg->exec() == QDialog::Accepted)
                 {
                     accept = true;
 
                     Chyron::Settings chyron_settings;
 
-                    chyron_settings.entry_type = addlocal_dlg->get_animation_entry_type();
+                    chyron_settings.entry_type = addstory_dlg->get_animation_entry_type();
 
                     // see if this story is already being covered by a Reporter
                     if(stories.find(story) == stories.end())
                     {
                         int width, height;
-                        bool use_fixed = addlocal_dlg->get_headlines_lock_size(width, height);
+                        bool use_fixed = addstory_dlg->get_headlines_lock_size(width, height);
 
-                        chyron_settings.ttl                   = addlocal_dlg->get_ttl();
-                        chyron_settings.display               = addlocal_dlg->get_display();
-                        chyron_settings.always_visible        = addlocal_dlg->get_headlines_always_visible();
-                        chyron_settings.exit_type             = addlocal_dlg->get_animation_exit_type();
+                        chyron_settings.ttl                   = addstory_dlg->get_ttl();
+                        chyron_settings.display               = addstory_dlg->get_display();
+                        chyron_settings.always_visible        = addstory_dlg->get_headlines_always_visible();
+                        chyron_settings.exit_type             = addstory_dlg->get_animation_exit_type();
                         chyron_settings.stacking_type         = chyron_stacking;
                         chyron_settings.headline_fixed_width  = use_fixed ? width : 0;
                         chyron_settings.headline_fixed_height = use_fixed ? height : 0;
-                        chyron_settings.headline_fixed_text   = addlocal_dlg->get_headlines_fixed_text();
-                        chyron_settings.effect                = addlocal_dlg->get_train_age_effects(chyron_settings.train_reduce_opacity);
+                        chyron_settings.headline_fixed_text   = addstory_dlg->get_headlines_fixed_text();
+                        chyron_settings.effect                = addstory_dlg->get_train_age_effects(chyron_settings.train_reduce_opacity);
 
                         stories[story] = ChyronPointer(new Chyron(story, chyron_settings, lane_manager));
                     }
@@ -243,13 +245,13 @@ void MainWindow::dropEvent(QDropEvent* event)
                     ChyronPointer chyron = stories[story];
 
                     // assign a new Reporter to cover the the story
-                    ProducerPointer producer(new Producer(addlocal_dlg->get_reporter(),
+                    ProducerPointer producer(new Producer(addstory_dlg->get_reporter(),
                                                           story,
                                                           headline_font,
                                                           headline_stylesheet_normal,
                                                           headline_stylesheet_alert,
                                                           headline_alert_keywords,
-                                                          addlocal_dlg->get_trigger(),
+                                                          addstory_dlg->get_trigger(),
                                                           this));
                     if(producer->start_covering_story())
                     {
@@ -265,19 +267,30 @@ void MainWindow::dropEvent(QDropEvent* event)
                     }
                 }
 
-                save_window_data(addlocal_dlg);
+                save_window_data(addstory_dlg);
             }
         }
         else
         {
-            // if we have no REST plug-ins, we can't process this
-            if(!plugins_map.contains("REST"))
+            // if we have no URL plug-ins, we can't process this
+            if(!plugins_map.contains("URL"))
                 QMessageBox::critical(0,
                                       tr("Newsroom: Error"),
                                       tr("No Reporter plug-ins are available to cover that Story!"));
             else
             {
-                text = story.toString();
+                addstory_dlg->configure_for_local(false);
+                addstory_dlg->set_target(story);
+                addstory_dlg->set_reporters(plugins_map["URL"]);
+//                dlg.set_train_age_effects();
+
+                restore_window_data(addstory_dlg);
+
+                if(addstory_dlg->exec() == QDialog::Accepted)
+                {
+                }
+
+                save_window_data(addstory_dlg);
             }
         }
     }

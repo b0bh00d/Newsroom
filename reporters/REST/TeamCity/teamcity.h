@@ -8,7 +8,7 @@
 #include <QtCore/QJsonValue>
 #include <QtCore/QJsonArray>
 
-#include <ipluginrest.h>
+#include <ipluginurl.h>
 
 #include "../../../specialize.h"
 
@@ -16,24 +16,24 @@
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
-class TEAMCITYSHARED_EXPORT TeamCity : public IPluginREST
+class TEAMCITYSHARED_EXPORT TeamCity : public IPluginURL
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginREST" FILE "")
-    Q_INTERFACES(IPluginREST)
+    Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginURL" FILE "")
+    Q_INTERFACES(IPluginURL)
 
 public:
     // IPlugin
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
     QStringList DisplayName() const Q_DECL_OVERRIDE;
-    QString PluginClass() const Q_DECL_OVERRIDE { return "REST"; }
+    QString PluginClass() const Q_DECL_OVERRIDE { return "URL"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
     void SetCoverage(bool /*notices_only*/) Q_DECL_OVERRIDE {}
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
 
-    // IPluginREST
+    // IPluginURL
     QStringList Requires() const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
 

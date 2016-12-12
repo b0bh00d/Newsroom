@@ -35,22 +35,4 @@ SOURCES += teamcity.cpp
 HEADERS += teamcity.h \
         teamcity_global.h \
         ../../interfaces/iplugin.h \
-        ../../interfaces/ipluginrest.h \
-
-target.path = ../../../plugins
-CONFIG(debug, debug|release) {
-    win32 {
-        target.files = debug/*.dll
-    }
-    unix {
-        target.files = debug/*.so
-    }
-} else {
-    win32 {
-        target.files = release/*.dll
-    }
-    unix {
-        target.files = release/*.so
-    }
-}
-INSTALLS += target
+        ../../interfaces/ipluginurl.h \
