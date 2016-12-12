@@ -6,26 +6,30 @@
 
 #include "iplugin.h"
 
-/// @class IPluginREST
+/// @class IPluginURL
 /// @brief A plug-in that knows how to handle a particular REST API
 ///
 /// This Interface class defines the interfaces for use with a Qt-based plug-in
-/// that knows how to interact with a specific REST API.  For example, a REST
-/// plug-in for TeamCity would know how to query a server to retrieve
-/// information about the status of a particular project.
+/// that knows how to interact with a URL.  For example, a REST plug-in for
+/// TeamCity would know how to query a server to retrieve information about
+/// the status of a particular project.
 
-class IPluginREST : public IPlugin
+class IPluginURL : public IPlugin
 {
     Q_OBJECT
 public:     // methods
-    virtual ~IPluginREST() {}
+    virtual ~IPluginURL() {}
 
     /*!
       This method returns a list of parameter names that it requires in order
       to perform its function.  Each parameter name is followed by a type,
-      one of "string", "password", "integer" or "float".  The host should post
-      a dialog requesting these parameters and types from the user, and then
-      provide them back to the plug-in via the SetStory() method.
+      one of "string", "password", "integer" or "double".  Parameter names that
+      end with an asterisks (*) indicate a required value, all others are
+      considered optional.
+
+      The host should post a dialog requesting these parameters and types from
+      the user, and then provide them back to the plug-in via the SetStory()
+      method.
 
       \returns A string list of parameter names and types.
      */
@@ -41,5 +45,5 @@ public:     // methods
 };
 
 QT_BEGIN_NAMESPACE
-Q_DECLARE_INTERFACE(IPluginREST, "org.lucidgears.Newsroom.IPluginREST")
+Q_DECLARE_INTERFACE(IPluginURL, "org.lucidgears.Newsroom.IPluginURL")
 QT_END_NAMESPACE
