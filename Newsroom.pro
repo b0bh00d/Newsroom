@@ -47,8 +47,8 @@ SOURCES += main.cpp \
         chyron.cpp \
         settingsdialog.cpp \
         lanemanager.cpp \
-    producer.cpp \
-    addstorydialog.cpp
+        producer.cpp \
+        addstorydialog.cpp
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -60,9 +60,9 @@ HEADERS  += mainwindow.h \
             animentrytype.def \
             animexittype.def \
             reportstacking.def \
-    producer.h \
-    addstorydialog.h \
-    reporters/interfaces/ipluginurl.h
+            producer.h \
+            addstorydialog.h \
+            reporters/interfaces/ipluginurl.h
 
 # Plug-in interfaces
 HEADERS += reporters/interfaces/iplugin \
@@ -71,7 +71,7 @@ HEADERS += reporters/interfaces/iplugin \
 
 FORMS    += mainwindow.ui \
             settingsdialog.ui \
-    addstorydialog.ui
+            addstorydialog.ui
 
 highlight_lanes {
     SOURCES += highlightwidget.cpp
