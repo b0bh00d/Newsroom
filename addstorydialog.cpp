@@ -121,7 +121,7 @@ void AddStoryDialog::load_defaults(QSettings* settings)
     fixed_buttons[settings->value("fixed_text", 0).toInt()]->setChecked(true);
     ui->combo_EntryType->setCurrentIndex(settings->value("entry_type", static_cast<int>(AnimEntryType::SlideDownLeftTop)).toInt());
     ui->combo_ExitType->setCurrentIndex(settings->value("exit_type", static_cast<int>(AnimExitType::SlideLeft)).toInt());
-    ui->combo_ExitType->setEnabled(settings->value("exit_type_eanbled", true).toBool());
+    ui->combo_ExitType->setEnabled(settings->value("exit_type_enabled", true).toBool());
     ui->group_AgeEffects->setChecked(settings->value("group_age_effects", false).toBool());
     age_buttons[settings->value("age_opacity_type", 1).toInt()]->setChecked(true);
     if(ui->radio_TrainReduceOpacityFixed->isChecked())
@@ -259,6 +259,9 @@ QString AddStoryDialog::get_story_identity()
 
 QUrl AddStoryDialog::get_target()
 {
+    if(ui->button_ConfigureReporter->isHidden())
+        return QUrl::fromLocalFile(ui->edit_Target->text());
+
     QString text = ui->edit_Target->text();
     if(text.endsWith('/'))
         text.chop(1);
