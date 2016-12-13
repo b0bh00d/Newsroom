@@ -60,11 +60,17 @@ void LaneManager::unsubscribe(Chyron* chyron)
             break;
     }
 
-    lane_map[settings.entry_type].removeAll(data_map[chyron]);
-    data_map.remove(chyron);
+    // move only those Chyrons that are lower in priority
+    // than the one that is unsubscribing
+    bool shifting = false;
 
     foreach(LaneDataPointer data, lane_map[settings.entry_type])
     {
+        if(data->owner == chyron)
+            shifting = true;
+        if(!shifting || data->owner == chyron)
+            continue;
+
         const Chyron::Settings& data_settings = data->owner->get_settings();
 
         switch(data_settings.entry_type)
@@ -101,6 +107,9 @@ void LaneManager::unsubscribe(Chyron* chyron)
                 break;
         }
     }
+
+    lane_map[settings.entry_type].removeAll(data_map[chyron]);
+    data_map.remove(chyron);
 }
 
 const QRect& LaneManager::get_base_lane_position(Chyron* chyron)
