@@ -7,6 +7,7 @@
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QByteArray>
+#include <QtCore/QSharedPointer>
 
 /// @class IPlugin
 /// @brief Base interface for Newsroom plug-ins.
@@ -93,3 +94,16 @@ protected:
     QString         error_message;
     QUrl            story;
 };
+
+typedef QSharedPointer<IPlugin> IPluginPointer;
+
+class IPluginFactory : public QObject
+{
+    Q_OBJECT
+public:
+    virtual IPluginPointer newInstance() = 0;
+};
+
+QT_BEGIN_NAMESPACE
+Q_DECLARE_INTERFACE(IPluginFactory, "org.lucidgears.Newsroom.IPluginFactory")
+QT_END_NAMESPACE

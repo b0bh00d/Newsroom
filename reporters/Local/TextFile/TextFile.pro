@@ -29,9 +29,11 @@ OBJECTS_DIR = $$INTERMEDIATE_NAME/obj
 RCC_DIR = $$INTERMEDIATE_NAME/rcc
 UI_DIR = $$INTERMEDIATE_NAME/ui
 
-SOURCES += textfile.cpp
+SOURCES += textfile.cpp \
+    textfilefactory.cpp
 
 HEADERS += textfile.h\
            textfile_global.h \
            ../../interfaces/iplugin.h \
            ../../interfaces/ipluginlocal.h \
+    textfilefactory.h

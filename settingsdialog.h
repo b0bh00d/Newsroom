@@ -25,7 +25,7 @@ public:
     void            set_alert_stylesheet(const QString& stylesheet);
     void            set_alert_keywords(const QStringList& alert_words);
     void            set_stacking(ReportStacking stack_type);
-    void            set_stories(const QList<QUrl>& stories);
+    void            set_stories(const QList<QString>& stories);
 
     bool            get_autostart();
     QFont           get_font();
@@ -33,7 +33,7 @@ public:
     QString         get_alert_stylesheet();
     QStringList     get_alert_keywords();
     ReportStacking  get_stacking();
-    QList<QUrl>     get_stories();
+    QList<QString>  get_stories();
 
 protected slots:
     void            slot_update_font(const QFont& font);

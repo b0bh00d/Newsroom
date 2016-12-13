@@ -62,18 +62,14 @@ void SettingsDialog::set_stacking(ReportStacking stack_type)
     ui->radio_Intermixed->setChecked(stack_type == ReportStacking::Intermixed);
 }
 
-void SettingsDialog::set_stories(const QList<QUrl>& stories)
+void SettingsDialog::set_stories(const QList<QString>& stories)
 {
     while(ui->list_Stories->count())
         delete ui->list_Stories->takeItem(0);
 
-    foreach(const QUrl& story, stories)
+    foreach(const QString& story, stories)
     {
-        QListWidgetItem* item;
-        if(story.isLocalFile())
-            item = new QListWidgetItem(story.toLocalFile(), ui->list_Stories);
-        else
-            item = new QListWidgetItem(story.toString(), ui->list_Stories);
+        QListWidgetItem* item = new QListWidgetItem(story, ui->list_Stories);
         item->setData(Qt::UserRole, story);
     }
 
@@ -115,13 +111,13 @@ ReportStacking SettingsDialog::get_stacking()
     return ui->radio_Stacked->isChecked() ? ReportStacking::Stacked : ReportStacking::Intermixed;
 }
 
-QList<QUrl> SettingsDialog::get_stories()
+QList<QString> SettingsDialog::get_stories()
 {
-    QList<QUrl> remaining_stories;
+    QList<QString> remaining_stories;
     for(int i = 0;i < ui->list_Stories->count();++i)
     {
         QListWidgetItem* item = ui->list_Stories->item(i);
-        remaining_stories.append(item->data(Qt::UserRole).toUrl());
+        remaining_stories.append(item->text());
     }
 
     return remaining_stories;

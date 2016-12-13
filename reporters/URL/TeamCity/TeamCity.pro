@@ -30,9 +30,11 @@ OBJECTS_DIR = $$INTERMEDIATE_NAME/obj
 RCC_DIR = $$INTERMEDIATE_NAME/rcc
 UI_DIR = $$INTERMEDIATE_NAME/ui
 
-SOURCES += teamcity.cpp
+SOURCES += teamcity.cpp \
+    teamcityfactory.cpp
 
 HEADERS += teamcity.h \
         teamcity_global.h \
         ../../interfaces/iplugin.h \
         ../../interfaces/ipluginurl.h \
+    teamcityfactory.h

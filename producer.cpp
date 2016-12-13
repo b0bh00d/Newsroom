@@ -1,7 +1,6 @@
 #include "producer.h"
 
-Producer::Producer(
-                   QObject* reporter_plugin,
+Producer::Producer(IPluginPointer reporter,
                    const QUrl& story,
                    const QFont& font,
                    const QString& normal_stylesheet,
@@ -9,7 +8,7 @@ Producer::Producer(
                    const QStringList& alert_keywords,
                    LocalTrigger trigger_type,
                    QObject *parent)
-    : reporter_plugin(reporter_plugin),
+    : reporter_plugin(reporter),
       story(story),
       headline_font(font),
       headline_stylesheet_normal(normal_stylesheet),
@@ -22,19 +21,15 @@ Producer::Producer(
 
 bool Producer::start_covering_story()
 {
-    if(!reporter_plugin)
+    if(reporter_plugin.isNull())
         return false;
 
-    IPlugin* plugin = reinterpret_cast<IPlugin *>(reporter_plugin);
-    if(!plugin)
-        return false;
-
-    connect(plugin, &IPlugin::signal_new_data, this, &Producer::slot_new_data);
-    plugin->SetStory(story);
-    plugin->SetCoverage(trigger_type == LocalTrigger::FileChange);
-    if(!plugin->CoverStory())
+    connect(reporter_plugin.data(), &IPlugin::signal_new_data, this, &Producer::slot_new_data);
+    reporter_plugin->SetStory(story);
+    reporter_plugin->SetCoverage(trigger_type == LocalTrigger::FileChange);
+    if(!reporter_plugin->CoverStory())
     {
-        disconnect(plugin, &IPlugin::signal_new_data, this, &Producer::slot_new_data);
+        disconnect(reporter_plugin.data(), &IPlugin::signal_new_data, this, &Producer::slot_new_data);
         return false;
     }
 
@@ -43,15 +38,11 @@ bool Producer::start_covering_story()
 
 bool Producer::stop_covering_story()
 {
-    if(!reporter_plugin)
+    if(reporter_plugin.isNull())
         return false;
 
-    IPlugin* plugin = qobject_cast<IPlugin *>(reporter_plugin);
-    if(!plugin)
-        return false;
-
-    disconnect(plugin, &IPlugin::signal_new_data, this, &Producer::slot_new_data);
-    return plugin->FinishStory();
+    disconnect(reporter_plugin.data(), &IPlugin::signal_new_data, this, &Producer::slot_new_data);
+    return reporter_plugin->FinishStory();
 }
 
 void Producer::save(QSettings& /*settings*/)

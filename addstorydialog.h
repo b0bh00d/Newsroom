@@ -6,8 +6,12 @@
 #include <QtGui/QFont>
 
 #include <QtCore/QBitArray>
+#include <QtCore/QSettings>
 
 #include "types.h"
+#include "specialize.h"
+
+#include "reporters/interfaces/iplugin"
 
 namespace Ui {
 class AddStoryDialog;
@@ -31,10 +35,13 @@ public:
     explicit AddStoryDialog(QWidget *parent = 0);
     ~AddStoryDialog();
 
+    void            save_defaults(QSettings* settings);
+    void            load_defaults(QSettings* settings);
+
     void            set_target(const QUrl& story);
                     // Notifications
     void            set_trigger(LocalTrigger trigger_type);
-    void            set_reporters(const PluginsInfoVector& reporters_info);
+    void            set_reporters(PluginsInfoVector* reporters_info);
     void            set_ttl(uint ttl);
                     // Presentation
                     //   Display
@@ -52,9 +59,17 @@ public:
 
     void            configure_for_local(bool for_local = true);
 
+    // The 'story identity' is something that will uniquely identify this
+    // story.  In the case of a local file system entity, the full path to
+    // that entity will suffice.  However, in the case of a REST URL, the
+    // URL itself will not be unique enough as it will simply be the base
+    // value for addition API selectors.  So, this function will return a
+    // string value that most uniquely represents this particular story.
+    QString         get_story_identity();
+
     QUrl            get_target();
     LocalTrigger    get_trigger();
-    QObject*        get_reporter();
+    IPluginPointer  get_reporter() const { return plugin_reporter; }
     QStringList     get_reporter_parameters() const { return reporter_configuration; }
     uint            get_ttl();
 
@@ -88,4 +103,9 @@ private:
     QDialog*            params_dialog;
     QBitArray           required_fields;
     QStringList         reporter_configuration;
+
+    PluginsInfoVector*  plugin_factories;
+    IPluginPointer      plugin_reporter;
+
+    QUrl                story;
 };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QtCore/QPluginLoader>
+
 #include "specialize.h"
 
 enum class AnimEntryType
@@ -43,12 +45,15 @@ enum class FixedText
     ClipToFit
 };
 
+SPECIALIZE_SHAREDPTR(QPluginLoader, Factory)             // "FactoryPointer"
+
 struct PluginInfo
 {
-    QString     path;
-    QString     name;
-    QString     tooltip;
-    QString     id;
+    FactoryPointer  factory;
+    QString         path;
+    QString         name;
+    QString         tooltip;
+    QString         id;
 };
 
 SPECIALIZE_VECTOR(PluginInfo, PluginsInfo)              // "PluginsInfoVector"

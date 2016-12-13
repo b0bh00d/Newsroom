@@ -43,7 +43,3 @@ public:     // methods
      */
     virtual bool SetRequirements(const QStringList& parameters) = 0;
 };
-
-QT_BEGIN_NAMESPACE
-Q_DECLARE_INTERFACE(IPluginURL, "org.lucidgears.Newsroom.IPluginURL")
-QT_END_NAMESPACE

@@ -25,7 +25,7 @@ class Producer : public QObject
 {
     Q_OBJECT
 public:
-    explicit Producer(QObject* reporter_plugin,
+    explicit Producer(IPluginPointer reporter,
                       const QUrl& story,
                       const QFont& font,
                       const QString& normal_stylesheet,
@@ -50,7 +50,7 @@ protected slots:
 //    void    slot_poll();
 
 protected:
-    QObject*        reporter_plugin;
+    IPluginPointer  reporter_plugin;
 
     QUrl            story;
 

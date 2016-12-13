@@ -24,7 +24,3 @@ public:     // methods
      */
     virtual bool Supports(const QString& file) const = 0;
 };
-
-QT_BEGIN_NAMESPACE
-Q_DECLARE_INTERFACE(IPluginLocal, "org.lucidgears.Newsroom.IPluginLocal")
-QT_END_NAMESPACE
