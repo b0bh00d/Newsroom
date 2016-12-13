@@ -15,9 +15,6 @@
 class TEXTFILE_SHARED_EXPORT TextFile : public IPluginLocal
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginLocal" FILE "")
-    Q_INTERFACES(IPluginLocal)
-
 public:
     // IPlugin
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }

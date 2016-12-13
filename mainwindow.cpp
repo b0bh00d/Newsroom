@@ -45,24 +45,17 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle(tr("Newsroom by Bob Hood"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
 
+    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    settings = new QSettings(settings_file_name, QSettings::IniFormat);
+
     load_application_settings();
 
     setAcceptDrops(true);
 
     lane_manager = LaneManagerPointer(new LaneManager(this));
 
-    QDesktopWidget* desktop = QApplication::desktop();
-
-    addstory_dlg = new AddStoryDialog(this);
-    addstory_dlg->set_trigger(LocalTrigger::NewContent);
-    addstory_dlg->set_display(desktop->primaryScreen(), desktop->screenCount());
-    addstory_dlg->set_headlines_always_visible(true);
-    addstory_dlg->set_headlines_lock_size();
-    addstory_dlg->set_headlines_fixed_text();
-    addstory_dlg->set_animation_entry_and_exit(AnimEntryType::SlideDownLeftTop, AnimExitType::SlideLeft);
-
     // Load all the available Reporter plug-ins
-    if(!load_plugin_metadata())
+    if(!load_plugin_factories())
     {
         QMessageBox::critical(0,
                               tr("Newsroom: Error"),
@@ -93,11 +86,10 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    addstory_dlg->deleteLater();
     delete ui;
 }
 
-bool MainWindow::load_plugin_metadata()
+bool MainWindow::load_plugin_factories()
 {
     plugins_map.clear();
 
@@ -106,16 +98,19 @@ bool MainWindow::load_plugin_metadata()
     foreach(const QString& filename, plugins_list)
     {
         QString plugin_path = QDir::toNativeSeparators(QString("%1/%2").arg(plugins.absolutePath()).arg(filename));
-        QPluginLoader plugin(plugin_path);
-        QObject* instance = plugin.instance();
+        FactoryPointer plugin(new QPluginLoader(plugin_path));
+        QObject* instance = plugin->instance();
         if(instance)
         {
             PluginInfo pi_info;
+            pi_info.factory = plugin;
             pi_info.path = plugin_path;
 
-            IPlugin* iplugin = reinterpret_cast<IPlugin*>(instance);
-            if(iplugin)
+            IPluginFactory* ipluginfactory = reinterpret_cast<IPluginFactory*>(instance);
+            if(ipluginfactory)
             {
+                IPluginPointer iplugin = ipluginfactory->newInstance();
+
                 QStringList display = iplugin->DisplayName();
                 pi_info.name = display[0];
                 pi_info.tooltip = display[1];
@@ -128,8 +123,6 @@ bool MainWindow::load_plugin_metadata()
                 plugins_map[pi_class].push_back(pi_info);
             }
         }
-
-        plugin.unload();
     }
 
     return plugins_map.count() > 0;
@@ -196,6 +189,11 @@ void MainWindow::dropEvent(QDropEvent* event)
     QList<QUrl> urls = event->mimeData()->urls();
     foreach(const QUrl& story, urls)
     {
+        AddStoryDialog addstory_dlg;
+        addstory_dlg.load_defaults(settings);
+
+        restore_window_data(&addstory_dlg);
+
         if(story.isLocalFile())
         {
             // if we have no Local plug-ins, we can't process this
@@ -207,51 +205,50 @@ void MainWindow::dropEvent(QDropEvent* event)
             {
                 text = story.toLocalFile();
 
-                addstory_dlg->configure_for_local(true);
+                addstory_dlg.configure_for_local(true);
 
-                addstory_dlg->set_target(story);
-                addstory_dlg->set_reporters(plugins_map["Local"]);
+                addstory_dlg.set_target(story);
+                addstory_dlg.set_reporters(&plugins_map["Local"]);
 //                dlg.set_train_age_effects();
 
-                restore_window_data(addstory_dlg);
-
-                if(addstory_dlg->exec() == QDialog::Accepted)
+                if(addstory_dlg.exec() == QDialog::Accepted)
                 {
                     accept = true;
 
-                    Chyron::Settings chyron_settings;
+                    QString story_id = addstory_dlg.get_story_identity();
 
-                    chyron_settings.entry_type = addstory_dlg->get_animation_entry_type();
+                    Chyron::Settings chyron_settings;
+                    chyron_settings.entry_type = addstory_dlg.get_animation_entry_type();
 
                     // see if this story is already being covered by a Reporter
-                    if(stories.find(story) == stories.end())
+                    if(stories.find(story_id) == stories.end())
                     {
                         int width, height;
-                        bool use_fixed = addstory_dlg->get_headlines_lock_size(width, height);
+                        bool use_fixed = addstory_dlg.get_headlines_lock_size(width, height);
 
-                        chyron_settings.ttl                   = addstory_dlg->get_ttl();
-                        chyron_settings.display               = addstory_dlg->get_display();
-                        chyron_settings.always_visible        = addstory_dlg->get_headlines_always_visible();
-                        chyron_settings.exit_type             = addstory_dlg->get_animation_exit_type();
+                        chyron_settings.ttl                   = addstory_dlg.get_ttl();
+                        chyron_settings.display               = addstory_dlg.get_display();
+                        chyron_settings.always_visible        = addstory_dlg.get_headlines_always_visible();
+                        chyron_settings.exit_type             = addstory_dlg.get_animation_exit_type();
                         chyron_settings.stacking_type         = chyron_stacking;
                         chyron_settings.headline_fixed_width  = use_fixed ? width : 0;
                         chyron_settings.headline_fixed_height = use_fixed ? height : 0;
-                        chyron_settings.headline_fixed_text   = addstory_dlg->get_headlines_fixed_text();
-                        chyron_settings.effect                = addstory_dlg->get_train_age_effects(chyron_settings.train_reduce_opacity);
+                        chyron_settings.headline_fixed_text   = addstory_dlg.get_headlines_fixed_text();
+                        chyron_settings.effect                = addstory_dlg.get_train_age_effects(chyron_settings.train_reduce_opacity);
 
-                        stories[story] = ChyronPointer(new Chyron(story, chyron_settings, lane_manager));
+                        stories[story_id] = ChyronPointer(new Chyron(addstory_dlg.get_target(), chyron_settings, lane_manager));
                     }
 
-                    ChyronPointer chyron = stories[story];
+                    ChyronPointer chyron = stories[story_id];
 
-                    // assign a new Reporter to cover the the story
-                    ProducerPointer producer(new Producer(addstory_dlg->get_reporter(),
-                                                          story,
+                    // assign a new Reporter to cover the local story
+                    ProducerPointer producer(new Producer(addstory_dlg.get_reporter(),
+                                                          addstory_dlg.get_target(),
                                                           headline_font,
                                                           headline_stylesheet_normal,
                                                           headline_stylesheet_alert,
                                                           headline_alert_keywords,
-                                                          addstory_dlg->get_trigger(),
+                                                          addstory_dlg.get_trigger(),
                                                           this));
                     if(producer->start_covering_story())
                     {
@@ -260,14 +257,12 @@ void MainWindow::dropEvent(QDropEvent* event)
                     }
                     else
                     {
-                        stories.remove(story);
+                        stories.remove(story_id);
                         QMessageBox::critical(0,
                                               tr("Newsroom: Error"),
                                               tr("The Reporter could not cover the Story!"));
                     }
                 }
-
-                save_window_data(addstory_dlg);
             }
         }
         else
@@ -279,20 +274,68 @@ void MainWindow::dropEvent(QDropEvent* event)
                                       tr("No Reporter plug-ins are available to cover that Story!"));
             else
             {
-                addstory_dlg->configure_for_local(false);
-                addstory_dlg->set_target(story);
-                addstory_dlg->set_reporters(plugins_map["URL"]);
-//                dlg.set_train_age_effects();
+                addstory_dlg.configure_for_local(false);
+                addstory_dlg.set_target(story);
+                addstory_dlg.set_reporters(&plugins_map["URL"]);
 
-                restore_window_data(addstory_dlg);
-
-                if(addstory_dlg->exec() == QDialog::Accepted)
+                if(addstory_dlg.exec() == QDialog::Accepted)
                 {
-                }
+                    accept = true;
 
-                save_window_data(addstory_dlg);
+                    QString story_id = addstory_dlg.get_story_identity();
+
+                    Chyron::Settings chyron_settings;
+                    chyron_settings.entry_type = addstory_dlg.get_animation_entry_type();
+
+                    // see if this story is already being covered by a Reporter
+                    if(stories.find(story_id) == stories.end())
+                    {
+                        int width, height;
+                        bool use_fixed = addstory_dlg.get_headlines_lock_size(width, height);
+
+                        chyron_settings.ttl                   = addstory_dlg.get_ttl();
+                        chyron_settings.display               = addstory_dlg.get_display();
+                        chyron_settings.always_visible        = addstory_dlg.get_headlines_always_visible();
+                        chyron_settings.exit_type             = addstory_dlg.get_animation_exit_type();
+                        chyron_settings.stacking_type         = chyron_stacking;
+                        chyron_settings.headline_fixed_width  = use_fixed ? width : 0;
+                        chyron_settings.headline_fixed_height = use_fixed ? height : 0;
+                        chyron_settings.headline_fixed_text   = addstory_dlg.get_headlines_fixed_text();
+                        chyron_settings.effect                = addstory_dlg.get_train_age_effects(chyron_settings.train_reduce_opacity);
+
+                        stories[story_id] = ChyronPointer(new Chyron(addstory_dlg.get_target(), chyron_settings, lane_manager));
+                    }
+
+                    ChyronPointer chyron = stories[story_id];
+
+                    // assign a Reporter to a Producer
+                    ProducerPointer producer(new Producer(addstory_dlg.get_reporter(),
+                                                          addstory_dlg.get_target(),
+                                                          headline_font,
+                                                          headline_stylesheet_normal,
+                                                          headline_stylesheet_alert,
+                                                          headline_alert_keywords,
+                                                          addstory_dlg.get_trigger(),
+                                                          this));
+                    // tell the Producer to start producing
+                    if(producer->start_covering_story())
+                    {
+                        producers.push_back(producer);
+                        connect(producer.data(), &Producer::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
+                    }
+                    else
+                    {
+                        stories.remove(story_id);
+                        QMessageBox::critical(0,
+                                              tr("Newsroom: Error"),
+                                              tr("The Reporter could not cover the Story!"));
+                    }
+                }
             }
         }
+
+        save_window_data(&addstory_dlg);
+        addstory_dlg.save_defaults(settings);
     }
 
     if(accept)
@@ -360,11 +403,11 @@ void MainWindow::build_tray_menu()
 
 void MainWindow::save_application_settings()
 {
-    QString settings_file_name;
-    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-    QSettings settings(settings_file_name, QSettings::IniFormat);
+//    QString settings_file_name;
+//    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+//    QSettings settings(settings_file_name, QSettings::IniFormat);
 
-    settings.clear();
+//    settings.clear();
 
 //    settings.setValue("next_tab_icon", next_tab_icon);
 //    settings.setValue("backup_database", backup_database);
@@ -388,28 +431,30 @@ void MainWindow::save_application_settings()
 //      }
 //    settings.endArray();
 
-    settings.setValue("auto_start", false);
-    settings.setValue("chyron.font", headline_font.toString());
-    settings.setValue("chyron.stacking", reportstacking_vec.indexOf(chyron_stacking));
+    settings->setValue("auto_start", false);
+    settings->setValue("chyron.font", headline_font.toString());
+    settings->setValue("chyron.stacking", reportstacking_vec.indexOf(chyron_stacking));
 
-    settings.setValue("settings.headline.stylesheet.normal", headline_stylesheet_normal);
-    settings.setValue("settings.headline.stylesheet.alert", headline_stylesheet_alert);
-    settings.setValue("settings.headline.alert.keywords", headline_alert_keywords);
+    settings->setValue("settings.headline.stylesheet.normal", headline_stylesheet_normal);
+    settings->setValue("settings.headline.stylesheet.alert", headline_stylesheet_alert);
+    settings->setValue("settings.headline.alert.keywords", headline_alert_keywords);
 
     if(window_data.size())
     {
-        settings.beginWriteArray("window_data");
+        settings->beginWriteArray("window_data");
           quint32 item_index = 0;
           QList<QString> keys = window_data.keys();
           foreach(QString key, keys)
           {
-              settings.setArrayIndex(item_index++);
+              settings->setArrayIndex(item_index++);
 
-              settings.setValue("key", key);
-              settings.setValue("geometry", window_data[key]);
+              settings->setValue("key", key);
+              settings->setValue("geometry", window_data[key]);
           }
-        settings.endArray();
+        settings->endArray();
     }
+
+    settings->sync();
 
     settings_modified = false;
 }
@@ -418,34 +463,33 @@ void MainWindow::load_application_settings()
 {
     window_data.clear();
 
-    QString settings_file_name;
-    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-    QSettings settings(settings_file_name, QSettings::IniFormat);
+//    QString settings_file_name;
+//    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+//    QSettings settings(settings_file_name, QSettings::IniFormat);
 
-    (void)settings.value("auto_start", false).toBool();
+    (void)settings->value("auto_start", false).toBool();
     QFont f = ui->label->font();
-    QString font_str = settings.value("chyron.font", QString()).toString();
+    QString font_str = settings->value("chyron.font", QString()).toString();
     if(!font_str.isEmpty())
         headline_font.fromString(font_str);
-    chyron_stacking = reportstacking_vec[settings.value("chyron.stacking", 0).toInt()];
+    chyron_stacking = reportstacking_vec[settings->value("chyron.stacking", 0).toInt()];
 
-    headline_stylesheet_normal = settings.value("settings.headline.stylesheet.normal", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;").toString();
-    headline_stylesheet_alert = settings.value("settings.headline.stylesheet.alert", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 0, 0, 255), stop:1 rgba(255, 0, 0, 255)); border: 1px solid black; border-radius: 10px;").toString();
-    headline_alert_keywords = settings.value("settings.headline.alert.keywords", QStringList()).toStringList();
+    headline_stylesheet_normal = settings->value("settings.headline.stylesheet.normal", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;").toString();
+    headline_stylesheet_alert = settings->value("settings.headline.stylesheet.alert", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 0, 0, 255), stop:1 rgba(255, 0, 0, 255)); border: 1px solid black; border-radius: 10px;").toString();
+    headline_alert_keywords = settings->value("settings.headline.alert.keywords", QStringList()).toStringList();
 
-    int windata_size = settings.beginReadArray("window_data");
+    int windata_size = settings->beginReadArray("window_data");
     if(windata_size)
     {
         for(int i = 0; i < windata_size; ++i)
         {
-            settings.setArrayIndex(i);
+            settings->setArrayIndex(i);
 
-            QString key = settings.value("key").toString();
-            window_data[key] = settings.value("geometry").toByteArray();
+            QString key = settings->value("key").toString();
+            window_data[key] = settings->value("geometry").toByteArray();
         }
     }
-    settings.endArray();
-
+    settings->endArray();
     settings_modified = !QFile::exists(settings_file_name);
 }
 
@@ -520,20 +564,20 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
         headline_stylesheet_normal  = dlg.get_normal_stylesheet();
         headline_stylesheet_alert   = dlg.get_alert_stylesheet();
         headline_alert_keywords     = dlg.get_alert_keywords();
-        QList<QUrl> remaining_stories = dlg.get_stories();
+        QList<QString> remaining_stories = dlg.get_stories();
 
         if(remaining_stories.count() != stories.count())
         {
             // stories have been deleted
 
-            QList<QUrl> deleted_stories;
-            foreach(const QUrl& story, stories.keys())
+            QList<QString> deleted_stories;
+            foreach(const QString& story, stories.keys())
             {
                 if(!remaining_stories.contains(story))
                     deleted_stories.append(story);
             }
 
-            foreach(const QUrl& story, deleted_stories)
+            foreach(const QString& story, deleted_stories)
                 stories.remove(story);
         }
 

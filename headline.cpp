@@ -83,13 +83,15 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
 //    setAttribute(Qt::WA_PaintOnScreen); // not needed in Qt 5.2 and up
 
     label = new QLabel(this);
+    label->setTextFormat(Qt::AutoText);
     label->setMargin(margin);
     label->setFont(font);
 
     QString stylesheet = normal_stylesheet;
+    QString lower_headline = headline.toLower();
     foreach(const QString& keyword, alert_keywords)
     {
-        if(headline.contains(keyword))
+        if(lower_headline.contains(keyword.toLower()))
         {
             stylesheet = alert_stylesheet;
             break;

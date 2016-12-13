@@ -21,6 +21,7 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QPluginLoader>
+#include <QtCore/QSettings>
 
 #include "specialize.h"
 #include "chyron.h"
@@ -49,17 +50,17 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    void            set_visible(bool visible);
+    void                set_visible(bool visible);
 
 protected:  // methods
-    void            closeEvent(QCloseEvent *event);
-    void            dragEnterEvent(QDragEnterEvent *event);
-    void            dragMoveEvent(QDragMoveEvent *event);
-    void            dropEvent(QDropEvent *event);
+    void                closeEvent(QCloseEvent *event);
+    void                dragEnterEvent(QDragEnterEvent *event);
+    void                dragMoveEvent(QDragMoveEvent *event);
+    void                dropEvent(QDropEvent *event);
 
 private:    // typedefs and enums
     SPECIALIZE_MAP(QString, QByteArray, Window)             // "WindowMap"
-    SPECIALIZE_MAP(QUrl, ChyronPointer, Story)              // "StoryMap"
+    SPECIALIZE_MAP(QString, ChyronPointer, Story)              // "StoryMap"
     SPECIALIZE_LIST(ProducerPointer, Producer)              // "ProducerList"
     SPECIALIZE_QUEUE(HeadlinePointer, Headline)             // "HeadlineQueue"
     SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)           // "HeadlineMap"
@@ -67,21 +68,21 @@ private:    // typedefs and enums
     SPECIALIZE_MAP(QString, PluginsInfoVector, Plugins)     // "PluginsMap"
 
 private slots:
-    void            slot_quit();
-    void            slot_icon_activated(QSystemTrayIcon::ActivationReason reason);
-    void            slot_message_clicked();
-    void            slot_menu_action(QAction* action);
-    void            slot_restore();
-    void            slot_edit_settings(bool checked);
+    void                slot_quit();
+    void                slot_icon_activated(QSystemTrayIcon::ActivationReason reason);
+    void                slot_message_clicked();
+    void                slot_menu_action(QAction* action);
+    void                slot_restore();
+    void                slot_edit_settings(bool checked);
 
 private:    // methods
-    bool            load_plugin_metadata();
-    void            load_application_settings();
-    void            save_application_settings();
-    void            save_window_data(QWidget* window);
-    void            restore_window_data(QWidget* window);
+    bool                load_plugin_factories();
+    void                load_application_settings();
+    void                save_application_settings();
+    void                save_window_data(QWidget* window);
+    void                restore_window_data(QWidget* window);
 
-    void            build_tray_menu();
+    void                build_tray_menu();
 
 private:    // data members
     Ui::MainWindow*     ui;
@@ -113,7 +114,8 @@ private:    // data members
 
     LaneManagerPointer  lane_manager;
 
-    AddStoryDialog*     addstory_dlg;
-
     PluginsMap          plugins_map;
+
+    QSettings*          settings;
+    QString             settings_file_name;
 };

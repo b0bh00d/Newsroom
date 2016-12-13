@@ -3,7 +3,6 @@
 #include <QtCore/QDir>
 #include <QtCore/QStringList>
 #include <QtCore/QRegExp>
-#include <QtCore/QPluginLoader>
 
 #include <iplugin>
 
@@ -49,6 +48,10 @@ AddStoryDialog::AddStoryDialog(QWidget *parent) :
 
     ui->radio_HeadlinesSizeTextScale->setChecked(true);
     ui->radio_TrainReduceOpacityFixed->setChecked(true);
+
+//    connect(this, &QDialog::accepted, this, &AddStoryDialog::slot_cleanup);
+//    connect(this, &QDialog::rejected, this, &AddStoryDialog::slot_cleanup);
+//    connect(this, &QDialog::finished, this, &AddStoryDialog::slot_cleanup);
 }
 
 AddStoryDialog::~AddStoryDialog()
@@ -69,16 +72,69 @@ void AddStoryDialog::showEvent(QShowEvent *event)
             this, &AddStoryDialog::slot_trigger_changed);
     connect(ui->button_ConfigureReporter, &QPushButton::clicked, this, &AddStoryDialog::slot_configure_reporter);
 
-    QPushButton* button = ui->buttonBox->button(QDialogButtonBox::Ok);
-    button->setEnabled(ui->button_ConfigureReporter->isVisible() && reporter_configuration.count());
-
     QDialog::showEvent(event);
     activateWindow();
     raise();
 }
 
+void AddStoryDialog::save_defaults(QSettings* settings)
+{
+    settings->beginGroup("AddStoryDialog");
+
+    settings->setValue("local_trigger", ui->combo_LocalTrigger->currentIndex());
+    settings->setValue("ttl", ui->edit_TTL->text());
+    settings->setValue("keep_on_top", ui->check_KeepOnTop->isChecked());
+    settings->setValue("display", ui->radio_Monitor1->isChecked() ? 0 : (ui->radio_Monitor2->isChecked() ? 1 : (ui->radio_Monitor3->isChecked() ? 2 : 3)));
+    settings->setValue("headlines_fixed_size", ui->check_HeadlinesFixedSize->isChecked());
+    settings->setValue("headlines_fixed_width", ui->edit_HeadlinesFixedWidth->text());
+    settings->setValue("headlines_fixed_height", ui->edit_HeadlinesFixedHeight->text());
+    settings->setValue("fixed_text", ui->radio_HeadlinesSizeTextScale->isChecked() ? 0 : 1);
+    settings->setValue("entry_type", ui->combo_EntryType->currentIndex());
+    settings->setValue("exit_type", ui->combo_ExitType->currentIndex());
+    settings->setValue("exit_type_enabled", ui->combo_ExitType->isEnabled());
+    settings->setValue("group_age_effects", ui->group_AgeEffects->isChecked());
+    settings->setValue("age_opacity_type", ui->radio_TrainReduceOpacityFixed->isChecked() ? 1 : 2);
+    settings->setValue("age_opacity_fixed_percent", ui->edit_TrainReduceOpacity->text());
+    settings->setValue("reporter_configuration", reporter_configuration);
+
+    settings->endGroup();
+}
+
+void AddStoryDialog::load_defaults(QSettings* settings)
+{
+    QVector<QRadioButton*> display_buttons { ui->radio_Monitor1, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
+    QVector<QRadioButton*> fixed_buttons { ui->radio_HeadlinesSizeTextScale, ui->radio_HeadlinesSizeTextClip };
+    QVector<QRadioButton*> age_buttons { nullptr, ui->radio_TrainReduceOpacityFixed, ui->radio_TrainReduceOpacityByAge };
+
+    settings->beginGroup("AddStoryDialog");
+
+    ui->combo_LocalTrigger->setCurrentIndex(settings->value("local_trigger", static_cast<int>(LocalTrigger::NewContent)).toInt());
+    ui->edit_TTL->setText(settings->value("ttl", "").toString());
+    ui->check_KeepOnTop->setChecked(settings->value("keep_on_top", true).toBool());
+    display_buttons[settings->value("display", 0).toInt()]->setChecked(true);
+    ui->check_HeadlinesFixedSize->setChecked(settings->value("headlines_fixed_size", true).toBool());
+    if(ui->check_HeadlinesFixedSize->isChecked())
+    {
+        ui->edit_HeadlinesFixedWidth->setText(QString::number(settings->value("headlines_fixed_width", 350).toInt()));
+        ui->edit_HeadlinesFixedHeight->setText(QString::number(settings->value("headlines_fixed_height", 100).toInt()));
+    }
+    fixed_buttons[settings->value("fixed_text", 0).toInt()]->setChecked(true);
+    ui->combo_EntryType->setCurrentIndex(settings->value("entry_type", static_cast<int>(AnimEntryType::SlideDownLeftTop)).toInt());
+    ui->combo_ExitType->setCurrentIndex(settings->value("exit_type", static_cast<int>(AnimExitType::SlideLeft)).toInt());
+    ui->combo_ExitType->setEnabled(settings->value("exit_type_eanbled", true).toBool());
+    ui->group_AgeEffects->setChecked(settings->value("group_age_effects", false).toBool());
+    age_buttons[settings->value("age_opacity_type", 1).toInt()]->setChecked(true);
+    if(ui->radio_TrainReduceOpacityFixed->isChecked())
+        ui->edit_TrainReduceOpacity->setText(QString::number(settings->value("age_opacity_fixed_percent", 60).toInt()));
+    reporter_configuration = settings->value("reporter_configuration", QStringList()).toStringList();
+
+    settings->endGroup();
+}
+
 void AddStoryDialog::set_target(const QUrl& story)
 {
+    this->story = story;
+
     if(story.isLocalFile())
     {
         ui->edit_Target->setText(QDir::toNativeSeparators(story.toLocalFile()));
@@ -93,20 +149,21 @@ void AddStoryDialog::set_trigger(LocalTrigger trigger_type)
     ui->combo_LocalTrigger->setCurrentIndex(static_cast<int>(trigger_type));
 }
 
-void AddStoryDialog::set_reporters(const PluginsInfoVector& reporters_info)
+void AddStoryDialog::set_reporters(PluginsInfoVector* reporters_info)
 {
-    plugin_paths.clear();
-    plugin_tooltips.clear();
+    plugin_factories = reporters_info;
+    PluginsInfoVector& info = *plugin_factories;
 
     ui->combo_AvailableReporters->clear();
-    foreach(const PluginInfo& pi_info, reporters_info)
-    {
+    foreach(const PluginInfo& pi_info, info)
         ui->combo_AvailableReporters->addItem(pi_info.name);
-        plugin_paths << pi_info.path;
-        plugin_tooltips << pi_info.tooltip;
-    }
 
-    ui->combo_AvailableReporters->setEnabled(reporters_info.count() > 1);
+    ui->combo_AvailableReporters->setEnabled(info.count() > 1);
+
+    QObject* instance = info[ui->combo_AvailableReporters->currentIndex()].factory->instance();
+    IPluginFactory* ipluginfactory = reinterpret_cast<IPluginFactory*>(instance);
+    Q_ASSERT(ipluginfactory);
+    plugin_reporter = ipluginfactory->newInstance();
 }
 
 void AddStoryDialog::set_ttl(uint ttl)
@@ -121,13 +178,13 @@ void AddStoryDialog::set_headlines_always_visible(bool visible)
 
 void AddStoryDialog::set_display(int primary_screen, int screen_count)
 {
-    QVector<QRadioButton*> buttons { ui->radio_Monitor1, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
+    QVector<QRadioButton*> display_buttons { ui->radio_Monitor1, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
     for(int i = 0; i < 4;++i)
     {
         if((i + 1) > screen_count)
-            buttons[i]->setDisabled(true);
+            display_buttons[i]->setDisabled(true);
        if(i == primary_screen)
-           buttons[i]->setChecked(true);
+           display_buttons[i]->setChecked(true);
     }
 
     if(screen_count == 1)
@@ -168,7 +225,7 @@ void AddStoryDialog::set_train_age_effects(AgeEffects effect, int percent)
     if(percent)
         ui->edit_TrainReduceOpacity->setText(QString::number(percent));
     ui->edit_TrainReduceOpacity->setEnabled(effect == AgeEffects::ReduceOpacityFixed);
-    ui->radio_TrainReduceOpacityFixed->setEnabled(effect == AgeEffects::ReduceOpacityByAge);
+    ui->radio_TrainReduceOpacityByAge->setEnabled(effect == AgeEffects::ReduceOpacityByAge);
 }
 
 void AddStoryDialog::configure_for_local(bool for_local)
@@ -176,25 +233,41 @@ void AddStoryDialog::configure_for_local(bool for_local)
     ui->button_ConfigureReporter->setHidden(for_local);
     ui->label_Triggers->setHidden(!for_local);
     ui->combo_LocalTrigger->setHidden(!for_local);
+
+    QPushButton* button = ui->buttonBox->button(QDialogButtonBox::Ok);
+    button->setEnabled(for_local || reporter_configuration.count());
+}
+
+QString AddStoryDialog::get_story_identity()
+{
+    if(story.isLocalFile())
+        return story.toLocalFile();
+
+    // otherwise, we have to make something unique to this URL.
+    Q_ASSERT(!plugin_reporter.isNull());
+    IPluginURL* ipluginurl = reinterpret_cast<IPluginURL*>(plugin_reporter.data());
+    Q_ASSERT(ipluginurl);
+    QStringList params = ipluginurl->Requires();
+
+    QString identity = ui->edit_Target->text();
+    identity += QString(":%1").arg(ipluginurl->DisplayName()[0]);
+    foreach(const QString& param, reporter_configuration)
+        identity += QString(":%1").arg(param);
+
+    return identity;
 }
 
 QUrl AddStoryDialog::get_target()
 {
-    return QUrl(ui->edit_Target->text());
+    QString text = ui->edit_Target->text();
+    if(text.endsWith('/'))
+        text.chop(1);
+    return QUrl(text);
 }
 
 LocalTrigger AddStoryDialog::get_trigger()
 {
     return static_cast<LocalTrigger>(ui->combo_LocalTrigger->currentIndex());
-}
-
-QObject* AddStoryDialog::get_reporter()
-{
-    if(static_cast<LocalTrigger>(ui->combo_LocalTrigger->currentIndex()) != LocalTrigger::NewContent)
-        return nullptr;
-
-    QPluginLoader plugin(plugin_paths[ui->combo_AvailableReporters->currentIndex()]);
-    return plugin.instance();
 }
 
 uint AddStoryDialog::get_ttl()
@@ -293,7 +366,14 @@ void AddStoryDialog::slot_trigger_changed(int /*index*/)
 
 void AddStoryDialog::slot_reporter_changed(int index)
 {
-    ui->combo_AvailableReporters->setToolTip(plugin_tooltips[index]);
+    PluginsInfoVector& info = *plugin_factories;
+
+    ui->combo_AvailableReporters->setToolTip(info[index].tooltip);
+
+    QObject* instance = info[ui->combo_AvailableReporters->currentIndex()].factory->instance();
+    IPluginFactory* ipluginfactory = reinterpret_cast<IPluginFactory*>(instance);
+    Q_ASSERT(ipluginfactory);
+    plugin_reporter = ipluginfactory->newInstance();
     reporter_configuration.clear();
 
     QPushButton* button = ui->buttonBox->button(QDialogButtonBox::Ok);
@@ -307,15 +387,11 @@ void AddStoryDialog::slot_configure_reporter(bool /*checked*/)
 
     QPushButton* button;
 
-    QPluginLoader plugin_loader(plugin_paths[ui->combo_AvailableReporters->currentIndex()]);
-    QObject* instance = plugin_loader.instance();
-    IPluginURL* iplugin = reinterpret_cast<IPluginURL*>(instance);
-    if(!iplugin)
-        return;
+    Q_ASSERT(!plugin_reporter.isNull());
+    IPluginURL* ipluginurl = reinterpret_cast<IPluginURL*>(plugin_reporter.data());
+    Q_ASSERT(ipluginurl);
 
-    QStringList params = iplugin->Requires();
-
-    plugin_loader.unload();
+    QStringList params = ipluginurl->Requires();
 
     params_dialog = new QDialog(this);
     params_dialog->setWindowTitle(tr("Newsroom: Configure Reporter"));
@@ -388,9 +464,13 @@ void AddStoryDialog::slot_configure_reporter(bool /*checked*/)
         reporter_configuration.clear();
         foreach(QLineEdit* edit, edit_fields)
             reporter_configuration << edit->text();
+
+        if(!ipluginurl->SetRequirements(reporter_configuration))
+            reporter_configuration.clear();
     }
 
     params_dialog->deleteLater();
+    params_dialog = nullptr;
 
     button = ui->buttonBox->button(QDialogButtonBox::Ok);
     button->setEnabled(ui->button_ConfigureReporter->isVisible() && reporter_configuration.count());

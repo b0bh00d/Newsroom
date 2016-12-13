@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT += core gui
+QT += core gui network widgets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -14,12 +14,14 @@ TEMPLATE = app
 CONFIG += C++11
 
 CONFIG(debug, debug|release) {
-    CONFIG += highlight_lanes
+    #CONFIG += highlight_lanes
 }
 
 INCLUDEPATH += reporters/interfaces
 
 RESOURCES += ./Newsroom.qrc
+
+DEFINES += QT_DLL QT_NETWORK_LIB
 
 mac {
     DEFINES += QT_OSX
