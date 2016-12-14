@@ -624,6 +624,10 @@ void Chyron::slot_headline_posted()
     headline->animation->deleteLater();
 
     headline->viewed = QDateTime::currentDateTime().toTime_t();
+
+    connect(headline.data(), &Headline::signal_mouse_enter, this, &Chyron::slot_headline_mouse_enter);
+    connect(headline.data(), &Headline::signal_mouse_exit, this, &Chyron::slot_headline_mouse_exit);
+
     headline_list.append(headline);
 }
 
@@ -710,5 +714,53 @@ void Chyron::slot_train_expire_headlines()
         headline_list.removeAll(expired);
         expired->hide();
         expired.clear();
+    }
+}
+
+void Chyron::slot_headline_mouse_enter()
+{
+    Headline* headline = qobject_cast<Headline*>(sender());
+
+    QGraphicsEffect* eff = headline->graphicsEffect();
+    if(eff)
+    {
+        QGraphicsOpacityEffect* oeff = qobject_cast<QGraphicsOpacityEffect*>(eff);
+        if(oeff)
+        {
+            opacity_map[headline] = oeff->opacity();
+
+            headline->animation = new QPropertyAnimation(oeff, "opacity");
+            headline->animation->setDuration(150);
+            headline->animation->setStartValue(oeff->opacity());
+            headline->animation->setEndValue(1.0);
+            headline->animation->setEasingCurve(QEasingCurve::InCubic);
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+
+            headline->animation->start();
+        }
+    }
+}
+
+void Chyron::slot_headline_mouse_exit()
+{
+    Headline* headline = qobject_cast<Headline*>(sender());
+
+    if(opacity_map.contains(headline))
+    {
+        QGraphicsEffect* eff = headline->graphicsEffect();
+        if(eff)
+        {
+            QGraphicsOpacityEffect* oeff = qobject_cast<QGraphicsOpacityEffect*>(eff);
+            headline->animation = new QPropertyAnimation(oeff, "opacity");
+            headline->animation->setDuration(150);
+            headline->animation->setStartValue(1.0);
+            headline->animation->setEndValue(opacity_map[headline]);
+            headline->animation->setEasingCurve(QEasingCurve::InCubic);
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+
+            headline->animation->start();
+        }
+
+        opacity_map.remove(headline);
     }
 }

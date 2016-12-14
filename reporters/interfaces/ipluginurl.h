@@ -24,9 +24,14 @@ public:     // methods
     /*!
       This method returns a list of parameter names that it requires in order
       to perform its function.  Each parameter name is followed by a type,
-      one of "string", "password", "integer" or "double".  Parameter names that
-      end with an asterisks (*) indicate a required value, all others are
-      considered optional.
+      one of "string", "password", "integer" or "double".
+
+      Parameter names that end with an asterisks (*) indicate a required value,
+      all others are considered optional.
+
+      Parameter types can specify default values by adding a colon (:) followed
+      by a value as a suffix (e.g., "integer:10").  This default value will
+      become the placeholder value in the assigned edit field.
 
       The host should post a dialog requesting these parameters and types from
       the user, and then provide them back to the plug-in via the SetStory()

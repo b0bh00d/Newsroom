@@ -37,6 +37,10 @@ public:
     void    set_alert_stylesheet(const QString& stylesheet)     { alert_stylesheet = stylesheet; }
     void    set_alert_keywords(const QStringList& keywords)     { alert_keywords = keywords; }
 
+signals:
+    void    signal_mouse_enter();
+    void    signal_mouse_exit();
+
 protected:  // methods
 //    void    showEvent(QShowEvent *event);
 //    bool winEvent(MSG* message, long* result);
