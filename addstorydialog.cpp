@@ -426,12 +426,25 @@ void AddStoryDialog::slot_configure_reporter(bool /*checked*/)
         if(required_fields.at(j))
             edit->setStyleSheet("background-color: rgb(255, 245, 245);");
 
+        QString type(params[i+1]);
+        QString def_value;
+
+        if(params[i+1].contains(':'))
+        {
+            QStringList items = params[i+1].split(':');
+            type = items[0];
+            def_value = items[1];
+        }
+
         if(!params[i+1].compare("password"))
             edit->setEchoMode(QLineEdit::PasswordEchoOnEdit);
         else if(!params[i+1].compare("integer"))
             edit->setValidator(new QIntValidator());
         else if(!params[i+1].compare("double"))
             edit->setValidator(new QDoubleValidator());
+
+        if(!def_value.isEmpty())
+            edit->setPlaceholderText(def_value);
 
         if(reporter_configuration.count() > j)
             edit->setText(reporter_configuration[j]);

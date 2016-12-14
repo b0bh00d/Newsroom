@@ -61,11 +61,17 @@ private:    // classes
         QByteArray  buffer;
     };
 
+    struct ETAData
+    {
+        int         initial_completed;
+        uint        start;
+    };
+
 private:    // typedefs and enums
     SPECIALIZE_MAP(QString, QJsonObject, JsonObject)    // "JsonObjectMap"
     SPECIALIZE_MAP(int, QJsonObject, Status)            // "StatusMap"
-//    SPECIALIZE_QUEUE(QString, String)                   // "StringQueue"
     SPECIALIZE_MAP(QNetworkReply*, ReplyData, Reply)    // "ReplyMap"
+    SPECIALIZE_MAP(int, ETAData, ETA)                   // "ETAMap"
 
 private:    // methods
     void            process_reply(QNetworkReply *reply);
@@ -86,7 +92,6 @@ private:    // data members
     StatusMap   build_status;
 
     QTimer*         poll_timer;
-//    StringQueue     status_queue;
 
-//    StringQueue     finals_queue;
+    ETAMap          eta;
 };

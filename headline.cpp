@@ -70,30 +70,13 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
 
 void Headline::enterEvent(QEvent *event)
 {
-    QGraphicsEffect* eff = graphicsEffect();
-    if(eff)
-    {
-        QGraphicsOpacityEffect* oeff = qobject_cast<QGraphicsOpacityEffect*>(eff);
-        if(oeff)
-        {
-            old_opacity = oeff->opacity();
-            oeff->setOpacity(1.0);
-        }
-    }
-
+    emit signal_mouse_enter();
     event->accept();
 }
 
 void Headline::leaveEvent(QEvent *event)
 {
-    QGraphicsEffect* eff = graphicsEffect();
-    if(eff)
-    {
-        QGraphicsOpacityEffect* oeff = qobject_cast<QGraphicsOpacityEffect*>(eff);
-        if(oeff)
-            oeff->setOpacity(old_opacity);
-    }
-
+    emit signal_mouse_exit();
     event->accept();
 }
 

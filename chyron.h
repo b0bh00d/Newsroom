@@ -83,12 +83,16 @@ protected slots:
     void        slot_release_animation();
     void        slot_train_expire_headlines();
 
+    void        slot_headline_mouse_enter();
+    void        slot_headline_mouse_exit();
+
 protected:  // typedefs and enums
     SPECIALIZE_LIST(HeadlinePointer, Headline)          // "HeadlineList"
     SPECIALIZE_QUEUE(HeadlinePointer, Transition)       // "TransitionQueue"
     SPECIALIZE_MAP(QPropertyAnimation*, HeadlinePointer, PropertyAnimation) // "PropertyAnimationMap"
     SPECIALIZE_MAP(HeadlinePointer, bool, Entering)     // "EnteringMap"
     SPECIALIZE_MAP(HeadlinePointer, bool, Exiting)      // "ExitingMap"
+    SPECIALIZE_MAP(Headline*, double, Opacity)          // "OpacityMap"
 
 protected:  // methods
     void        initialize_headline(HeadlinePointer headline);
@@ -111,7 +115,7 @@ protected:  // data members
 
     LaneManagerPointer  lane_manager;
 
-//    QRect           lane_position, lane_boundaries;
+    OpacityMap      opacity_map;
 
 #ifdef HIGHLIGHT_LANES
     HighlightWidget*    highlight;
