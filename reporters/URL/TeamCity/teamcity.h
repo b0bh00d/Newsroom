@@ -65,6 +65,10 @@ private:    // classes
     {
         int         initial_completed;
         uint        start;
+
+        // these values will be used to try and detect a hung build
+        int         last_completed;
+        uint        last_changed;
     };
 
 private:    // typedefs and enums
@@ -91,8 +95,8 @@ private:    // data members
     JsonObjectMap json_projects, json_builders;
     StatusMap   build_status;
 
-    QTimer*         poll_timer;
-    int             poll_timeout;
+    QTimer*     poll_timer;
+    int         poll_timeout;
 
-    ETAMap          eta;
+    ETAMap      eta;
 };
