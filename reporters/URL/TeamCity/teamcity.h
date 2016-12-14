@@ -92,6 +92,7 @@ private:    // data members
     StatusMap   build_status;
 
     QTimer*         poll_timer;
+    int             poll_timeout;
 
     ETAMap          eta;
 };

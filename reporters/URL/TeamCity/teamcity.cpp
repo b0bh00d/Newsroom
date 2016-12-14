@@ -3,6 +3,7 @@
 TeamCity::TeamCity(QObject *parent)
     : QNAM(nullptr),
       poll_timer(nullptr),
+      poll_timeout(60),
       IPluginURL(parent)
 {}
 
@@ -76,7 +77,7 @@ QStringList TeamCity::Requires() const
                             "Builder"       << "string" <<      // if an explicit builder is not provided,
                                                                 // then all the builders of the project will
                                                                 // be monitored in the same Headline stream
-                            "Polling"       << "integer:60";    // how many seconds between polls? (default: 60)
+                            "Polling (sec)" << "integer:60";    // how many seconds between polls? (default: 60)
 }
 
 bool TeamCity::SetRequirements(const QStringList& parameters)
@@ -94,6 +95,8 @@ bool TeamCity::SetRequirements(const QStringList& parameters)
     project_name = parameters[2];
     if(parameters.count() > 3)
         builder_name = parameters[3];
+    if(parameters.count() > 4)
+        poll_timeout = parameters[4].toInt();
 
     if(username.isEmpty())
     {
@@ -207,7 +210,7 @@ void TeamCity::process_reply(QNetworkReply *reply)
             // we can begin monitoring
 
             poll_timer = new QTimer(this);
-            poll_timer->setInterval(60000);
+            poll_timer->setInterval(poll_timeout * 1000);
             connect(poll_timer, &QTimer::timeout, this, &TeamCity::slot_poll);
             poll_timer->start();
 
@@ -267,7 +270,7 @@ void TeamCity::process_status(const QJsonObject& status)
             if(build.contains("percentageComplete"))
                 complete = build["percentageComplete"].toInt();
 
-            QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build <b>#%3</b><br>")
+            QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build #<b>%3</b><br>")
                                         .arg(project_name)
                                         .arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name)
                                         .arg(build_number);
@@ -297,7 +300,7 @@ void TeamCity::process_status(const QJsonObject& status)
                 if(build.contains("percentageComplete"))
                     complete = build["percentageComplete"].toInt();
 
-                QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build <b>#%3</b><br>")
+                QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build #<b>%3</b><br>")
                                         .arg(project_name)
                                         .arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name)
                                         .arg(build_number);
@@ -377,14 +380,14 @@ void TeamCity::process_final(QNetworkReply *reply)
     if(build.contains("percentageComplete"))
         complete = build["percentageComplete"].toInt();
 
-    QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build <b>#%3</b>\n")
+    QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build #<b>%3</b><br>")
                                 .arg(project_name)
                                 .arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name)
                                 .arg(build_id);
 
     // status change
-    status += QString("State: %1\n").arg(build["state"].toString());
-    status += QString("Status: %1\n").arg(build["status"].toString());
+    status += QString("State: %1<br>").arg(build["state"].toString());
+    status += QString("Status: %1<br>").arg(build["status"].toString());
     status += QString("Completed: %1% @ %2").arg(complete).arg(QDateTime::currentDateTime().toString("h:mm ap"));
 
     emit signal_new_data(status.toUtf8());
