@@ -23,6 +23,8 @@ class TEAMCITYSHARED_EXPORT TeamCity : public IPluginURL
 {
     Q_OBJECT
 public:
+    TeamCity(QObject* parent = nullptr);
+
     // IPlugin
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
     QStringList DisplayName() const Q_DECL_OVERRIDE;
@@ -44,28 +46,34 @@ private slots:
     void    slot_poll();
 
 private:    // typedefs and enums
-    SPECIALIZE_MAP(QString, QJsonObject, JsonObject)    // "JsonObjectMap"
-    SPECIALIZE_MAP(int, QJsonObject, Status)            // "StatusMap"
-    SPECIALIZE_QUEUE(QString, Builder)                  // "BuilderQueue"
-    SPECIALIZE_MAP(QNetworkReply*, bool, Reply)         // "ReplyMap"
-    SPECIALIZE_MAP(QNetworkReply*, QByteArray, Finish)  // "FinishMap"
-
     enum class States {
         None,
         GettingProjects,
         GettingBuilders,
         GettingStatus,
-        GettingResult,
+        GettingFinal,
     };
 
+private:    // classes
+    struct ReplyData
+    {
+        States      state;
+        QByteArray  buffer;
+    };
+
+private:    // typedefs and enums
+    SPECIALIZE_MAP(QString, QJsonObject, JsonObject)    // "JsonObjectMap"
+    SPECIALIZE_MAP(int, QJsonObject, Status)            // "StatusMap"
+//    SPECIALIZE_QUEUE(QString, String)                   // "StringQueue"
+    SPECIALIZE_MAP(QNetworkReply*, ReplyData, Reply)    // "ReplyMap"
+
 private:    // methods
-    void        process_reply(QNetworkReply *reply);
-    void        process_status(const QJsonObject& status);
-    void        process_final(QNetworkReply *reply);
+    void            process_reply(QNetworkReply *reply);
+    void            process_status(const QJsonObject& status);
+    void            process_final(QNetworkReply *reply);
+    void            create_request(const QString& url_str, States state);
 
 private:    // data members
-    States      state;
-
     QString     username;
     QString     password;
     QString     project_name;
@@ -73,13 +81,12 @@ private:    // data members
 
     QNetworkAccessManager*  QNAM;
     ReplyMap    active_replies;
-    FinishMap   finish_replies;
 
     JsonObjectMap json_projects, json_builders;
     StatusMap   build_status;
 
-    QByteArray  reply_buffer;
-
     QTimer*         poll_timer;
-    BuilderQueue    status_queue;
+//    StringQueue     status_queue;
+
+//    StringQueue     finals_queue;
 };

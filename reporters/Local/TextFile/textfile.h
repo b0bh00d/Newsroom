@@ -16,6 +16,8 @@ class TEXTFILE_SHARED_EXPORT TextFile : public IPluginLocal
 {
     Q_OBJECT
 public:
+    TextFile(QObject* parent = nullptr);
+
     // IPlugin
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
     QStringList DisplayName() const Q_DECL_OVERRIDE;
