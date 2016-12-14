@@ -95,8 +95,11 @@ bool TeamCity::SetRequirements(const QStringList& parameters)
     project_name = parameters[2];
     if(parameters.count() > 3)
         builder_name = parameters[3];
-    if(parameters.count() > 4)
+    if(parameters.count() > 4 && !parameters[4].isEmpty())
+    {
         poll_timeout = parameters[4].toInt();
+        poll_timeout = poll_timeout < 30 ? 60 : poll_timeout;
+    }
 
     if(username.isEmpty())
     {
@@ -262,6 +265,8 @@ void TeamCity::process_status(const QJsonObject& status)
         int build_number = build["number"].toString().toInt();
         int build_id = build["id"].toInt();
 
+        uint now = QDateTime::currentDateTime().toTime_t();
+
         if(new_builds.contains(build_id))
         {
             // new build entry
@@ -281,8 +286,11 @@ void TeamCity::process_status(const QJsonObject& status)
             build_status[build_id] = build;
 
             ETAData eta_data;
-            eta_data.start = QDateTime::currentDateTime().toTime_t();
+            eta_data.start = now;
             eta_data.initial_completed = complete;
+            eta_data.last_completed = complete;
+            eta_data.last_changed = eta_data.start;
+
             eta[build_id] = eta_data;
 
             if(status.endsWith('\n'))
@@ -310,18 +318,31 @@ void TeamCity::process_status(const QJsonObject& status)
                 status += QString("Status: %1<br>").arg(build["status"].toString());
                 status += QString("Completed: %1%").arg(complete);
 
-                // if we've got a few updates, then calculate an eta
+                // update data for the hung-build check
+                if(complete != eta[build_id].last_completed)
+                {
+                    eta[build_id].last_completed = complete;
+                    eta[build_id].last_changed = now;
+                }
+
+                // after a few updates, calculate an eta
 
                 uint completed_delta = complete - eta[build_id].initial_completed;
                 if(completed_delta > 5)
                 {
                     // how much clock time has passed since we started monitoring?
-                    uint time_delta = QDateTime::currentDateTime().toTime_t() - eta[build_id].start;
+                    uint time_delta = now - eta[build_id].start;
                     uint average_per_point = time_delta / completed_delta;
                     uint percent_left = 100 - complete;
                     uint time_left = percent_left * average_per_point;
                     QDateTime target = QDateTime::currentDateTime();
-                    status += QString(" / <b>ETA: %1</b>").arg(target.addSecs(time_left).toString("h:mm ap"));
+                    QString eta_str = target.addSecs(time_left).toString("h:mm ap");
+
+                    // check for hung build if no progress after 5 minutes
+                    if((now - eta[build_id].last_changed) > 300)
+                        status += QString(" / <b><font color=\"#ff0000\">ETA: %1</font></b>").arg(eta_str);
+                    else
+                        status += QString(" / <b>ETA: %1</b>").arg(eta_str);
                 }
 
                 build_status[build_id] = build;
@@ -339,7 +360,8 @@ void TeamCity::process_status(const QJsonObject& status)
         {
             finals.push_back(build_status[build_id]);
             build_status.remove(build_id);
-        }
+            eta.remove(build_id);
+       }
     }
 
     // get final results for any finished builds
@@ -445,6 +467,6 @@ void TeamCity::slot_get_failed(QNetworkReply::NetworkError code)
 void TeamCity::slot_poll()
 {
     QJsonObject project_json = json_projects[project_name];
-    QString url_str = QString("%1/httpAuth/app/rest/builds?locator=project:%2,running:true").arg(story.toString()).arg(project_json["id"].toString());
+    QString url_str = QString("%1/httpAuth/app/rest/builds?locator=project:%2,running:true,defaultFilter:false").arg(story.toString()).arg(project_json["id"].toString());
     create_request(url_str, States::GettingStatus);
 }
