@@ -168,7 +168,7 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
             {
                 for(int i = 0;i < plain_lines.count() && !too_wide;++i)
                 {
-                    int w = metrics.width(plain_lines[i]);
+                    int w = metrics.boundingRect(plain_lines[i]).width();
                     too_wide = (w > width);
                 }
             }
