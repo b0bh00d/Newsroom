@@ -12,6 +12,7 @@ class IPluginLocal : public IPlugin
 {
     Q_OBJECT
 public:     // methods
+    IPluginLocal(QObject* parent = nullptr) : IPlugin(parent) {}
     virtual ~IPluginLocal() {}
 
     /*!

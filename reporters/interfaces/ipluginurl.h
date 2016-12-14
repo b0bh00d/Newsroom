@@ -18,6 +18,7 @@ class IPluginURL : public IPlugin
 {
     Q_OBJECT
 public:     // methods
+    IPluginURL(QObject* parent = nullptr) : IPlugin(parent) {}
     virtual ~IPluginURL() {}
 
     /*!

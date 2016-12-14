@@ -1,5 +1,11 @@
 #include "teamcity.h"
 
+TeamCity::TeamCity(QObject *parent)
+    : QNAM(nullptr),
+      poll_timer(nullptr),
+      IPluginURL(parent)
+{}
+
 // IPlugin
 QStringList TeamCity::DisplayName() const
 {
@@ -18,37 +24,16 @@ void TeamCity::SetStory(const QUrl& url)
 
 bool TeamCity::CoverStory()
 {
+    if(QNAM)
+        return false;       // they're calling us a second time
+
     error_message.clear();
-
-    poll_timer = nullptr;
-
-    state = States::None;
-
-    // get projects listing first
-    QString projects_url = QString("%1/httpAuth/app/rest/projects").arg(story.toString());
-    QUrl url(projects_url);
-    url.setUserName(username);
-    url.setPassword(password);
-
-    state = States::GettingProjects;
-    reply_buffer.clear();
-
-    QNetworkRequest request(url);
-    request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
-    request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
 
     QNAM = new QNetworkAccessManager(this);
 
-    QNetworkReply* reply = QNAM->get(request);
-    bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity::slot_get_read);
-    ASSERT_UNUSED(connected);
-    connected = connect(reply, &QNetworkReply::finished, this, &TeamCity::slot_get_complete);
-    ASSERT_UNUSED(connected);
-    connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
-                        this, &TeamCity::slot_get_failed);
-    ASSERT_UNUSED(connected);
-
-    active_replies[reply] = true;
+    // get projects listing first
+    QString projects_url = QString("%1/httpAuth/app/rest/projects").arg(story.toString());
+    create_request(projects_url, States::GettingProjects);
 
     return true;
 }
@@ -130,13 +115,39 @@ bool TeamCity::SetRequirements(const QStringList& parameters)
     return true;
 }
 
+void TeamCity::create_request(const QString& url_str, States state)
+{
+    QUrl url(url_str);
+    url.setUserName(username);
+    url.setPassword(password);
+
+    QNetworkRequest request(url);
+    request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
+    request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
+
+    QNetworkReply* reply = QNAM->get(request);
+    bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity::slot_get_read);
+    ASSERT_UNUSED(connected);
+    connected = connect(reply, &QNetworkReply::finished, this, &TeamCity::slot_get_complete);
+    ASSERT_UNUSED(connected);
+    connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
+                        this, &TeamCity::slot_get_failed);
+    ASSERT_UNUSED(connected);
+
+    ReplyData reply_data;
+    reply_data.state = state;
+
+    active_replies[reply] = reply_data;
+}
+
 void TeamCity::process_reply(QNetworkReply *reply)
 {
-    if(state == States::GettingProjects)
+    ReplyData& data = active_replies[reply];
+    if(data.state == States::GettingProjects)
     {
         json_projects.clear();
 
-        QJsonDocument d = QJsonDocument::fromJson(reply_buffer);
+        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
         QJsonObject sett2 = d.object();
         int count = sett2["count"].toInt();
         QJsonArray project_array = sett2.value(QString("project")).toArray();
@@ -161,34 +172,14 @@ void TeamCity::process_reply(QNetworkReply *reply)
 
             QString builders_url = QString("%1%2").arg(story.toString()).arg(project["href"].toString());
 
-            QUrl url(builders_url);
-            url.setUserName(username);
-            url.setPassword(password);
-
-            state = States::GettingBuilders;
-            reply_buffer.clear();
-
-            QNetworkRequest request(url);
-            request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
-            request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
-
-            QNetworkReply* reply = QNAM->get(request);
-            bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity::slot_get_read);
-            ASSERT_UNUSED(connected);
-            connected = connect(reply, &QNetworkReply::finished, this, &TeamCity::slot_get_complete);
-            ASSERT_UNUSED(connected);
-            connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
-                                this, &TeamCity::slot_get_failed);
-            ASSERT_UNUSED(connected);
-
-            active_replies[reply] = true;
+            create_request(builders_url, States::GettingBuilders);
         }
     }
-    else if(state == States::GettingBuilders)
+    else if(data.state == States::GettingBuilders)
     {
         json_builders.clear();
 
-        QJsonDocument d = QJsonDocument::fromJson(reply_buffer);
+        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
         QJsonObject sett2 = d.object();
         QJsonObject buildtypes = sett2["buildTypes"].toObject();
         int count = buildtypes["count"].toInt();
@@ -197,18 +188,18 @@ void TeamCity::process_reply(QNetworkReply *reply)
         {
             QJsonObject builder = builder_array.at(x).toObject();
             QString name = builder["name"].toString();
+            QString id = builder["id"].toString();
             if(builder_name.isEmpty() || !name.compare(builder_name))
-                json_builders[name] = builder;
+                json_builders[id] = builder;
         }
 
-        if(!builder_name.isEmpty())
+        if(!builder_name.isEmpty() && json_builders.isEmpty())
         {
-            if(!json_builders.contains(builder_name))
-                error_message = QString("TeamCity: The build id \"%1\" was not found for project \"%2\" on server \"%3\".")
-                        .arg(builder_name).arg(project_name).arg(story.toString());
+            error_message = QString("TeamCity: The build id \"%1\" was not found for project \"%2\" on server \"%3\".")
+                                    .arg(builder_name)
+                                    .arg(project_name)
+                                    .arg(story.toString());
         }
-
-        state = States::None;
 
         if(error_message.isEmpty())
         {
@@ -222,22 +213,20 @@ void TeamCity::process_reply(QNetworkReply *reply)
             slot_poll();        // get an initial update
         }
     }
-    else if(state == States::GettingStatus)
+    else if(data.state == States::GettingStatus)
     {
-        QJsonDocument d = QJsonDocument::fromJson(reply_buffer);
+        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
         QJsonObject sett2 = d.object();
         process_status(sett2);
-
-        state = States::None;
     }
-    else
+    else if(data.state == States::GettingFinal)
     {
         // see if the 'reply' value is in some pending list
-        if(finish_replies.contains(reply))
-        {
+//        if(finish_replies.contains(reply))
+//        {
             // we're finishing up a watched build
             process_final(reply);
-        }
+//        }
     }
 }
 
@@ -247,7 +236,7 @@ void TeamCity::process_status(const QJsonObject& status)
     // for new builds, and check cached status for builds that
     // have completed.
 
-    QVector<int> finals;
+    QVector<QJsonObject> finals;
     QSet<int> c, p, finished_builds, new_builds;
 
     int count = status["count"].toInt();
@@ -281,7 +270,7 @@ void TeamCity::process_status(const QJsonObject& status)
             if(build.contains("percentageComplete"))
                 complete = QString("%1%").arg(build["percentageComplete"].toInt());
 
-            QString status = QString("Project %1 :: Builder %2 :: Build #%3\n").arg(project_name).arg(builder_name.isEmpty() ? id : builder_name).arg(build_id);
+            QString status = QString("Project \"%1\" :: Builder \"%2\" :: Build #%3\n").arg(project_name).arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name).arg(build_id);
             status += QString("State: %1\n").arg(build["state"].toString());
             status += QString("Status: %1\n").arg(build["status"].toString());
             if(build.contains("percentageComplete"))
@@ -304,7 +293,7 @@ void TeamCity::process_status(const QJsonObject& status)
                 if(build.contains("percentageComplete"))
                     complete = build["percentageComplete"].toInt();
 
-                QString status = QString("Project %1 :: Builder %2 :: Build #%3\n").arg(project_name).arg(builder_name.isEmpty() ? id : builder_name).arg(build_id);
+                QString status = QString("Project \"%1\" :: Builder \"%2\" :: Build #%3\n").arg(project_name).arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name).arg(build_id);
 
                 // status change
                 status += QString("State: %1\n").arg(build["state"].toString());
@@ -318,60 +307,78 @@ void TeamCity::process_status(const QJsonObject& status)
                 emit signal_new_data(status.toUtf8());
             }
         }
-        else
-            finals.push_back(build["id"].toInt());
     }
 
-    // get final results for the finished builds
-    foreach(int id, finals)
+    if(finished_builds.count())
     {
-        QString build_url = QString("%1/httpAuth/app/rest/builds/buildType:(id:%2)/status").arg(story.toString()).arg(id);
-        QUrl url(build_url);
-        url.setUserName(username);
-        url.setPassword(password);
+        foreach(int build_id, finished_builds)
+        {
+            finals.push_back(build_status[build_id]);
+            build_status.remove(build_id);
+        }
+    }
 
-        // we don't use these for finishing
-        // state = States::GettingStatus;
-        // reply_buffer.clear();
+    // get final results for any finished builds
+    if(finals.count())
+    {
+        // Make a call for each buildTypeId in the finals[]
+        QMap<QString, int> buildTypeIds;
+        foreach(QJsonObject build, finals)
+        {
+            QString buildTypeId = build["buildTypeId"].toString();
+            if(buildTypeIds.contains(buildTypeId))
+                buildTypeIds[buildTypeId] = 0;
+            ++buildTypeIds[buildTypeId];
+        }
 
-        QNetworkRequest request(url);
-        request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
-        request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
-
-        QNetworkReply* reply = QNAM->get(request);
-        bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity::slot_get_read);
-        ASSERT_UNUSED(connected);
-        connected = connect(reply, &QNetworkReply::finished, this, &TeamCity::slot_get_complete);
-        ASSERT_UNUSED(connected);
-        connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
-                            this, &TeamCity::slot_get_failed);
-        ASSERT_UNUSED(connected);
-
-        finish_replies[reply] = QByteArray();
+        foreach(const QString& buildTypeId, buildTypeIds.keys())
+        {
+// curl -X GET --url "https://teamcity.lightwave3d.com/private_1/httpAuth/app/rest/buildTypes/id:DaveV_Windows/builds/running:false?count=1&start=0" --user "bhood:pylg>Swok4" --header "Content-type:application/json" --header "Accept:application/json"
+//            QString build_url = QString("%1/httpAuth/app/rest/builds/buildType:(id:%2)/status").arg(story.toString()).arg(build["id"].toInt());
+            QString build_url = QString("%1/httpAuth/app/rest/buildTypes/id:%2/builds/running:false?count=%3&start=0").arg(story.toString()).arg(buildTypeId).arg(buildTypeIds[buildTypeId]);
+            create_request(build_url, States::GettingFinal);
+//            finals_queue.enqueue(build_url);
+        }
     }
 }
 
 void TeamCity::process_final(QNetworkReply *reply)
 {
-    if(!finish_replies.contains(reply))
-        return;
+    ReplyData& data = active_replies[reply];
 
-    QJsonDocument d = QJsonDocument::fromJson(finish_replies[reply]);
-    QJsonObject sett2 = d.object();
+QString reply_str(data.buffer);
+    QJsonDocument d = QJsonDocument::fromJson(data.buffer);
+//    QJsonDocument d = QJsonDocument::fromJson(finish_replies[reply]);
+    QJsonObject build = d.object();
 
-    int build_id = sett2["number"].toString().toInt();
-    QString id = sett2["buildTypeId"].toString();//.split('_')[1];
-    int complete = 0;
-    if(sett2.contains("percentageComplete"))
-        complete = sett2["percentageComplete"].toInt();
+    QString id = build["buildTypeId"].toString();
+    int build_id = build["number"].toString().toInt();
+    int complete = 100;
+    if(build.contains("percentageComplete"))
+        complete = build["percentageComplete"].toInt();
 
-    QString status = QString("Build %1:%2\n").arg(id).arg(build_id);
-    status += QString("State: Stopped\n");
-    status += QString("Status: %1\n").arg(sett2["status"].toString());
-    if(sett2.contains("percentageComplete"))
-        status += QString("Completed: %1%\n").arg(sett2["percentageComplete"].toInt());
+    QString status = QString("Project \"%1\" :: Builder \"%2\" :: Build #%3\n").arg(project_name).arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name).arg(build_id);
+
+    // status change
+    status += QString("State: %1\n").arg(build["state"].toString());
+    status += QString("Status: %1\n").arg(build["status"].toString());
+    status += QString("Completed: %1%").arg(complete);
+
+//    int build_id = sett2["number"].toString().toInt();
+//    QString id = sett2["buildTypeId"].toString();//.split('_')[1];
+//    int complete = 0;
+//    if(sett2.contains("percentageComplete"))
+//        complete = sett2["percentageComplete"].toInt();
+
+//    QString status = QString("Build %1:%2\n").arg(id).arg(build_id);
+//    status += QString("State: Stopped\n");
+//    status += QString("Status: %1\n").arg(sett2["status"].toString());
+//    if(sett2.contains("percentageComplete"))
+//        status += QString("Completed: %1%\n").arg(sett2["percentageComplete"].toInt());
 
     emit signal_new_data(status.toUtf8());
+
+//    finish_replies.remove(reply);
 }
 
 void TeamCity::slot_get_read()
@@ -379,10 +386,8 @@ void TeamCity::slot_get_read()
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
     if(reply)
     {
-        if(finish_replies.contains(reply))
-            finish_replies[reply] += reply->readAll();
-        else
-            reply_buffer += reply->readAll();
+        ReplyData& data = active_replies[reply];
+        data.buffer += reply->readAll();
     }
 }
 
@@ -391,12 +396,8 @@ void TeamCity::slot_get_complete()
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
     if(reply && reply->error() == QNetworkReply::NoError)
     {
-        // should have valid data in 'reply_buffer'
-        if(finish_replies.contains(reply))
-            finish_replies[reply] += reply->readAll();
-        else
-            reply_buffer += reply->readAll();
-
+        ReplyData& data = active_replies[reply];
+        data.buffer += reply->readAll();
         process_reply(reply);
     }
 
@@ -404,8 +405,6 @@ void TeamCity::slot_get_complete()
     {
         if(active_replies.contains(reply))
             active_replies.remove(reply);
-        else if(finish_replies.contains(reply))
-            finish_replies.remove(reply);
 
         reply->deleteLater();
         reply = nullptr;
@@ -415,8 +414,11 @@ void TeamCity::slot_get_complete()
 void TeamCity::slot_get_failed(QNetworkReply::NetworkError code)
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
-
-    QString reply_str(reply_buffer);
+    if(reply)
+    {
+        ReplyData& data = active_replies[reply];
+        QString reply_str(data.buffer);
+    }
 
     if(code == QNetworkReply::OperationCanceledError)
         error_message = tr("<h2>Network Error</h2><p>The network operation was canceled.</p>");
@@ -427,50 +429,83 @@ void TeamCity::slot_get_failed(QNetworkReply::NetworkError code)
 
     emit signal_new_data(error_message.toUtf8());
 
-    if(active_replies.contains(reply))
-        reply_buffer.clear();
+//    if(active_replies.contains(reply))
+//        reply_buffer.clear();
 
-    if(reply)
-    {
-        if(active_replies.contains(reply))
-            active_replies.remove(reply);
-        else if(finish_replies.contains(reply))
-            finish_replies.remove(reply);
+//    if(reply)
+//    {
+//        if(active_replies.contains(reply))
+//            active_replies.remove(reply);
+//        else if(finish_replies.contains(reply))
+//            finish_replies.remove(reply);
 
-        reply->deleteLater();
-        reply = nullptr;
-    }
+//        reply->deleteLater();
+//        reply = nullptr;
+//    }
 }
 
 void TeamCity::slot_poll()
 {
-    if(state == States::None)
-    {
-        // get a status for all running builds
+//    if(active_replies.count())
+//        return;
 
+    // get a status for all running builds
+
+//    QString url_str;
+//    ReplyData reply_data;
+
+//    if(finals_queue.count())
+//        (void)create_request(finals_queue.dequeue(), States::GettingFinal);
+//    else
+//    {
         QJsonObject project_json = json_projects[project_name];
+        QString url_str = QString("%1/httpAuth/app/rest/builds?locator=project:%2,running:true").arg(story.toString()).arg(project_json["id"].toString());
+        create_request(url_str, States::GettingStatus);
+//    }
 
-        QString projects_url = QString("%1/httpAuth/app/rest/builds?locator=project:%2,running:true").arg(story.toString()).arg(project_json["id"].toString());
-        QUrl url(projects_url);
-        url.setUserName(username);
-        url.setPassword(password);
+//    QUrl url(url_str);
+//    url.setUserName(username);
+//    url.setPassword(password);
 
-        state = States::GettingStatus;
-        reply_buffer.clear();
+//    QNetworkRequest request(url);
+//    request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
+//    request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
 
-        QNetworkRequest request(url);
-        request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
-        request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
+//    QNetworkReply* reply = QNAM->get(request);
+//    bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity::slot_get_read);
+//    ASSERT_UNUSED(connected);
+//    connected = connect(reply, &QNetworkReply::finished, this, &TeamCity::slot_get_complete);
+//    ASSERT_UNUSED(connected);
+//    connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
+//                        this, &TeamCity::slot_get_failed);
+//    ASSERT_UNUSED(connected);
 
-        QNetworkReply* reply = QNAM->get(request);
-        bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity::slot_get_read);
-        ASSERT_UNUSED(connected);
-        connected = connect(reply, &QNetworkReply::finished, this, &TeamCity::slot_get_complete);
-        ASSERT_UNUSED(connected);
-        connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
-                            this, &TeamCity::slot_get_failed);
-        ASSERT_UNUSED(connected);
+//    active_replies[reply] = reply_data;
 
-        active_replies[reply] = true;
-    }
+//    if(finals_queue.count())
+//    {
+//        QString build_url = finals_queue.dequeue();
+//        QUrl url(build_url);
+//        url.setUserName(username);
+//        url.setPassword(password);
+
+//        // we don't use these for finishing
+//        // state = States::GettingStatus;
+//        // reply_buffer.clear();
+
+//        QNetworkRequest request(url);
+//        request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
+//        request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
+
+//        QNetworkReply* reply = QNAM->get(request);
+//        bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity::slot_get_read);
+//        ASSERT_UNUSED(connected);
+//        connected = connect(reply, &QNetworkReply::finished, this, &TeamCity::slot_get_complete);
+//        ASSERT_UNUSED(connected);
+//        connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
+//                            this, &TeamCity::slot_get_failed);
+//        ASSERT_UNUSED(connected);
+
+//        finish_replies[reply] = QByteArray();
+//    }
 }

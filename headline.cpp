@@ -4,6 +4,7 @@
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QLabel>
+#include <QtWidgets/QGraphicsOpacityEffect>
 
 #include <QtGui/QFontMetrics>
 
@@ -19,6 +20,7 @@ Headline::Headline(const QUrl& story,
       ignore(false),
       story(story),
       headline(headline),
+      old_opacity(1.0),
       QWidget(parent)
 {
 }
@@ -64,6 +66,35 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
     }
 
     return false;
+}
+
+void Headline::enterEvent(QEvent *event)
+{
+    QGraphicsEffect* eff = graphicsEffect();
+    if(eff)
+    {
+        QGraphicsOpacityEffect* oeff = qobject_cast<QGraphicsOpacityEffect*>(eff);
+        if(oeff)
+        {
+            old_opacity = oeff->opacity();
+            oeff->setOpacity(1.0);
+        }
+    }
+
+    event->accept();
+}
+
+void Headline::leaveEvent(QEvent *event)
+{
+    QGraphicsEffect* eff = graphicsEffect();
+    if(eff)
+    {
+        QGraphicsOpacityEffect* oeff = qobject_cast<QGraphicsOpacityEffect*>(eff);
+        if(oeff)
+            oeff->setOpacity(old_opacity);
+    }
+
+    event->accept();
 }
 
 void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, int height)

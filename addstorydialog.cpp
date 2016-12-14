@@ -81,6 +81,7 @@ void AddStoryDialog::save_defaults(QSettings* settings)
 {
     settings->beginGroup("AddStoryDialog");
 
+    settings->setValue("target", story);
     settings->setValue("local_trigger", ui->combo_LocalTrigger->currentIndex());
     settings->setValue("ttl", ui->edit_TTL->text());
     settings->setValue("keep_on_top", ui->check_KeepOnTop->isChecked());
@@ -108,6 +109,11 @@ void AddStoryDialog::load_defaults(QSettings* settings)
 
     settings->beginGroup("AddStoryDialog");
 
+    story = settings->value("target", QUrl()).toUrl();
+    if(story.isLocalFile())
+        ui->edit_Target->setText(story.toLocalFile());
+    else
+        ui->edit_Target->setText(story.toString());
     ui->combo_LocalTrigger->setCurrentIndex(settings->value("local_trigger", static_cast<int>(LocalTrigger::NewContent)).toInt());
     ui->edit_TTL->setText(settings->value("ttl", "").toString());
     ui->check_KeepOnTop->setChecked(settings->value("keep_on_top", true).toBool());

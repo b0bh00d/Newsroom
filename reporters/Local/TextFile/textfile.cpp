@@ -4,6 +4,12 @@
 
 #include "textfile.h"
 
+TextFile::TextFile(QObject *parent)
+    : poll_timer(nullptr),
+      notices_only(false),
+      IPluginLocal(parent)
+{}
+
 // IPlugin
 QStringList TextFile::DisplayName() const
 {
@@ -24,6 +30,9 @@ void TextFile::SetStory(const QUrl& story)
 
 bool TextFile::CoverStory()
 {
+    if(poll_timer)
+        return false;           // calling us a second time
+
 //    if(!story.isValid() || !story.isLocalFile())
 //        return false;
 

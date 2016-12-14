@@ -5,7 +5,6 @@
 #include <QWidget>
 
 #include <QtGui/QFont>
-//#include <QtGui/QShowEvent>
 
 #include <QtCore/QUrl>
 
@@ -42,6 +41,8 @@ protected:  // methods
 //    void    showEvent(QShowEvent *event);
 //    bool winEvent(MSG* message, long* result);
     bool    nativeEvent(const QByteArray &eventType, void *message, long *result);
+    void    enterEvent(QEvent *event);
+    void    leaveEvent(QEvent *event);
 
     /*!
       This method is employed by the Chyron class to perform configuration of
@@ -70,6 +71,8 @@ protected:  // data members
     QPropertyAnimation* animation;  // Chyron
 
     QLabel*         label;
+
+    double          old_opacity;
 
     friend class Chyron;        // the Chyron manages the headlines on the screen
 };
