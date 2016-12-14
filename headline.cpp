@@ -7,6 +7,7 @@
 #include <QtWidgets/QGraphicsOpacityEffect>
 
 #include <QtGui/QFontMetrics>
+#include <QtGui/QTextDocument>
 
 #include <QtCore/QUrl>
 
@@ -151,18 +152,23 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
     }
     else if(fixed_text == FixedText::ScaleToFit)
     {
+        // https://stackoverflow.com/questions/2799379/is-there-an-easy-way-to-strip-html-from-a-qstring-in-qt
+        QTextDocument doc;
+        doc.setHtml(headline);
+        QStringList plain_lines = doc.toPlainText().split('\n');
+
         // we adjust the font size to fit the dimensions, if they exceed it
         for(;;)
         {
             QFontMetrics metrics(f);
 
             bool too_wide = false;
-            bool too_tall = ((metrics.height() * lines.count()) > height);
+            bool too_tall = ((metrics.height() * plain_lines.count()) > height);
             if(!too_tall)
             {
-                for(int i = 0;i < lines.count() && !too_wide;++i)
+                for(int i = 0;i < plain_lines.count() && !too_wide;++i)
                 {
-                    int w = metrics.width(lines[i]);
+                    int w = metrics.width(plain_lines[i]);
                     too_wide = (w > width);
                 }
             }
