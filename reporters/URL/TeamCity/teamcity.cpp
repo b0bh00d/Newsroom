@@ -267,10 +267,13 @@ void TeamCity::process_status(const QJsonObject& status)
             if(build.contains("percentageComplete"))
                 complete = build["percentageComplete"].toInt();
 
-            QString status = QString("Project \"%1\" :: Builder \"%2\" :: Build #%3\n").arg(project_name).arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name).arg(build_number);
-            status += QString("State: %1\n").arg(build["state"].toString());
-            status += QString("Status: %1\n").arg(build["status"].toString());
-            status += QString("Completed: %1%\n").arg(complete);
+            QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build <b>#%3</b><br>")
+                                        .arg(project_name)
+                                        .arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name)
+                                        .arg(build_number);
+            status += QString("State: %1<br>").arg(build["state"].toString());
+            status += QString("Status: %1<br>").arg(build["status"].toString());
+            status += QString("Completed: %1%").arg(complete);
 
             build_status[build_id] = build;
 
@@ -294,11 +297,14 @@ void TeamCity::process_status(const QJsonObject& status)
                 if(build.contains("percentageComplete"))
                     complete = build["percentageComplete"].toInt();
 
-                QString status = QString("Project \"%1\" :: Builder \"%2\" :: Build #%3\n").arg(project_name).arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name).arg(build_number);
+                QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build <b>#%3</b><br>")
+                                        .arg(project_name)
+                                        .arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name)
+                                        .arg(build_number);
 
                 // status change
-                status += QString("State: %1\n").arg(build["state"].toString());
-                status += QString("Status: %1\n").arg(build["status"].toString());
+                status += QString("State: %1<br>").arg(build["state"].toString());
+                status += QString("Status: %1<br>").arg(build["status"].toString());
                 status += QString("Completed: %1%").arg(complete);
 
                 // if we've got a few updates, then calculate an eta
@@ -312,7 +318,7 @@ void TeamCity::process_status(const QJsonObject& status)
                     uint percent_left = 100 - complete;
                     uint time_left = percent_left * average_per_point;
                     QDateTime target = QDateTime::currentDateTime();
-                    status += QString(" / ETA: %1").arg(target.addSecs(time_left).toString("h:mm ap"));
+                    status += QString(" / <b>ETA: %1</b>").arg(target.addSecs(time_left).toString("h:mm ap"));
                 }
 
                 build_status[build_id] = build;
@@ -349,7 +355,10 @@ void TeamCity::process_status(const QJsonObject& status)
         foreach(const QString& buildTypeId, buildTypeIds.keys())
         {
 // curl -X GET --url "https://teamcity.lightwave3d.com/private_1/httpAuth/app/rest/buildTypes/id:DaveV_Windows/builds/running:false?count=1&start=0" --user "bhood:pylg>Swok4" --header "Content-type:application/json" --header "Accept:application/json"
-            QString build_url = QString("%1/httpAuth/app/rest/buildTypes/id:%2/builds/running:false?count=%3&start=0").arg(story.toString()).arg(buildTypeId).arg(buildTypeIds[buildTypeId]);
+            QString build_url = QString("%1/httpAuth/app/rest/buildTypes/id:%2/builds/running:false?count=%3&start=0")
+                                            .arg(story.toString())
+                                            .arg(buildTypeId)
+                                            .arg(buildTypeIds[buildTypeId]);
             create_request(build_url, States::GettingFinal);
         }
     }
@@ -368,12 +377,15 @@ void TeamCity::process_final(QNetworkReply *reply)
     if(build.contains("percentageComplete"))
         complete = build["percentageComplete"].toInt();
 
-    QString status = QString("Project \"%1\" :: Builder \"%2\" :: Build #%3\n").arg(project_name).arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name).arg(build_id);
+    QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build <b>#%3</b>\n")
+                                .arg(project_name)
+                                .arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name)
+                                .arg(build_id);
 
     // status change
     status += QString("State: %1\n").arg(build["state"].toString());
     status += QString("Status: %1\n").arg(build["status"].toString());
-    status += QString("Completed: %1%").arg(complete);
+    status += QString("Completed: %1% @ %2").arg(complete).arg(QDateTime::currentDateTime().toString("h:mm ap"));
 
     emit signal_new_data(status.toUtf8());
 }
