@@ -52,7 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     setAcceptDrops(true);
 
-    lane_manager = LaneManagerPointer(new LaneManager(this));
+    lane_manager = LaneManagerPointer(new LaneManager(headline_font, headline_stylesheet_normal, this));
 
     // Load all the available Reporter plug-ins
     if(!load_plugin_factories())
@@ -189,153 +189,106 @@ void MainWindow::dropEvent(QDropEvent* event)
     QList<QUrl> urls = event->mimeData()->urls();
     foreach(const QUrl& story, urls)
     {
+        PluginsInfoVector* reporters_info = nullptr;
+
+        if(story.isLocalFile())
+        {
+            if(plugins_map.contains("Local"))
+                reporters_info = &plugins_map["Local"];
+        }
+        else
+        {
+            if(plugins_map.contains("URL"))
+                reporters_info = &plugins_map["URL"];
+        }
+
+        if(!reporters_info)
+        {
+            QMessageBox::critical(0,
+                                  tr("Newsroom: Error"),
+                                  tr("No Reporter plug-ins are available to cover that Story!"));
+            return;
+        }
+
         AddStoryDialog addstory_dlg;
         addstory_dlg.load_defaults(settings);
 
         restore_window_data(&addstory_dlg);
 
-        if(story.isLocalFile())
+        addstory_dlg.set_story(story);
+        addstory_dlg.set_reporters(reporters_info);
+
+        if(addstory_dlg.exec() == QDialog::Accepted)
         {
-            // if we have no Local plug-ins, we can't process this
-            if(!plugins_map.contains("Local"))
-                QMessageBox::critical(0,
-                                      tr("Newsroom: Error"),
-                                      tr("No Reporter plug-ins are available to cover that Story!"));
+            accept = true;
+
+            QString story_id = addstory_dlg.get_story_identity();
+
+            Chyron::Settings chyron_settings;
+            chyron_settings.entry_type = addstory_dlg.get_animation_entry_type();
+
+            // see if this story is already being covered by a Reporter
+            if(stories.find(story_id) == stories.end())
+            {
+                int pixel_width = 0, pixel_height = 0;
+                double percent_width = 0.0, percent_height = 0.0;
+                bool interpret_as_pixels = false, interpret_as_percent = false;
+
+                interpret_as_pixels = addstory_dlg.get_headlines_size(pixel_width, pixel_height);
+                if(!interpret_as_pixels)
+                    interpret_as_percent = addstory_dlg.get_headlines_size(percent_width, percent_height);
+
+                chyron_settings.ttl                     = addstory_dlg.get_ttl();
+                chyron_settings.display                 = addstory_dlg.get_display();
+                chyron_settings.always_visible          = addstory_dlg.get_headlines_always_visible();
+                chyron_settings.exit_type               = addstory_dlg.get_animation_exit_type();
+                chyron_settings.stacking_type           = chyron_stacking;
+                chyron_settings.headline_pixel_width    = interpret_as_pixels ? pixel_width : 0;
+                chyron_settings.headline_pixel_height   = interpret_as_pixels ? pixel_height : 0;
+                chyron_settings.headline_percent_width  = interpret_as_percent ? percent_width : 0.0;
+                chyron_settings.headline_percent_height = interpret_as_percent ? percent_height : 0.0;
+                chyron_settings.headline_fixed_text     = addstory_dlg.get_headlines_fixed_text();
+                chyron_settings.train_effect            = addstory_dlg.get_train_age_effects(chyron_settings.train_reduce_opacity);
+                chyron_settings.dashboard_group         = addstory_dlg.get_dashboard_group_id();
+                chyron_settings.dashboard_effect        = addstory_dlg.get_dashboard_age_effects(chyron_settings.dashboard_reduce_opacity);
+
+                stories[story_id] = ChyronPointer(new Chyron(addstory_dlg.get_target(), chyron_settings, lane_manager));
+            }
+
+            ChyronPointer chyron = stories[story_id];
+
+            // assign a new Reporter to cover the local story
+
+            int content_lines;
+            bool limit_content = addstory_dlg.get_limit_content(content_lines);
+
+            ProducerPointer producer(new Producer(addstory_dlg.get_reporter(),
+                                                  addstory_dlg.get_target(),
+                                                  headline_font,
+                                                  headline_stylesheet_normal,
+                                                  headline_stylesheet_alert,
+                                                  headline_alert_keywords,
+                                                  addstory_dlg.get_trigger(),
+                                                  limit_content,
+                                                  content_lines,
+                                                  this));
+            if(producer->start_covering_story())
+            {
+                producers.push_back(producer);
+                connect(producer.data(), &Producer::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
+            }
             else
             {
-                text = story.toLocalFile();
-
-                addstory_dlg.configure_for_local(true);
-
-                addstory_dlg.set_target(story);
-                addstory_dlg.set_reporters(&plugins_map["Local"]);
-//                dlg.set_train_age_effects();
-
-                if(addstory_dlg.exec() == QDialog::Accepted)
-                {
-                    accept = true;
-
-                    QString story_id = addstory_dlg.get_story_identity();
-
-                    Chyron::Settings chyron_settings;
-                    chyron_settings.entry_type = addstory_dlg.get_animation_entry_type();
-
-                    // see if this story is already being covered by a Reporter
-                    if(stories.find(story_id) == stories.end())
-                    {
-                        int width, height;
-                        bool use_fixed = addstory_dlg.get_headlines_lock_size(width, height);
-
-                        chyron_settings.ttl                   = addstory_dlg.get_ttl();
-                        chyron_settings.display               = addstory_dlg.get_display();
-                        chyron_settings.always_visible        = addstory_dlg.get_headlines_always_visible();
-                        chyron_settings.exit_type             = addstory_dlg.get_animation_exit_type();
-                        chyron_settings.stacking_type         = chyron_stacking;
-                        chyron_settings.headline_fixed_width  = use_fixed ? width : 0;
-                        chyron_settings.headline_fixed_height = use_fixed ? height : 0;
-                        chyron_settings.headline_fixed_text   = addstory_dlg.get_headlines_fixed_text();
-                        chyron_settings.effect                = addstory_dlg.get_train_age_effects(chyron_settings.train_reduce_opacity);
-
-                        stories[story_id] = ChyronPointer(new Chyron(addstory_dlg.get_target(), chyron_settings, lane_manager));
-                    }
-
-                    ChyronPointer chyron = stories[story_id];
-
-                    // assign a new Reporter to cover the local story
-                    ProducerPointer producer(new Producer(addstory_dlg.get_reporter(),
-                                                          addstory_dlg.get_target(),
-                                                          headline_font,
-                                                          headline_stylesheet_normal,
-                                                          headline_stylesheet_alert,
-                                                          headline_alert_keywords,
-                                                          addstory_dlg.get_trigger(),
-                                                          this));
-                    if(producer->start_covering_story())
-                    {
-                        producers.push_back(producer);
-                        connect(producer.data(), &Producer::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
-                    }
-                    else
-                    {
-                        stories.remove(story_id);
-                        QMessageBox::critical(0,
-                                              tr("Newsroom: Error"),
-                                              tr("The Reporter could not cover the Story!"));
-                    }
-                }
-            }
-        }
-        else
-        {
-            // if we have no URL plug-ins, we can't process this
-            if(!plugins_map.contains("URL"))
+                stories.remove(story_id);
                 QMessageBox::critical(0,
                                       tr("Newsroom: Error"),
-                                      tr("No Reporter plug-ins are available to cover that Story!"));
-            else
-            {
-                addstory_dlg.configure_for_local(false);
-                addstory_dlg.set_target(story);
-                addstory_dlg.set_reporters(&plugins_map["URL"]);
-
-                if(addstory_dlg.exec() == QDialog::Accepted)
-                {
-                    accept = true;
-
-                    QString story_id = addstory_dlg.get_story_identity();
-
-                    Chyron::Settings chyron_settings;
-                    chyron_settings.entry_type = addstory_dlg.get_animation_entry_type();
-
-                    // see if this story is already being covered by a Reporter
-                    if(stories.find(story_id) == stories.end())
-                    {
-                        int width, height;
-                        bool use_fixed = addstory_dlg.get_headlines_lock_size(width, height);
-
-                        chyron_settings.ttl                   = addstory_dlg.get_ttl();
-                        chyron_settings.display               = addstory_dlg.get_display();
-                        chyron_settings.always_visible        = addstory_dlg.get_headlines_always_visible();
-                        chyron_settings.exit_type             = addstory_dlg.get_animation_exit_type();
-                        chyron_settings.stacking_type         = chyron_stacking;
-                        chyron_settings.headline_fixed_width  = use_fixed ? width : 0;
-                        chyron_settings.headline_fixed_height = use_fixed ? height : 0;
-                        chyron_settings.headline_fixed_text   = addstory_dlg.get_headlines_fixed_text();
-                        chyron_settings.effect                = addstory_dlg.get_train_age_effects(chyron_settings.train_reduce_opacity);
-
-                        stories[story_id] = ChyronPointer(new Chyron(addstory_dlg.get_target(), chyron_settings, lane_manager));
-                    }
-
-                    ChyronPointer chyron = stories[story_id];
-
-                    // assign a Reporter to a Producer
-                    ProducerPointer producer(new Producer(addstory_dlg.get_reporter(),
-                                                          addstory_dlg.get_target(),
-                                                          headline_font,
-                                                          headline_stylesheet_normal,
-                                                          headline_stylesheet_alert,
-                                                          headline_alert_keywords,
-                                                          addstory_dlg.get_trigger(),
-                                                          this));
-                    // tell the Producer to start producing
-                    if(producer->start_covering_story())
-                    {
-                        producers.push_back(producer);
-                        connect(producer.data(), &Producer::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
-                    }
-                    else
-                    {
-                        stories.remove(story_id);
-                        QMessageBox::critical(0,
-                                              tr("Newsroom: Error"),
-                                              tr("The Reporter could not cover the Story!"));
-                    }
-                }
+                                      tr("The Reporter could not cover the Story!"));
             }
+
+            addstory_dlg.save_defaults(settings);
         }
 
         save_window_data(&addstory_dlg);
-        addstory_dlg.save_defaults(settings);
     }
 
     if(accept)

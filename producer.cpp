@@ -7,6 +7,8 @@ Producer::Producer(IPluginPointer reporter,
                    const QString& alert_stylesheet,
                    const QStringList& alert_keywords,
                    LocalTrigger trigger_type,
+                   bool limit_content,
+                   int limit_content_to,
                    QObject *parent)
     : reporter_plugin(reporter),
       story(story),
@@ -15,6 +17,8 @@ Producer::Producer(IPluginPointer reporter,
       headline_stylesheet_alert(alert_stylesheet),
       headline_alert_keywords(alert_keywords),
       trigger_type(trigger_type),
+      limit_content(limit_content),
+      limit_content_to(limit_content_to),
       QObject(parent)
 {
 }
@@ -53,10 +57,10 @@ void Producer::load(QSettings& /*settings*/)
 {
 }
 
-void Producer::slot_new_data(const QByteArray& data)
+void Producer::file_headline(const QString& data)
 {
     // file a headline with the new content
-    HeadlinePointer headline(new Headline(story, QString(data)));
+    HeadlinePointer headline(new Headline(story, data));
 
     headline->set_font(headline_font);
     headline->set_normal_stylesheet(headline_stylesheet_normal);
@@ -66,60 +70,45 @@ void Producer::slot_new_data(const QByteArray& data)
     emit signal_new_headline(headline);
 }
 
-//void Producer::slot_poll()
-//{
-//    if(!reporter_plugin)
-//    {
-//        target.refresh();
+void Producer::slot_new_data(const QByteArray& data)
+{
+    if(!limit_content)
+    {
+        file_headline(QString(data));
+        return;
+    }
 
-//        if(stabilize_count > 0 && target.size() == last_size)
-//        {
-//            stabilize_count = 0;
+    bool has_breaks = data.contains("<br>");
 
-//            QString report = QString("Story '%1' was updated on %2").arg(story.toString()).arg(target.lastModified().toString());
-//            HeadlinePointer headline(new Headline(story, report));
+    QStringList lines;
+    if(has_breaks)
+        lines = QString(data).split("<br>");
+    else
+        lines = QString(data).split('\n');
 
-//            headline->set_font(headline_font);
-//            headline->set_normal_stylesheet(headline_stylesheet_normal);
-//            headline->set_alert_stylesheet(headline_stylesheet_alert);
-//            headline->set_alert_keywords(headline_alert_keywords);
+    QString new_line;
+    int current_limit = 0;
+    foreach(const QString& line, lines)
+    {
+        if(new_line.length())
+        {
+            if(has_breaks)
+                new_line += "<br>";
+            else
+                new_line += "\n";
+        }
 
-//            emit signal_new_headline(headline);
-//        }
-//        else
-//        {
-//            if(target.size() > last_size)
-//            {
-//                last_size = target.size();  // wait for the file to stop changing
-//                ++stabilize_count;
-//            }
-//            else if(target.size() < last_size)
-//            {
-//                // the file got smaller since we last checked, so reset
-//                last_size = target.size();
-//                stabilize_count = 0;
-//            }
-//        }
-//    }
-////    else
-////    {
-////        IPlugin* plugin = qobject_cast<IPlugin *>(reporter_plugin);
-////        if(plugin)
-////        {
-////            QString report = plugin->Headline();
-////            while(!report.isEmpty())
-////            {
-////                HeadlinePointer headline(new Headline(story, report));
+        new_line += line;
 
-////                headline->set_font(headline_font);
-////                headline->set_normal_stylesheet(headline_stylesheet_normal);
-////                headline->set_alert_stylesheet(headline_stylesheet_alert);
-////                headline->set_alert_keywords(headline_alert_keywords);
+        ++current_limit;
+        if((current_limit % limit_content_to) == 0)
+        {
+            if(!new_line.isEmpty())
+                file_headline(new_line);
+            new_line.clear();
+        }
+    }
 
-////                emit signal_new_headline(headline);
-
-////                report = plugin->Headline();
-////            }
-////        }
-////    }
-//}
+    if(!new_line.isEmpty())
+        file_headline(new_line);
+}

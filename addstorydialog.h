@@ -11,7 +11,7 @@
 #include "types.h"
 #include "specialize.h"
 
-#include "reporters/interfaces/iplugin"
+#include "reporters/interfaces/iplugin.h"
 
 namespace Ui {
 class AddStoryDialog;
@@ -38,7 +38,7 @@ public:
     void            save_defaults(QSettings* settings);
     void            load_defaults(QSettings* settings);
 
-    void            set_target(const QUrl& story);
+    void            set_story(const QUrl& story);
                     // Notifications
     void            set_trigger(LocalTrigger trigger_type);
     void            set_reporters(PluginsInfoVector* reporters_info);
@@ -49,15 +49,21 @@ public:
                     //   Headlines
     void            set_headlines_always_visible(bool visible);
                     //   Size
-    void            set_headlines_lock_size(int width = 0, int height = 0);
+    void            set_headlines_size(int width = 0, int height = 0);
+    void            set_headlines_size(double width = 0.0, double height = 0.0);
+                    //   Visibility
+    void            set_limit_content(int lines = 0);
     void            set_headlines_fixed_text(FixedText fixed_type = FixedText::None);
                     // Animation
     void            set_animation_entry_and_exit(AnimEntryType entry_type, AnimExitType exit_type);
                     //   Train
                     //     Age Effects
     void            set_train_age_effects(AgeEffects effect = AgeEffects::None, int percent = 0);
-
-    void            configure_for_local(bool for_local = true);
+                    //   Dashboard
+                    //     Age Effects
+    void            set_dashboard_age_effects(int percent = 0);
+                    //     Group ID
+    void            set_dashboard_group_id(const QString& group_id);
 
     // The 'story identity' is something that will uniquely identify this
     // story.  In the case of a local file system entity, the full path to
@@ -75,24 +81,36 @@ public:
 
     int             get_display();
     bool            get_headlines_always_visible();
-    bool            get_headlines_lock_size(int& width, int& height);
+    bool            get_headlines_size(int& width, int& height);
+    bool            get_headlines_size(double& width, double& height);
+    bool            get_limit_content(int& lines);
     FixedText       get_headlines_fixed_text();
 
     AnimEntryType   get_animation_entry_type();
     AnimExitType    get_animation_exit_type();
     AgeEffects      get_train_age_effects(int& percent);
 
+    bool            get_dashboard_age_effects(int& percent);
+    QString         get_dashboard_group_id();
+
 protected:
     void            showEvent(QShowEvent *);
 
 protected slots:
+    void            slot_accepted();
     void            slot_entry_type_changed(int index);
-    void            slot_headlines_fixed_size_clicked(bool checked);
+    void            slot_interpret_size_clicked(bool checked);
     void            slot_train_reduce_opacity_clicked(bool checked);
     void            slot_trigger_changed(int index);
     void            slot_reporter_changed(int index);
-    void            slot_configure_reporter(bool checked);
+//    void            slot_configure_reporter(bool checked);
     void            slot_config_reporter_check_required();
+    void            slot_set_group_id_text(int index);
+    void            slot_update_groupid_list();
+    void            slot_configure_reporter_configure();
+
+private:        // methods
+    void            configure_for_local(bool for_local = true);
 
 private:
     Ui::AddStoryDialog *ui;
@@ -100,7 +118,6 @@ private:
     QStringList         plugin_paths;
     QStringList         plugin_tooltips;
 
-    QDialog*            params_dialog;
     QBitArray           required_fields;
     QStringList         reporter_configuration;
 

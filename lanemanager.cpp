@@ -5,8 +5,10 @@
 
 #include "lanemanager.h"
 
-LaneManager::LaneManager(QObject *parent)
-    : QObject(parent)
+LaneManager::LaneManager(const QFont& font, const QString& stylesheet, QObject *parent)
+    : headline_font(font),
+      headline_stylesheet(stylesheet),
+      QObject(parent)
 {
 }
 
@@ -14,18 +16,112 @@ void LaneManager::subscribe(Chyron* chyron)
 {
     const Chyron::Settings& settings = chyron->get_settings();
 
+    QDesktopWidget* desktop = QApplication::desktop();
+    QRect r_desktop = desktop->screenGeometry(settings.display);
+
     LaneDataPointer data(new LaneData());
     data->owner = chyron;
     data_map[chyron] = data;
 
-    if(!lane_map.contains(settings.entry_type))
-        lane_map[settings.entry_type] = LaneList();
-    lane_map[settings.entry_type].push_back(data);
+    if(IS_DASHBOARD(settings.entry_type))
+    {
+        // figure out which Dashboard group this Chyron should be
+        // assigned to (or add a new one if it doesn't exist)
+
+        if(!dashboard_map.contains(settings.entry_type))
+            dashboard_map[settings.entry_type] = DashboardList();
+
+        // see if this entry type already sports our group id
+        DashboardPointer dashboard_group;
+        foreach(DashboardPointer dashboard, dashboard_map[settings.entry_type])
+        {
+            if(!dashboard->id.compare(settings.dashboard_group))
+            {
+                dashboard_group = dashboard;
+                break;
+            }
+        }
+
+        if(dashboard_group.isNull())
+        {
+            dashboard_group = DashboardPointer(new DashboardData());
+            dashboard_group->id = settings.dashboard_group;
+            dashboard_group->lane_header = HeadlinePointer(new Headline(QUrl(), QString("<h2><center>%1</center></h2>").arg(settings.dashboard_group)));
+            dashboard_group->lane_header->set_font(headline_font);
+            dashboard_group->lane_header->set_normal_stylesheet(headline_stylesheet);
+
+            int w = 0;
+            int h = 0;
+            switch(settings.entry_type)
+            {
+                case AnimEntryType::DashboardDownLeftTop:
+                case AnimEntryType::DashboardDownRightTop:
+                case AnimEntryType::DashboardUpLeftBottom:
+                case AnimEntryType::DashboardUpRightBottom:
+                    if(settings.headline_pixel_width)
+                    {
+                        w = settings.headline_pixel_width;
+                        h = settings.headline_pixel_height * 0.35;
+                    }
+                    else
+                    {
+                        w = (settings.headline_percent_width / 100.0) * r_desktop.width();
+                        h = (settings.headline_percent_height / 100.0) * r_desktop.height() * 0.35;
+                    }
+                    break;
+                case AnimEntryType::DashboardInLeftTop:
+                case AnimEntryType::DashboardInLeftBottom:
+                case AnimEntryType::DashboardInRightTop:
+                case AnimEntryType::DashboardInRightBottom:
+                    if(settings.headline_pixel_width)
+                    {
+                        w = settings.headline_pixel_width * 0.35;
+                        h = settings.headline_pixel_height;
+                    }
+                    else
+                    {
+                        w = (settings.headline_percent_width / 100.0) * r_desktop.width() * 0.35;
+                        h = (settings.headline_percent_height / 100.0) * r_desktop.height();
+                    }
+                    break;
+            }
+
+            dashboard_group->lane_header->setGeometry(QRect(0, 0, w, h));
+            dashboard_group->lane_header->initialize(settings.always_visible, settings.headline_fixed_text, w, h);
+            dashboard_map[settings.entry_type].push_back(dashboard_group);
+        }
+
+        dashboard_group->chyrons.push_back(data);
+    }
+    else
+    {
+        if(!lane_map.contains(settings.entry_type))
+            lane_map[settings.entry_type] = LaneList();
+        lane_map[settings.entry_type].push_back(data);
+    }
 }
 
 void LaneManager::unsubscribe(Chyron* chyron)
 {
     const Chyron::Settings& settings = chyron->get_settings();
+
+    LaneList* lane_list;
+
+    DashboardPointer dashboard_group;
+    if(IS_DASHBOARD(settings.entry_type))
+    {
+        foreach(DashboardPointer dashboard, dashboard_map[settings.entry_type])
+        {
+            foreach(LaneDataPointer lane, dashboard->chyrons)
+            {
+                if(lane->owner == chyron)
+                    dashboard_group = dashboard;
+            }
+        }
+        lane_list = &dashboard_group->chyrons;
+    }
+    else
+        lane_list = &lane_map[settings.entry_type];
 
     // calculate the shift amount
     LaneDataPointer data = data_map[chyron];
@@ -40,12 +136,14 @@ void LaneManager::unsubscribe(Chyron* chyron)
         case AnimEntryType::TrainDownRightTop:
         case AnimEntryType::SlideUpRightBottom:
         case AnimEntryType::TrainUpRightBottom:
-            shift = data->lane_boundaries.width();
-            break;
         case AnimEntryType::SlideDownCenterTop:
         case AnimEntryType::TrainDownCenterTop:
         case AnimEntryType::SlideUpCenterBottom:
         case AnimEntryType::TrainUpCenterBottom:
+        case AnimEntryType::DashboardInLeftTop:
+        case AnimEntryType::DashboardInRightTop:
+        case AnimEntryType::DashboardInLeftBottom:
+        case AnimEntryType::DashboardInRightBottom:
             shift = data->lane_boundaries.width();
             break;
         case AnimEntryType::SlideInLeftTop:
@@ -56,6 +154,10 @@ void LaneManager::unsubscribe(Chyron* chyron)
         case AnimEntryType::TrainInLeftBottom:
         case AnimEntryType::SlideInRightBottom:
         case AnimEntryType::TrainInRightBottom:
+        case AnimEntryType::DashboardDownLeftTop:
+        case AnimEntryType::DashboardDownRightTop:
+        case AnimEntryType::DashboardUpLeftBottom:
+        case AnimEntryType::DashboardUpRightBottom:
             shift = data->lane_boundaries.height();
             break;
     }
@@ -64,7 +166,7 @@ void LaneManager::unsubscribe(Chyron* chyron)
     // than the one that is unsubscribing
     bool shifting = false;
 
-    foreach(LaneDataPointer data, lane_map[settings.entry_type])
+    foreach(LaneDataPointer data, (*lane_list))
     {
         if(data->owner == chyron)
             shifting = true;
@@ -79,43 +181,50 @@ void LaneManager::unsubscribe(Chyron* chyron)
             case AnimEntryType::TrainDownLeftTop:
             case AnimEntryType::SlideUpLeftBottom:
             case AnimEntryType::TrainUpLeftBottom:
-                data->owner->shift_left(shift);
-                break;
             case AnimEntryType::SlideDownCenterTop:
             case AnimEntryType::TrainDownCenterTop:
             case AnimEntryType::SlideUpCenterBottom:
             case AnimEntryType::TrainUpCenterBottom:
+            case AnimEntryType::DashboardInLeftTop:
+            case AnimEntryType::DashboardInLeftBottom:
                 data->owner->shift_left(shift);
                 break;
             case AnimEntryType::SlideDownRightTop:
             case AnimEntryType::TrainDownRightTop:
             case AnimEntryType::SlideUpRightBottom:
             case AnimEntryType::TrainUpRightBottom:
+            case AnimEntryType::DashboardInRightTop:
+            case AnimEntryType::DashboardInRightBottom:
                 data->owner->shift_right(shift);
                 break;
             case AnimEntryType::SlideInLeftTop:
             case AnimEntryType::TrainInLeftTop:
             case AnimEntryType::SlideInRightTop:
             case AnimEntryType::TrainInRightTop:
+            case AnimEntryType::DashboardDownLeftTop:
+            case AnimEntryType::DashboardDownRightTop:
                 data->owner->shift_up(shift);
                 break;
             case AnimEntryType::SlideInLeftBottom:
             case AnimEntryType::TrainInLeftBottom:
             case AnimEntryType::SlideInRightBottom:
             case AnimEntryType::TrainInRightBottom:
+            case AnimEntryType::DashboardUpLeftBottom:
+            case AnimEntryType::DashboardUpRightBottom:
                 data->owner->shift_down(shift);
-                break;
         }
     }
 
-    lane_map[settings.entry_type].removeAll(data_map[chyron]);
     data_map.remove(chyron);
+    lane_map[settings.entry_type].removeAll(data);
+    if(!dashboard_group.isNull())
+        dashboard_group->chyrons.removeAll(data);
 }
 
 const QRect& LaneManager::get_base_lane_position(Chyron* chyron)
 {
     LaneDataPointer data = data_map[chyron];
-    calculate_base_lane_position(chyron);
+    calculate_base_lane_position(data);
     data->lane_boundaries = data->lane;
     return data->lane;
 }
@@ -126,10 +235,9 @@ QRect& LaneManager::get_lane_boundaries(Chyron* chyron)
     return data->lane_boundaries;
 }
 
-void LaneManager::calculate_base_lane_position(Chyron* chyron)
+void LaneManager::calculate_base_lane_position(LaneDataPointer data)
 {
-    const Chyron::Settings& settings = chyron->get_settings();
-    LaneDataPointer data = data_map[chyron];
+    const Chyron::Settings& settings = data->owner->get_settings();
 
     QDesktopWidget* desktop = QApplication::desktop();
     QRect r_desktop = desktop->screenGeometry(settings.display);
@@ -140,6 +248,34 @@ void LaneManager::calculate_base_lane_position(Chyron* chyron)
     int top = r_desktop.top();
     int right = r_desktop.left() + r_desktop.width();
     int bottom = r_desktop.top() + r_desktop.height();
+
+    DashboardPointer dashboard_group;
+    int r_header_x, r_header_y, r_header_w, r_header_h;
+    int dashboard_position = 0; // higher == lower priority
+    if(IS_DASHBOARD(settings.entry_type))
+    {
+        foreach(DashboardPointer dashboard, dashboard_map[settings.entry_type])
+        {
+            if(!dashboard->id.compare(settings.dashboard_group))
+            {
+                foreach(LaneDataPointer lane, dashboard->chyrons)
+                {
+                    if(lane->owner == data->owner)
+                    {
+                        dashboard_group = dashboard;
+                        QRect r = dashboard_group->lane_header->geometry();
+                        r_header_w = r.width();
+                        r_header_h = r.height();
+                        break;
+                    }
+                }
+            }
+
+            if(!dashboard_group.isNull())
+                break;
+            ++dashboard_position;
+        }
+    }
 
     QRect& lane_position = data->lane;
 
@@ -311,34 +447,63 @@ void LaneManager::calculate_base_lane_position(Chyron* chyron)
                     break;
             }
             break;
+
+        case AnimEntryType::DashboardDownLeftTop:
+            // don't bake in the margin
+            r_header_x = left;
+            r_header_y = top;
+            break;
+        case AnimEntryType::DashboardDownRightTop:
+            r_header_x = right - r_header_w;
+            r_header_y = top;
+            break;
+        case AnimEntryType::DashboardUpLeftBottom:
+            r_header_x = left;
+            r_header_y = bottom - r_header_h;
+            break;
+        case AnimEntryType::DashboardUpRightBottom:
+            r_header_x = right - r_header_w;
+            r_header_y = bottom - r_header_h;
+            break;
+        case AnimEntryType::DashboardInLeftTop:
+        case AnimEntryType::DashboardInRightTop:
+        case AnimEntryType::DashboardInLeftBottom:
+        case AnimEntryType::DashboardInRightBottom:
+            break;
     }
 
     // shift the lane based on the Chyron with the next highest
     // priority in the list
 
-    LaneListConstIter iter = lane_map[settings.entry_type].end();
-    for(iter = lane_map[settings.entry_type].begin();
-        iter != lane_map[settings.entry_type].end();
-        ++iter)
+    LaneListConstIter iter;
+    QRect r_higher;
+
+    if(dashboard_group.isNull())
     {
-        if((*iter)->owner == chyron)
+        iter = lane_map[settings.entry_type].end();
+        for(iter = lane_map[settings.entry_type].begin();
+            iter != lane_map[settings.entry_type].end();
+            ++iter)
         {
-            if(iter == lane_map[settings.entry_type].begin())
-                // we are top priority, no shifting required
-                iter = lane_map[settings.entry_type].end();
-            else
-                --iter;
-            break;
+            if((*iter)->owner == data->owner)
+            {
+                if(iter == lane_map[settings.entry_type].begin())
+                    // we are top priority, no shifting required
+                    iter = lane_map[settings.entry_type].end();
+                else
+                    --iter;
+                break;
+            }
         }
+
+        if(iter == lane_map[settings.entry_type].end())
+            return;
+
+        // 'iter' is pointing at the next highest priority lane data; shift
+        // lane position based upon it
+
+        r_higher = (*iter)->lane_boundaries;
     }
-
-    if(iter == lane_map[settings.entry_type].end())
-        return;
-
-    // 'iter' is pointing at the next highest priority lane data; shift
-    // lane position based upon it
-
-    QRect r_higher = (*iter)->lane_boundaries;
 
     switch(settings.entry_type)
     {
@@ -493,5 +658,101 @@ void LaneManager::calculate_base_lane_position(Chyron* chyron)
                     break;
             }
             break;
+
+        case AnimEntryType::DashboardDownLeftTop:
+        case AnimEntryType::DashboardUpLeftBottom:
+            // shift header right
+            r_header_x = r_header_x + (dashboard_position * (r_header_w + settings.margin));
+            break;
+        case AnimEntryType::DashboardDownRightTop:
+        case AnimEntryType::DashboardUpRightBottom:
+            // shift header left
+            r_header_x = r_header_x - (dashboard_position * (r_header_w + settings.margin));
+            break;
+        case AnimEntryType::DashboardInLeftTop:
+        case AnimEntryType::DashboardInRightTop:
+            // shift header down
+        case AnimEntryType::DashboardInLeftBottom:
+        case AnimEntryType::DashboardInRightBottom:
+            // shift header up
+            break;
+    }
+
+    if(IS_DASHBOARD(settings.entry_type))
+    {
+        int chyron_position = 0; // higher == lower priority
+        foreach(LaneDataPointer lane, dashboard_group->chyrons)
+        {
+            if(lane->owner == data->owner)
+                break;
+            ++chyron_position;
+        }
+
+        int headline_w, headline_h;
+        if(settings.headline_pixel_height)
+        {
+            headline_w = settings.headline_pixel_width;
+            headline_h = settings.headline_pixel_height;
+        }
+        else
+        {
+            headline_w = (settings.headline_percent_width / 100.0) * r_desktop.width();
+            headline_h = (settings.headline_percent_height / 100.0) * r_desktop.height();
+        }
+
+        int left = r_header_x;
+        int right = left + r_header_w;
+        int top, bottom;
+        int i;
+
+        switch(settings.entry_type)
+        {
+            case AnimEntryType::DashboardDownLeftTop:
+                top = r_header_y;
+                bottom = top + r_header_h;
+                i = bottom + settings.margin + (chyron_position ? (chyron_position * (headline_h + settings.margin)) : 0);
+                lane_position.setTopLeft(QPoint(left, i));
+                lane_position.setBottomRight(QPoint(left + r_header_w, i + r_header_h));
+                r_header_x += settings.margin;
+                r_header_y += settings.margin;
+                break;
+            case AnimEntryType::DashboardDownRightTop:
+                top = r_header_y;
+                bottom = top + r_header_h;
+                i = bottom + settings.margin + (chyron_position ? (chyron_position * (headline_h + settings.margin)) : 0);
+                lane_position.setTopLeft(QPoint(right - r_header_w, i));
+                lane_position.setBottomRight(QPoint(right, i + r_header_h));
+                r_header_x -= settings.margin;
+                r_header_y += settings.margin;
+                break;
+            case AnimEntryType::DashboardUpLeftBottom:
+                top = r_header_y;
+                i = top - settings.margin - (chyron_position ? (chyron_position * (headline_h + settings.margin)) : 0);
+                lane_position.setTopLeft(QPoint(left, i));
+                lane_position.setBottomRight(QPoint(left + r_header_w, i));
+                r_header_x += settings.margin;
+                r_header_y -= settings.margin;
+                break;
+            case AnimEntryType::DashboardUpRightBottom:
+                top = r_header_y;
+                i = top - settings.margin - (chyron_position ? (chyron_position * (headline_h + settings.margin)) : 0);
+                lane_position.setTopLeft(QPoint(right - r_header_w, i));
+                lane_position.setBottomRight(QPoint(right, i));
+                r_header_x -= settings.margin;
+                r_header_y -= settings.margin;
+                break;
+
+            case AnimEntryType::DashboardInLeftTop:
+            case AnimEntryType::DashboardInRightTop:
+            case AnimEntryType::DashboardInLeftBottom:
+            case AnimEntryType::DashboardInRightBottom:
+                break;
+        }
+
+        if(!dashboard_group->lane_header->isVisible())
+        {
+            dashboard_group->lane_header->setGeometry(QRect(r_header_x, r_header_y, r_header_w, r_header_h));
+            dashboard_group->lane_header->show();
+        }
     }
 }

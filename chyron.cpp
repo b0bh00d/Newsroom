@@ -15,7 +15,6 @@
 Chyron::Chyron(const QUrl& story, const Chyron::Settings& chyron_settings, LaneManagerPointer lane_manager, QObject* parent)
     : story(story),
       settings(chyron_settings),
-//      lane_position(QRect(0,0,0,0)),
       lane_manager(lane_manager),
 #ifdef HIGHLIGHT_LANES
       highlight(nullptr),
@@ -55,16 +54,30 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     highlight->hide();
 #endif
 
+    QDesktopWidget* desktop = QApplication::desktop();
+    QRect r_desktop = desktop->screenGeometry(settings.display);
+
     const QRect& lane_position = lane_manager->get_base_lane_position(this);
 
-    if(!settings.headline_fixed_width && !settings.headline_fixed_height)
-        headline->initialize(settings.always_visible);
+//    if(!settings.headline_fixed_width && !settings.headline_fixed_height)
+//        headline->initialize(settings.always_visible);
 
     int x = 0;
     int y = 0;
-    QRect r = headline->geometry();
-    int width = settings.headline_fixed_width ? settings.headline_fixed_width : r.width();
-    int height = settings.headline_fixed_height ? settings.headline_fixed_height : r.height();
+//    QRect r = headline->geometry();
+    int width = 0;
+    int height = 0;
+
+    if(settings.headline_pixel_width)
+    {
+        width = settings.headline_pixel_width;
+        height = settings.headline_pixel_height;
+    }
+    else
+    {
+        width = (settings.headline_percent_width / 100.0) * r_desktop.width();
+        height = (settings.headline_percent_height / 100.0) * r_desktop.height();
+    }
 
     switch(settings.entry_type)
     {
@@ -147,11 +160,34 @@ void Chyron::initialize_headline(HeadlinePointer headline)
             y = lane_position.bottom() - height - settings.margin;
             x = lane_position.right() - width - settings.margin;
             break;
+
+        // the base lane position returned by the Lane Manager is the
+        // position of the Chyron in the case of the Dashboard
+        case AnimEntryType::DashboardDownLeftTop:
+        case AnimEntryType::DashboardInLeftTop:
+            y = lane_position.top() + settings.margin;
+            x = lane_position.left() + settings.margin;
+            break;
+        case AnimEntryType::DashboardDownRightTop:
+        case AnimEntryType::DashboardInRightTop:
+            y = lane_position.top() + settings.margin;
+            x = lane_position.right() - width - settings.margin;
+            break;
+        case AnimEntryType::DashboardInLeftBottom:
+        case AnimEntryType::DashboardUpLeftBottom:
+            y = lane_position.bottom() - height - settings.margin;
+            x = lane_position.left() + settings.margin;
+            break;
+        case AnimEntryType::DashboardInRightBottom:
+        case AnimEntryType::DashboardUpRightBottom:
+            y = lane_position.bottom() - height - settings.margin;
+            x = lane_position.right() - width - settings.margin;
+            break;
     }
 
     headline->setGeometry(x, y, width, height);
 
-    if(settings.headline_fixed_width || settings.headline_fixed_height)
+//    if(settings.headline_fixed_width || settings.headline_fixed_height)
         headline->initialize(settings.always_visible, settings.headline_fixed_text, width, height);
 
     // update lane's boundaries (this updates the data in the
@@ -244,6 +280,26 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         case AnimEntryType::PopRightTop:
         case AnimEntryType::PopLeftBottom:
         case AnimEntryType::PopRightBottom:
+        case AnimEntryType::DashboardDownLeftTop:
+        case AnimEntryType::DashboardDownRightTop:
+        case AnimEntryType::DashboardInLeftTop:
+        case AnimEntryType::DashboardInRightTop:
+        case AnimEntryType::DashboardInLeftBottom:
+        case AnimEntryType::DashboardInRightBottom:
+        case AnimEntryType::DashboardUpLeftBottom:
+        case AnimEntryType::DashboardUpRightBottom:
+            // create a dummy effect for these types so slot_headline_posted()
+            // is triggered
+            if(headline->animation)
+                headline->animation->deleteLater();
+            headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+            headline->animation->setDuration(speed);
+            headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+            headline->animation->setEndValue(QRect(r.x(), r.y(), r.width(), r.height()));
+            headline->animation->setEasingCurve(QEasingCurve::InCubic);
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
+            prop_anim_map[headline->animation] = headline;
+            entering_map[headline] = true;
             headline->viewed = QDateTime::currentDateTime().toTime_t();
             headline->show();
             break;
@@ -372,11 +428,24 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             }
             break;
 
+        case AnimEntryType::PopCenter:
+        case AnimEntryType::PopLeftTop:
+        case AnimEntryType::PopRightTop:
+        case AnimEntryType::PopLeftBottom:
+        case AnimEntryType::PopRightBottom:
         case AnimEntryType::FadeCenter:
         case AnimEntryType::FadeLeftTop:
         case AnimEntryType::FadeRightTop:
         case AnimEntryType::FadeLeftBottom:
         case AnimEntryType::FadeRightBottom:
+        case AnimEntryType::DashboardDownLeftTop:
+        case AnimEntryType::DashboardDownRightTop:
+        case AnimEntryType::DashboardInLeftTop:
+        case AnimEntryType::DashboardInRightTop:
+        case AnimEntryType::DashboardInLeftBottom:
+        case AnimEntryType::DashboardInRightBottom:
+        case AnimEntryType::DashboardUpLeftBottom:
+        case AnimEntryType::DashboardUpRightBottom:
             break;
     }
 
@@ -391,7 +460,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             animation_group->addAnimation(posted_headline->animation);
        animation_group->start();
     }
-    else
+    else if(headline->animation)
         headline->animation->start();
 }
 
@@ -406,9 +475,9 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
 
     int speed = 500;
 
-    if(settings.entry_type >= AnimEntryType::TrainDownLeftTop && settings.entry_type <= AnimEntryType::TrainUpCenterBottom)
+    if(IS_TRAIN(settings.entry_type))
     {
-        if(settings.effect == AgeEffects::ReduceOpacityFixed)
+        if(settings.train_effect == AgeEffects::ReduceOpacityFixed)
         {
             headline->setAttribute(Qt::WA_TranslucentBackground, true);
 
@@ -419,6 +488,27 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
             headline->animation->setDuration(speed);
             headline->animation->setStartValue(1.0);
             headline->animation->setEndValue(settings.train_reduce_opacity / 100.0);
+            headline->animation->setEasingCurve(QEasingCurve::InCubic);
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+
+            headline->animation->start();
+        }
+
+        headline->ignore = true;     // ignore subsequent 'aging' activities on this one
+    }
+    else if(IS_DASHBOARD(settings.entry_type))
+    {
+        if(settings.dashboard_effect && settings.dashboard_reduce_opacity)
+        {
+            headline->setAttribute(Qt::WA_TranslucentBackground, true);
+
+            QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+            eff->setOpacity(1.0);
+            headline->setGraphicsEffect(eff);
+            headline->animation = new QPropertyAnimation(eff, "opacity");
+            headline->animation->setDuration(speed);
+            headline->animation->setStartValue(1.0);
+            headline->animation->setEndValue(settings.dashboard_reduce_opacity / 100.0);
             headline->animation->setEasingCurve(QEasingCurve::InCubic);
             connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
@@ -607,6 +697,26 @@ void Chyron::shift_down(int amount)
     animation_group->start();
 }
 
+void Chyron::dashboard_expire_headlines()
+{
+    // all headlines that are not in the front (i.e., tail of the list)
+    // need to be expired
+
+    if(headline_list.count() == 1)
+        return;     // nothing to expire
+
+    HeadlineList expired_list;
+    for(int i = 0;i < (headline_list.count() - 1);++i)
+        expired_list.append(headline_list[i]);
+
+    foreach(HeadlinePointer expired, expired_list)
+    {
+        headline_list.removeAll(expired);
+        expired->hide();
+        expired.clear();
+    }
+}
+
 void Chyron::slot_file_headline(HeadlinePointer headline)
 {
     Q_ASSERT(headline->story.toString().compare(story.toString()) == 0);
@@ -621,7 +731,8 @@ void Chyron::slot_headline_posted()
     prop_anim_map.remove(anim);
     entering_map.remove(headline);
 
-    headline->animation->deleteLater();
+    if(headline->animation)
+        headline->animation->deleteLater();
 
     headline->viewed = QDateTime::currentDateTime().toTime_t();
 
@@ -629,6 +740,9 @@ void Chyron::slot_headline_posted()
     connect(headline.data(), &Headline::signal_mouse_exit, this, &Chyron::slot_headline_mouse_exit);
 
     headline_list.append(headline);
+
+    if(IS_DASHBOARD(settings.entry_type))
+        dashboard_expire_headlines();
 }
 
 void Chyron::slot_headline_expired()

@@ -57,6 +57,44 @@ public:     // methods
     virtual QByteArray PluginID() const = 0;
 
     /*!
+      This method tells the host if it can process the indicated file.  It is
+      up to the plug-in to determine if it is a file format whose contents it
+      can monitor, and from which provide meaningful Headlines.
+
+      \param file A fully qualify path to an entity on the local file system.
+      \returns A Boolean true if the plug-in can provide meaningful Headlines for this file, otherwise false.
+     */
+    virtual bool Supports(const QString& file) const = 0;
+
+    /*!
+      This method returns a list of parameter names that it requires in order
+      to perform its function.  Each parameter name is followed by a type,
+      one of "string", "password", "integer" or "double".
+
+      Parameter names that end with an asterisks (*) indicate a required value,
+      all others are considered optional.
+
+      Parameter types can specify default values by adding a colon (:) followed
+      by a value as a suffix (e.g., "integer:10").  This default value will
+      become the placeholder value in the assigned edit field.
+
+      The host should post a dialog requesting these parameters and types from
+      the user, and then provide them back to the plug-in via the SetStory()
+      method.
+
+      \returns A string list of parameter names and types.
+     */
+    virtual QStringList Requires() const = 0;
+
+    /*!
+      Sets the parameters dictated by the Required() method.
+
+      \param parameters A list of string values that match the parameters/types indicated by the Requires() method.  The plug-in will convert the string values into the appropriate data types, as needed.
+      \returns A true value if the provided parameters are sufficient to perform the plug-in's function, otherwise false.
+     */
+    virtual bool SetRequirements(const QStringList& parameters) = 0;
+
+    /*!
       Sets the Story (QUrl) for the plug-in to cover.
 
       \param story A QUrl that indicates the target of the coverage to be performed.

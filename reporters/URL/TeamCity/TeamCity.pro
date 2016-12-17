@@ -35,6 +35,5 @@ SOURCES += teamcity.cpp \
 
 HEADERS += teamcity.h \
         teamcity_global.h \
+        teamcityfactory.h \
         ../../interfaces/iplugin.h \
-        ../../interfaces/ipluginurl.h \
-    teamcityfactory.h
