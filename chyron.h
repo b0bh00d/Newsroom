@@ -34,19 +34,28 @@ public:
         AnimEntryType   entry_type;
         AnimExitType    exit_type;
         ReportStacking  stacking_type;
-        int             headline_fixed_width;
-        int             headline_fixed_height;
+        int             headline_pixel_width;
+        int             headline_pixel_height;
+        double          headline_percent_width;
+        double          headline_percent_height;
         FixedText       headline_fixed_text;
-        AgeEffects      effect;
+        AgeEffects      train_effect;
         int             train_reduce_opacity;
+        QString         dashboard_group;
+        bool            dashboard_effect;
+        int             dashboard_reduce_opacity;
         int             margin;
 
         Settings()
-            : headline_fixed_width(0),
-              headline_fixed_height(0),
+            : headline_pixel_width(0),
+              headline_pixel_height(0),
+              headline_percent_width(0.0),
+              headline_percent_height(0.0),
               headline_fixed_text(FixedText::None),
-              effect(AgeEffects::None),
+              train_effect(AgeEffects::None),
               train_reduce_opacity(0),
+              dashboard_effect(false),
+              dashboard_reduce_opacity(0),
               margin(5)
         {}
 
@@ -68,10 +77,10 @@ public:
     // when a Chyron is deleted.  This does an immediate move of
     // any visible Headlines in the current lane.
 
-    void            shift_left(int amount);
-    void            shift_right(int amount);
-    void            shift_up(int amount);
-    void            shift_down(int amount);
+    void        shift_left(int amount);
+    void        shift_right(int amount);
+    void        shift_up(int amount);
+    void        shift_down(int amount);
 
 public slots:
     void        slot_file_headline(HeadlinePointer headline);
@@ -98,6 +107,7 @@ protected:  // methods
     void        initialize_headline(HeadlinePointer headline);
     void        start_headline_entry(HeadlinePointer headline);
     void        start_headline_exit(HeadlinePointer headline);
+    void        dashboard_expire_headlines();
 
 protected:  // data members
     QUrl            story;

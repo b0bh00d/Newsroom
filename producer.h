@@ -6,7 +6,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QTimer>
 
-#include <iplugin>
+#include <iplugin.h>
 
 #include "types.h"
 #include "specialize.h"
@@ -32,6 +32,8 @@ public:
                       const QString& alert_stylesheet,
                       const QStringList& alert_keywords,
                       LocalTrigger trigger_type,
+                      bool limit_content,
+                      int limit_content_to,
                       QObject *parent = 0);
 
     QUrl    get_story() const { return story; }
@@ -49,7 +51,10 @@ protected slots:
     void    slot_new_data(const QByteArray& data);
 //    void    slot_poll();
 
-protected:
+private:        // methods
+    void    file_headline(const QString& data);
+
+private:        // data members
     IPluginPointer  reporter_plugin;
 
     QUrl            story;
@@ -59,6 +64,9 @@ protected:
     QString         headline_stylesheet_alert;
     QStringList     headline_alert_keywords;
     LocalTrigger    trigger_type;
+
+    bool            limit_content;
+    int             limit_content_to;
 };
 
 SPECIALIZE_SHAREDPTR(Producer, Producer)    // "ProducerPointer"

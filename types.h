@@ -11,6 +11,9 @@ enum class AnimEntryType
 #   undef X
 };
 
+#define IS_TRAIN(type) (type >= AnimEntryType::TrainDownLeftTop && type <= AnimEntryType::TrainUpCenterBottom)
+#define IS_DASHBOARD(type) (type >= AnimEntryType::DashboardDownLeftTop && type <= AnimEntryType::DashboardUpRightBottom)
+
 enum class AnimExitType
 {
 #   define X(a) a,

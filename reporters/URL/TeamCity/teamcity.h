@@ -11,7 +11,7 @@
 #include <QtCore/QJsonValue>
 #include <QtCore/QJsonArray>
 
-#include <ipluginurl.h>
+#include <iplugin.h>
 
 #include "../../../specialize.h"
 
@@ -19,7 +19,7 @@
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
-class TEAMCITYSHARED_EXPORT TeamCity : public IPluginURL
+class TEAMCITYSHARED_EXPORT TeamCity : public IPlugin
 {
     Q_OBJECT
 public:
@@ -30,14 +30,13 @@ public:
     QStringList DisplayName() const Q_DECL_OVERRIDE;
     QString PluginClass() const Q_DECL_OVERRIDE { return "URL"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
+    bool Supports(const QString& /*file*/) const Q_DECL_OVERRIDE { return false; }
+    QStringList Requires() const Q_DECL_OVERRIDE;
+    bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
     void SetCoverage(bool /*notices_only*/) Q_DECL_OVERRIDE {}
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
-
-    // IPluginURL
-    QStringList Requires() const Q_DECL_OVERRIDE;
-    bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
 
 private slots:
     void    slot_get_read();
@@ -99,4 +98,6 @@ private:    // data members
     int         poll_timeout;
 
     ETAMap      eta;
+
+    bool        first_update;   // first update should report something if there are not active builds
 };

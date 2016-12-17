@@ -1,10 +1,12 @@
+#include <QtWidgets/QPushButton>
+
 #include <QtGui/QRegExpValidator>
 
 #include <QtCore/QDir>
 #include <QtCore/QStringList>
 #include <QtCore/QRegExp>
 
-#include <iplugin>
+#include <iplugin.h>
 
 #include "addstorydialog.h"
 #include "ui_addstorydialog.h"
@@ -44,12 +46,23 @@ AddStoryDialog::AddStoryDialog(QWidget *parent) :
     ui->edit_TTL->setValidator(new QRegExpValidator(rx, this));
     ui->edit_HeadlinesFixedWidth->setValidator(new QRegExpValidator(rx, this));
     ui->edit_HeadlinesFixedHeight->setValidator(new QRegExpValidator(rx, this));
+    ui->edit_LimitContent->setValidator(new QRegExpValidator(rx, this));
     ui->edit_TrainReduceOpacity->setValidator(new QIntValidator(10, 90, this));
+    ui->edit_DashboardReduceOpacity->setValidator(new QIntValidator(10, 90, this));
 
     ui->radio_HeadlinesSizeTextScale->setChecked(true);
     ui->radio_TrainReduceOpacityFixed->setChecked(true);
 
-//    connect(this, &QDialog::accepted, this, &AddStoryDialog::slot_cleanup);
+    ui->check_DashboardReduceOpacityFixed->setChecked(false);
+
+    ui->group_ReporterConfig->setHidden(true);
+    ui->group_Train->setHidden(true);
+    ui->group_Dashboard->setHidden(true);
+
+    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
+    line_edit->setPlaceholderText("Default");
+
+    connect(this, &QDialog::accepted, this, &AddStoryDialog::slot_accepted);
 //    connect(this, &QDialog::rejected, this, &AddStoryDialog::slot_cleanup);
 //    connect(this, &QDialog::finished, this, &AddStoryDialog::slot_cleanup);
 }
@@ -65,12 +78,17 @@ void AddStoryDialog::showEvent(QShowEvent *event)
             this, &AddStoryDialog::slot_entry_type_changed);
     connect(ui->combo_AvailableReporters, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &AddStoryDialog::slot_reporter_changed);
-    connect(ui->check_HeadlinesFixedSize, &QCheckBox::clicked, this, &AddStoryDialog::slot_headlines_fixed_size_clicked);
+    connect(ui->radio_InterpretAsPixels, &QCheckBox::clicked, this, &AddStoryDialog::slot_interpret_size_clicked);
+    connect(ui->radio_InterpretAsPercentage, &QCheckBox::clicked, this, &AddStoryDialog::slot_interpret_size_clicked);
     connect(ui->radio_TrainReduceOpacityFixed, &QCheckBox::clicked, this, &AddStoryDialog::slot_train_reduce_opacity_clicked);
     connect(ui->radio_TrainReduceOpacityByAge, &QCheckBox::clicked, this, &AddStoryDialog::slot_train_reduce_opacity_clicked);
     connect(ui->combo_LocalTrigger, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &AddStoryDialog::slot_trigger_changed);
-    connect(ui->button_ConfigureReporter, &QPushButton::clicked, this, &AddStoryDialog::slot_configure_reporter);
+
+    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
+    connect(line_edit, &QLineEdit::editingFinished, this, &AddStoryDialog::slot_update_groupid_list);
+    connect(ui->combo_DashboardGroupId, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &AddStoryDialog::slot_set_group_id_text);
 
     QDialog::showEvent(event);
     activateWindow();
@@ -82,13 +100,17 @@ void AddStoryDialog::save_defaults(QSettings* settings)
     settings->beginGroup("AddStoryDialog");
 
     settings->setValue("target", story);
+    settings->setValue("current_tab", ui->tabWidget->currentIndex());
     settings->setValue("local_trigger", ui->combo_LocalTrigger->currentIndex());
     settings->setValue("ttl", ui->edit_TTL->text());
     settings->setValue("keep_on_top", ui->check_KeepOnTop->isChecked());
     settings->setValue("display", ui->radio_Monitor1->isChecked() ? 0 : (ui->radio_Monitor2->isChecked() ? 1 : (ui->radio_Monitor3->isChecked() ? 2 : 3)));
-    settings->setValue("headlines_fixed_size", ui->check_HeadlinesFixedSize->isChecked());
     settings->setValue("headlines_fixed_width", ui->edit_HeadlinesFixedWidth->text());
     settings->setValue("headlines_fixed_height", ui->edit_HeadlinesFixedHeight->text());
+    settings->setValue("interpret_as_pixels", ui->radio_InterpretAsPixels->isChecked());
+    settings->setValue("interpret_as_percent", ui->radio_InterpretAsPercentage->isChecked());
+    settings->setValue("limit_content", ui->check_LimitContent->isChecked());
+    settings->setValue("limit_content_to", ui->edit_LimitContent->text());
     settings->setValue("fixed_text", ui->radio_HeadlinesSizeTextScale->isChecked() ? 0 : 1);
     settings->setValue("entry_type", ui->combo_EntryType->currentIndex());
     settings->setValue("exit_type", ui->combo_ExitType->currentIndex());
@@ -97,7 +119,14 @@ void AddStoryDialog::save_defaults(QSettings* settings)
     settings->setValue("age_opacity_type", ui->radio_TrainReduceOpacityFixed->isChecked() ? 1 : 2);
     settings->setValue("age_opacity_fixed_percent", ui->edit_TrainReduceOpacity->text());
     settings->setValue("reporter_configuration", reporter_configuration);
-
+    settings->setValue("dashboard_age_effects", ui->check_DashboardReduceOpacityFixed->isChecked());
+    settings->setValue("dashboard_age_effects_percent", ui->edit_DashboardReduceOpacity->text());
+    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
+    settings->setValue("dashboard_group_id", line_edit->text());
+    QStringList id_list;
+    for(int i = 0;i < ui->combo_DashboardGroupId->count() && i < 10;++i)
+        id_list << ui->combo_DashboardGroupId->itemText(i);
+    settings->setValue("dashboard_group_id_list", id_list);
     settings->endGroup();
 }
 
@@ -109,6 +138,7 @@ void AddStoryDialog::load_defaults(QSettings* settings)
 
     settings->beginGroup("AddStoryDialog");
 
+    ui->tabWidget->setCurrentIndex(settings->value("current_tab", 0).toInt());
     story = settings->value("target", QUrl()).toUrl();
     if(story.isLocalFile())
         ui->edit_Target->setText(story.toLocalFile());
@@ -118,12 +148,17 @@ void AddStoryDialog::load_defaults(QSettings* settings)
     ui->edit_TTL->setText(settings->value("ttl", "").toString());
     ui->check_KeepOnTop->setChecked(settings->value("keep_on_top", true).toBool());
     display_buttons[settings->value("display", 0).toInt()]->setChecked(true);
-    ui->check_HeadlinesFixedSize->setChecked(settings->value("headlines_fixed_size", true).toBool());
-    if(ui->check_HeadlinesFixedSize->isChecked())
-    {
-        ui->edit_HeadlinesFixedWidth->setText(QString::number(settings->value("headlines_fixed_width", 350).toInt()));
-        ui->edit_HeadlinesFixedHeight->setText(QString::number(settings->value("headlines_fixed_height", 100).toInt()));
-    }
+
+    ui->radio_InterpretAsPixels->setChecked(settings->value("interpret_as_pixels", true).toBool());
+    ui->radio_InterpretAsPercentage->setChecked(settings->value("interpret_as_percent", false).toBool());
+    slot_interpret_size_clicked(true);
+
+    ui->edit_HeadlinesFixedWidth->setText(settings->value("headlines_fixed_width", QString()).toString());
+    ui->edit_HeadlinesFixedHeight->setText(settings->value("headlines_fixed_height", QString()).toString());
+
+    ui->check_LimitContent->setChecked(settings->value("limit_content", false).toBool());
+    ui->edit_LimitContent->setText(settings->value("limit_content_to", QString()).toString());
+
     fixed_buttons[settings->value("fixed_text", 0).toInt()]->setChecked(true);
     ui->combo_EntryType->setCurrentIndex(settings->value("entry_type", static_cast<int>(AnimEntryType::SlideDownLeftTop)).toInt());
     ui->combo_ExitType->setCurrentIndex(settings->value("exit_type", static_cast<int>(AnimExitType::SlideLeft)).toInt());
@@ -134,10 +169,24 @@ void AddStoryDialog::load_defaults(QSettings* settings)
         ui->edit_TrainReduceOpacity->setText(QString::number(settings->value("age_opacity_fixed_percent", 60).toInt()));
     reporter_configuration = settings->value("reporter_configuration", QStringList()).toStringList();
 
+    ui->check_DashboardReduceOpacityFixed->setChecked(settings->value("dashboard_age_effects", false).toBool());
+    int percent = settings->value("dashboard_age_effects_percent", 60).toInt();
+    if(percent)
+        ui->edit_DashboardReduceOpacity->setText(QString::number(percent));
+
+    QStringList id_list = settings->value("dashboard_group_id_list", QStringList()).toStringList();
+    ui->combo_DashboardGroupId->addItems(id_list);
+    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
+    line_edit->setText(settings->value("dashboard_group_id", QString()).toString());
+
+    AnimEntryType entry_type = static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());
+    ui->group_Train->setHidden(!IS_TRAIN(entry_type));
+    ui->group_Dashboard->setHidden(!IS_DASHBOARD(entry_type));
+
     settings->endGroup();
 }
 
-void AddStoryDialog::set_target(const QUrl& story)
+void AddStoryDialog::set_story(const QUrl& story)
 {
     this->story = story;
 
@@ -148,6 +197,8 @@ void AddStoryDialog::set_target(const QUrl& story)
     }
     else
         ui->edit_Target->setText(story.toString());
+
+    configure_for_local(story.isLocalFile());
 }
 
 void AddStoryDialog::set_trigger(LocalTrigger trigger_type)
@@ -170,6 +221,8 @@ void AddStoryDialog::set_reporters(PluginsInfoVector* reporters_info)
     IPluginFactory* ipluginfactory = reinterpret_cast<IPluginFactory*>(instance);
     Q_ASSERT(ipluginfactory);
     plugin_reporter = ipluginfactory->newInstance();
+
+    slot_configure_reporter_configure();
 }
 
 void AddStoryDialog::set_ttl(uint ttl)
@@ -197,17 +250,39 @@ void AddStoryDialog::set_display(int primary_screen, int screen_count)
         ui->radio_Monitor1->setDisabled(true);
 }
 
-void AddStoryDialog::set_headlines_lock_size(int width, int height)
+void AddStoryDialog::set_headlines_size(int width, int height)
 {
-    ui->check_HeadlinesFixedSize->setChecked(width != 0 && height != 0);
-    ui->edit_HeadlinesFixedWidth->setEnabled(ui->check_HeadlinesFixedSize->isChecked());
-    ui->edit_HeadlinesFixedHeight->setEnabled(ui->check_HeadlinesFixedSize->isChecked());
+    ui->radio_InterpretAsPixels->setChecked(true);
+
+    QRegExp rx("\\d+");
+    ui->edit_HeadlinesFixedWidth->setValidator(new QRegExpValidator(rx, this));
+    ui->edit_HeadlinesFixedHeight->setValidator(new QRegExpValidator(rx, this));
+
     if(width)
         ui->edit_HeadlinesFixedWidth->setText(QString::number(width));
     if(height)
         ui->edit_HeadlinesFixedHeight->setText(QString::number(height));
+}
 
-    ui->group_HeadlinesSizeText->setEnabled(ui->check_HeadlinesFixedSize->isChecked());
+void AddStoryDialog::set_headlines_size(double width, double height)
+{
+    ui->radio_InterpretAsPercentage->setChecked(true);
+
+    ui->edit_HeadlinesFixedWidth->setValidator(new QDoubleValidator(this));
+    ui->edit_HeadlinesFixedHeight->setValidator(new QDoubleValidator(this));
+
+    if(width)
+        ui->edit_HeadlinesFixedWidth->setText(QString::number(width));
+    if(height)
+        ui->edit_HeadlinesFixedHeight->setText(QString::number(height));
+}
+
+void AddStoryDialog::set_limit_content(int lines)
+{
+    ui->check_LimitContent->setChecked(lines != 0);
+    ui->edit_LimitContent->setEnabled(ui->check_LimitContent->isChecked());
+    if(lines)
+        ui->edit_LimitContent->setText(QString::number(lines));
 }
 
 void AddStoryDialog::set_headlines_fixed_text(FixedText fixed_type)
@@ -234,9 +309,24 @@ void AddStoryDialog::set_train_age_effects(AgeEffects effect, int percent)
     ui->radio_TrainReduceOpacityByAge->setEnabled(effect == AgeEffects::ReduceOpacityByAge);
 }
 
+void AddStoryDialog::set_dashboard_age_effects(int percent)
+{
+    ui->check_DashboardReduceOpacityFixed->setChecked(percent != 0);
+    if(!percent)
+        ui->edit_DashboardReduceOpacity->setText("");
+    else
+        ui->edit_DashboardReduceOpacity->setText(QString::number(percent));
+}
+
+void AddStoryDialog::set_dashboard_group_id(const QString& group_id)
+{
+    if(!group_id.isEmpty())
+        ui->combo_DashboardGroupId->setEditText(group_id);
+}
+
 void AddStoryDialog::configure_for_local(bool for_local)
 {
-    ui->button_ConfigureReporter->setHidden(for_local);
+    ui->group_ReporterConfig->setHidden(for_local);
     ui->label_Triggers->setHidden(!for_local);
     ui->combo_LocalTrigger->setHidden(!for_local);
 
@@ -249,23 +339,25 @@ QString AddStoryDialog::get_story_identity()
     if(story.isLocalFile())
         return story.toLocalFile();
 
-    // otherwise, we have to make something unique to this URL.
+    // otherwise, we try to make something unique to this URL...
     Q_ASSERT(!plugin_reporter.isNull());
-    IPluginURL* ipluginurl = reinterpret_cast<IPluginURL*>(plugin_reporter.data());
-    Q_ASSERT(ipluginurl);
-    QStringList params = ipluginurl->Requires();
 
     QString identity = ui->edit_Target->text();
-    identity += QString(":%1").arg(ipluginurl->DisplayName()[0]);
-    foreach(const QString& param, reporter_configuration)
-        identity += QString(":%1").arg(param);
+    identity += QString(":%1").arg(plugin_reporter->DisplayName()[0]);
+
+    QStringList params = plugin_reporter->Requires();
+    if(!params.isEmpty())
+    {
+        foreach(const QString& param, reporter_configuration)
+            identity += QString(":%1").arg(param);
+    }
 
     return identity;
 }
 
 QUrl AddStoryDialog::get_target()
 {
-    if(ui->button_ConfigureReporter->isHidden())
+    if(ui->group_ReporterConfig->isHidden())
         return QUrl::fromLocalFile(ui->edit_Target->text());
 
     QString text = ui->edit_Target->text();
@@ -304,21 +396,56 @@ int AddStoryDialog::get_display()
     return 0;
 }
 
-bool AddStoryDialog::get_headlines_lock_size(int& width, int& height)
+bool AddStoryDialog::get_headlines_size(int& width, int& height)
 {
+    if(!ui->radio_InterpretAsPixels->isChecked())
+        return false;
+
     width = 0;
     height = 0;
-    if(!ui->check_HeadlinesFixedSize->isChecked())
-        return false;
-    width = ui->edit_HeadlinesFixedWidth->text().toInt();
-    height = ui->edit_HeadlinesFixedHeight->text().toInt();
+
+    if(ui->edit_HeadlinesFixedWidth->text().isEmpty())
+        width = ui->edit_HeadlinesFixedWidth->placeholderText().toInt();
+    else
+        width = ui->edit_HeadlinesFixedWidth->text().toInt();
+    if(ui->edit_HeadlinesFixedHeight->text().isEmpty())
+        height = ui->edit_HeadlinesFixedHeight->placeholderText().toInt();
+    else
+        height = ui->edit_HeadlinesFixedHeight->text().toInt();
+
     return true;
+}
+
+bool AddStoryDialog::get_headlines_size(double& width, double& height)
+{
+    if(ui->radio_InterpretAsPixels->isChecked())
+        return false;
+
+    width = 0.0;
+    height = 0.0;
+
+    if(ui->edit_HeadlinesFixedWidth->text().isEmpty())
+        width = ui->edit_HeadlinesFixedWidth->placeholderText().toDouble();
+    else
+        width = ui->edit_HeadlinesFixedWidth->text().toDouble();
+    if(ui->edit_HeadlinesFixedHeight->text().isEmpty())
+        height = ui->edit_HeadlinesFixedHeight->placeholderText().toDouble();
+    else
+        height = ui->edit_HeadlinesFixedHeight->text().toDouble();
+
+    return true;
+}
+
+bool AddStoryDialog::get_limit_content(int& lines)
+{
+    lines = 0;
+    if(!ui->edit_LimitContent->text().isEmpty())
+        lines = ui->edit_LimitContent->text().toInt();
+    return ui->check_LimitContent->isChecked();
 }
 
 FixedText AddStoryDialog::get_headlines_fixed_text()
 {
-    if(!ui->check_HeadlinesFixedSize->isChecked())
-        return FixedText::None;
     return ui->radio_HeadlinesSizeTextScale->isChecked() ? FixedText::ScaleToFit : FixedText::ClipToFit;
 }
 
@@ -341,24 +468,65 @@ AgeEffects AddStoryDialog::get_train_age_effects(int& percent)
     return (ui->radio_TrainReduceOpacityFixed->isChecked() ? AgeEffects::ReduceOpacityFixed : AgeEffects::ReduceOpacityByAge);
 }
 
-void AddStoryDialog::slot_entry_type_changed(int index)
+bool AddStoryDialog::get_dashboard_age_effects(int& percent)
 {
-    bool is_train = ui->combo_EntryType->itemText(index).startsWith(tr("Train"));
-    ui->combo_ExitType->setEnabled(!is_train);
-    ui->group_Train->setEnabled(is_train);
-
-//    if(is_train)
-//    {
-//        slot_train_fixed_width_clicked(ui->check_TrainFixedWidth->isChecked());
-//        slot_train_reduce_opacity_clicked(ui->check_TrainReduceOpacity->isChecked());
-//    }
+    percent = ui->edit_DashboardReduceOpacity->text().toInt();
+    return ui->check_DashboardReduceOpacityFixed->isChecked();
 }
 
-void AddStoryDialog::slot_headlines_fixed_size_clicked(bool checked)
+QString AddStoryDialog::get_dashboard_group_id()
 {
-    ui->edit_HeadlinesFixedWidth->setEnabled(checked);
-    ui->edit_HeadlinesFixedHeight->setEnabled(checked);
-    ui->group_HeadlinesSizeText->setEnabled(checked);
+    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
+    QString group_id = line_edit->text();
+    if(group_id.isEmpty())
+        return line_edit->placeholderText();
+    return group_id;
+}
+
+void AddStoryDialog::slot_accepted()
+{
+    reporter_configuration.clear();
+    QList<QLineEdit*> all_edits = ui->group_ReporterConfig->findChildren<QLineEdit*>();
+    foreach(QLineEdit* edit, all_edits)
+        reporter_configuration << edit->text();
+
+    plugin_reporter->SetRequirements(reporter_configuration);
+}
+
+void AddStoryDialog::slot_entry_type_changed(int index)
+{
+    AnimEntryType entry_type = static_cast<AnimEntryType>(index);
+    bool is_train = IS_TRAIN(entry_type);
+    bool is_dashboard = IS_DASHBOARD(entry_type);
+    ui->group_Train->setHidden(!is_train);
+    ui->group_Dashboard->setHidden(!is_dashboard);
+
+    ui->combo_ExitType->setEnabled(!is_train && !is_dashboard);
+}
+
+void AddStoryDialog::slot_interpret_size_clicked(bool /*checked*/)
+{
+    if(ui->radio_InterpretAsPixels->isChecked())
+    {
+        QRegExp rx("\\d+");
+        ui->edit_HeadlinesFixedWidth->setValidator(new QRegExpValidator(rx, this));
+        ui->edit_HeadlinesFixedHeight->setValidator(new QRegExpValidator(rx, this));
+
+        if(ui->edit_HeadlinesFixedWidth->text().isEmpty())
+            ui->edit_HeadlinesFixedWidth->setPlaceholderText("350");
+        if(ui->edit_HeadlinesFixedHeight->text().isEmpty())
+            ui->edit_HeadlinesFixedHeight->setPlaceholderText("100");
+    }
+    else
+    {
+        ui->edit_HeadlinesFixedWidth->setValidator(new QDoubleValidator(this));
+        ui->edit_HeadlinesFixedHeight->setValidator(new QDoubleValidator(this));
+
+        if(ui->edit_HeadlinesFixedWidth->text().isEmpty())
+            ui->edit_HeadlinesFixedWidth->setPlaceholderText("18.2");
+        if(ui->edit_HeadlinesFixedHeight->text().isEmpty())
+            ui->edit_HeadlinesFixedHeight->setPlaceholderText("8.3");
+    }
 }
 
 void AddStoryDialog::slot_train_reduce_opacity_clicked(bool /*checked*/)
@@ -385,26 +553,159 @@ void AddStoryDialog::slot_reporter_changed(int index)
     plugin_reporter = ipluginfactory->newInstance();
     reporter_configuration.clear();
 
-    QPushButton* button = ui->buttonBox->button(QDialogButtonBox::Ok);
-    button->setEnabled(ui->button_ConfigureReporter->isVisible() && reporter_configuration.count());
+    slot_configure_reporter_configure();
 }
 
-void AddStoryDialog::slot_configure_reporter(bool /*checked*/)
-{
-    // We construct a QDialog on the fly to get the parameters needed by the
-    // selected URL Reporter.
+//void AddStoryDialog::slot_configure_reporter(bool /*checked*/)
+//{
+//    // We construct a QDialog on the fly to get the parameters needed by the
+//    // selected URL Reporter.
 
-    QPushButton* button;
+//    QPushButton* button;
+
+//    Q_ASSERT(!plugin_reporter.isNull());
+//    IPluginURL* ipluginurl = reinterpret_cast<IPluginURL*>(plugin_reporter.data());
+//    Q_ASSERT(ipluginurl);
+
+//    QStringList params = ipluginurl->Requires();
+
+//    params_dialog = new QDialog(this);
+//    params_dialog->setWindowTitle(tr("Newsroom: Configure Reporter"));
+//    params_dialog->setSizeGripEnabled(false);
+
+//    QVector<QLineEdit*> edit_fields;
+//    required_fields.resize(params.length() / 2);
+
+//    QVBoxLayout* vbox = new QVBoxLayout();
+//    for(int i = 0, j = 0;i < params.length();i += 2, ++j)
+//    {
+//        QString param_name(params[i]);
+//        if(param_name.endsWith(QChar('*')))
+//        {
+//            param_name.chop(1);
+//            required_fields.setBit(j);
+//        }
+//        else
+//            required_fields.clearBit(j);
+//        QLabel* label = new QLabel(param_name);
+//        QLineEdit* edit = new QLineEdit();
+//        edit->setObjectName(QString("edit_%1").arg(j));
+//        if(required_fields.at(j))
+//            edit->setStyleSheet("background-color: rgb(255, 245, 245);");
+
+//        QString type(params[i+1]);
+//        QString def_value;
+
+//        if(params[i+1].contains(':'))
+//        {
+//            QStringList items = params[i+1].split(':');
+//            type = items[0];
+//            def_value = items[1];
+//        }
+
+//        if(!params[i+1].compare("password"))
+//            edit->setEchoMode(QLineEdit::PasswordEchoOnEdit);
+//        else if(!params[i+1].compare("integer"))
+//            edit->setValidator(new QIntValidator());
+//        else if(!params[i+1].compare("double"))
+//            edit->setValidator(new QDoubleValidator());
+
+//        if(!def_value.isEmpty())
+//            edit->setPlaceholderText(def_value);
+
+//        if(reporter_configuration.count() > j)
+//            edit->setText(reporter_configuration[j]);
+
+//        edit_fields.push_back(edit);
+
+//        QHBoxLayout* hbox = new QHBoxLayout();
+//        hbox->addWidget(label);
+//        hbox->addWidget(edit);
+
+//        vbox->addLayout(hbox);
+//    }
+
+//    QDialogButtonBox* buttonBox = new QDialogButtonBox;
+//    buttonBox->setObjectName(QStringLiteral("buttonBox"));
+//    buttonBox->setOrientation(Qt::Horizontal);
+//    buttonBox->setStandardButtons(QDialogButtonBox::Cancel|QDialogButtonBox::Ok);
+
+//    QObject::connect(buttonBox, &QDialogButtonBox::accepted, params_dialog, &QDialog::accept);
+//    QObject::connect(buttonBox, &QDialogButtonBox::rejected, params_dialog, &QDialog::reject);
+
+//    if(required_fields.count(true))
+//    {
+//        for(int i = 0;i < edit_fields.count();++i)
+//        {
+//            if(required_fields.at(i))
+//                connect(edit_fields[i], &QLineEdit::textChanged, this, &AddStoryDialog::slot_config_reporter_check_required);
+//        }
+//    }
+
+//    vbox->addWidget(buttonBox);
+
+//    params_dialog->setLayout(vbox);
+
+//    slot_config_reporter_check_required();
+
+//    if(params_dialog->exec() == QDialog::Accepted)
+//    {
+//        reporter_configuration.clear();
+//        foreach(QLineEdit* edit, edit_fields)
+//            reporter_configuration << edit->text();
+
+//        if(!ipluginurl->SetRequirements(reporter_configuration))
+//            reporter_configuration.clear();
+//    }
+
+//    params_dialog->deleteLater();
+//    params_dialog = nullptr;
+
+//    button = ui->buttonBox->button(QDialogButtonBox::Ok);
+//    button->setEnabled(ui->button_ConfigureReporter->isVisible() && reporter_configuration.count());
+//}
+
+void AddStoryDialog::slot_set_group_id_text(int index)
+{
+    QString str = ui->combo_DashboardGroupId->itemText(index);
+    if(str.isEmpty())
+        return;
+    ui->combo_DashboardGroupId->setEditText(str);
+}
+
+void AddStoryDialog::slot_update_groupid_list()
+{
+    QString id = ui->combo_DashboardGroupId->currentText();
+    if(id.isEmpty())
+        return;
+
+    for(int i = 0;i < ui->combo_DashboardGroupId->count();++i)
+    {
+        if(id.compare(ui->combo_DashboardGroupId->itemText(i)) == 0)
+            return;
+    }
+
+    ui->combo_DashboardGroupId->addItem(id);
+    ui->combo_DashboardGroupId->lineEdit()->setText(id);
+}
+
+void AddStoryDialog::slot_configure_reporter_configure()
+{
+    // we populate group_ReporterConfig with controls for entering
+    // Reporter configuration parameters
+
+    QObject* child;
+    while((child = ui->group_ReporterConfig->findChild<QObject*>()) != nullptr)
+        child->deleteLater();
 
     Q_ASSERT(!plugin_reporter.isNull());
-    IPluginURL* ipluginurl = reinterpret_cast<IPluginURL*>(plugin_reporter.data());
-    Q_ASSERT(ipluginurl);
 
-    QStringList params = ipluginurl->Requires();
-
-    params_dialog = new QDialog(this);
-    params_dialog->setWindowTitle(tr("Newsroom: Configure Reporter"));
-    params_dialog->setSizeGripEnabled(false);
+    QStringList params = plugin_reporter->Requires();
+    if(params.isEmpty())
+    {
+        ui->group_ReporterConfig->setHidden(true);
+        return;
+    }
 
     QVector<QLineEdit*> edit_fields;
     required_fields.resize(params.length() / 2);
@@ -458,14 +759,6 @@ void AddStoryDialog::slot_configure_reporter(bool /*checked*/)
         vbox->addLayout(hbox);
     }
 
-    QDialogButtonBox* buttonBox = new QDialogButtonBox;
-    buttonBox->setObjectName(QStringLiteral("buttonBox"));
-    buttonBox->setOrientation(Qt::Horizontal);
-    buttonBox->setStandardButtons(QDialogButtonBox::Cancel|QDialogButtonBox::Ok);
-
-    QObject::connect(buttonBox, &QDialogButtonBox::accepted, params_dialog, &QDialog::accept);
-    QObject::connect(buttonBox, &QDialogButtonBox::rejected, params_dialog, &QDialog::reject);
-
     if(required_fields.count(true))
     {
         for(int i = 0;i < edit_fields.count();++i)
@@ -475,34 +768,18 @@ void AddStoryDialog::slot_configure_reporter(bool /*checked*/)
         }
     }
 
-    vbox->addWidget(buttonBox);
-
-    params_dialog->setLayout(vbox);
+    ui->group_ReporterConfig->setLayout(vbox);
 
     slot_config_reporter_check_required();
-
-    if(params_dialog->exec() == QDialog::Accepted)
-    {
-        reporter_configuration.clear();
-        foreach(QLineEdit* edit, edit_fields)
-            reporter_configuration << edit->text();
-
-        if(!ipluginurl->SetRequirements(reporter_configuration))
-            reporter_configuration.clear();
-    }
-
-    params_dialog->deleteLater();
-    params_dialog = nullptr;
-
-    button = ui->buttonBox->button(QDialogButtonBox::Ok);
-    button->setEnabled(ui->button_ConfigureReporter->isVisible() && reporter_configuration.count());
 }
 
 void AddStoryDialog::slot_config_reporter_check_required()
 {
     bool have_required_fields = true;
 
-    QList<QLineEdit*> all_edits = params_dialog->findChildren<QLineEdit*>();
+    reporter_configuration.clear();
+
+    QList<QLineEdit*> all_edits = ui->group_ReporterConfig->findChildren<QLineEdit*>();
     foreach(QLineEdit* edit, all_edits)
     {
         QString name = edit->objectName();
@@ -517,9 +794,11 @@ void AddStoryDialog::slot_config_reporter_check_required()
             else
                 edit->setStyleSheet("background-color: rgb(245, 255, 245);");
         }
+
+        reporter_configuration << edit->text();
     }
 
-    QDialogButtonBox* buttonBox = params_dialog->findChild<QDialogButtonBox*>("buttonBox");
+    QDialogButtonBox* buttonBox = findChild<QDialogButtonBox*>("buttonBox");
     QPushButton* button = buttonBox->button(QDialogButtonBox::Ok);
     button->setEnabled(have_required_fields);
 }

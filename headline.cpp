@@ -12,6 +12,7 @@
 #include <QtCore/QUrl>
 
 #include "headline.h"
+#include "qvlabel.h"
 
 Headline::Headline(const QUrl& story,
                  const QString& headline,
@@ -22,6 +23,7 @@ Headline::Headline(const QUrl& story,
       story(story),
       headline(headline),
       old_opacity(1.0),
+      animation(nullptr),
       QWidget(parent)
 {
 }
@@ -41,9 +43,9 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
                 RECT    r;
                 HWND    bottom = nullptr;
 
-                // assume the first window consuming the entire virtual
-                // desktop size IS the desktop (e.g., "Program Manager"),
-                // and glue ourselves right on top of it
+                // assume the first window in the Z order that is consuming
+                // the entire virtual desktop size IS the desktop (e.g.,
+                // "Program Manager"), and glue ourselves right on top of it
                 int desktop_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
                 int desktop_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 
@@ -97,7 +99,17 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
     setAttribute(Qt::WA_TranslucentBackground, true);
 //    setAttribute(Qt::WA_PaintOnScreen); // not needed in Qt 5.2 and up
 
-    label = new QLabel(this);
+    int font_w = width;
+    int font_h = height;
+    if(width < height)
+    {
+        label = new QVLabel(this);
+        font_w = height;
+        font_h = width;
+    }
+    else
+        label = new QLabel(this);
+    label->setContentsMargins(0, 0, 0, 0);
     label->setTextFormat(Qt::AutoText);
     label->setMargin(margin);
     label->setFont(font);
@@ -138,17 +150,17 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
         // we destructively adjust the line width, if it exceeds the dimensions
         QFontMetrics metrics(f);
 
-        bool too_tall = ((metrics.height() * lines.count()) > height);
+        bool too_tall = ((metrics.height() * lines.count()) > font_h);
         while(too_tall)
         {
             lines.pop_back();
-            too_tall = ((metrics.height() * lines.count()) > height);
+            too_tall = ((metrics.height() * lines.count()) > font_h);
         }
 
         int l, t, r, b;
         label->getContentsMargins(&l, &t, &r, &b);
         for(int i = 0;i < lines.count();++i)
-            lines[i] = metrics.elidedText(lines[i], Qt::ElideRight, width - (l + r + margin * 2));
+            lines[i] = metrics.elidedText(lines[i], Qt::ElideRight, font_w - (l + r + margin * 2));
     }
     else if(fixed_text == FixedText::ScaleToFit)
     {
@@ -163,17 +175,17 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
             QFontMetrics metrics(f);
 
             bool too_wide = false;
-            bool too_tall = ((metrics.height() * plain_lines.count()) > height);
+            bool too_tall = ((metrics.height() * plain_lines.count()) > font_h);
             if(!too_tall)
             {
                 for(int i = 0;i < plain_lines.count() && !too_wide;++i)
                 {
                     int w = metrics.boundingRect(plain_lines[i]).width();
-                    too_wide = (w > width);
+                    too_wide = (w > font_w);
                 }
             }
 
-            if(!too_tall && !too_wide)
+            if((!too_tall && !too_wide) || f.pointSize() <= 5)
             {
                 label->setFont(f);
                 break;

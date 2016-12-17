@@ -4,7 +4,8 @@ TeamCity::TeamCity(QObject *parent)
     : QNAM(nullptr),
       poll_timer(nullptr),
       poll_timeout(60),
-      IPluginURL(parent)
+      first_update(true),
+      IPlugin(parent)
 {}
 
 // IPlugin
@@ -232,6 +233,20 @@ void TeamCity::process_reply(QNetworkReply *reply)
 
 void TeamCity::process_status(const QJsonObject& status)
 {
+    int count = status["count"].toInt();
+    if(count == 0 && first_update)
+    {
+        first_update = false;
+
+        QString status = QString("Project \"<b>%1</b>\"").arg(project_name);
+        if(!builder_name.isEmpty())
+            status += QString(" :: Builder \"<b>%1</b>\"").arg(builder_name);
+        status += "<br>State: idle";
+        emit signal_new_data(status.toUtf8());
+
+        return;
+    }
+
     // we have to produce a delta:  we have to check current builds
     // for new builds, and check cached status for builds that
     // have completed.
@@ -239,7 +254,6 @@ void TeamCity::process_status(const QJsonObject& status)
     QVector<QJsonObject> finals;
     QSet<int> c, p, finished_builds, new_builds;
 
-    int count = status["count"].toInt();
     QJsonArray builder_array = status["build"].toArray();
     for(int x = 0;x < count;++x)
     {
@@ -387,6 +401,8 @@ void TeamCity::process_status(const QJsonObject& status)
             create_request(build_url, States::GettingFinal);
         }
     }
+
+    first_update = false;
 }
 
 void TeamCity::process_final(QNetworkReply *reply)
@@ -466,7 +482,17 @@ void TeamCity::slot_get_failed(QNetworkReply::NetworkError code)
 
 void TeamCity::slot_poll()
 {
-    QJsonObject project_json = json_projects[project_name];
-    QString url_str = QString("%1/httpAuth/app/rest/builds?locator=project:%2,running:true,defaultFilter:false").arg(story.toString()).arg(project_json["id"].toString());
+    QString url_str;
+    if(builder_name.isEmpty())
+    {
+        QJsonObject project_json = json_projects[project_name];
+        url_str = QString("%1/httpAuth/app/rest/builds?locator=project:%2,running:true,defaultFilter:false")
+                            .arg(story.toString())
+                            .arg(project_json["id"].toString());
+    }
+    else
+        url_str = QString("%1/httpAuth/app/rest/builds?locator=buildType:(id:%2),running:true,defaultFilter:false")
+                            .arg(story.toString())
+                            .arg(json_builders.keys()[0]);
     create_request(url_str, States::GettingStatus);
 }

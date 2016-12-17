@@ -50,7 +50,8 @@ SOURCES += main.cpp \
         settingsdialog.cpp \
         lanemanager.cpp \
         producer.cpp \
-        addstorydialog.cpp
+        addstorydialog.cpp \
+        qvlabel.cpp \
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -64,16 +65,14 @@ HEADERS  += mainwindow.h \
             reportstacking.def \
             producer.h \
             addstorydialog.h \
-            reporters/interfaces/ipluginurl.h
+            qvlabel.h \
 
-# Plug-in interfaces
-HEADERS += reporters/interfaces/iplugin \
-           reporters/interfaces/iplugin.h \
-           reporters/interfaces/ipluginlocal.h
+# Plug-in interface
+HEADERS += reporters/interfaces/iplugin.h \
 
 FORMS    += mainwindow.ui \
             settingsdialog.ui \
-            addstorydialog.ui
+            addstorydialog.ui \
 
 highlight_lanes {
     SOURCES += highlightwidget.cpp

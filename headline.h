@@ -79,6 +79,7 @@ protected:  // data members
     double          old_opacity;
 
     friend class Chyron;        // the Chyron manages the headlines on the screen
+    friend class LaneManager;   // needs to initialize() it's Dashboard headline banner
 };
 
 SPECIALIZE_SHAREDPTR(Headline, Headline)    // "HeadlinePointer"
