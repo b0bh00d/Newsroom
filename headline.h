@@ -25,11 +25,15 @@ class Headline : public QWidget
 {
     Q_OBJECT
 public:
-    explicit Headline(const QUrl& story, const QString& headline, QWidget* parent = nullptr);
+    explicit Headline(const QUrl& story,
+                      const QString& headline,
+                      AnimEntryType entry_type = AnimEntryType::PopCenter,
+                      QWidget* parent = nullptr);
     explicit Headline(const Headline& source)
     {
         story = source.story;
         headline = source.headline;
+        entry_type = source.entry_type;
     }
 
     void    set_font(const QFont& font)                         { this->font = font; }
@@ -77,6 +81,8 @@ protected:  // data members
     QLabel*         label;
 
     double          old_opacity;
+
+    AnimEntryType   entry_type;
 
     friend class Chyron;        // the Chyron manages the headlines on the screen
     friend class LaneManager;   // needs to initialize() it's Dashboard headline banner

@@ -1,14 +1,18 @@
 #include "qvlabel.h"
 
-#include <QPainter>
+#include <QtGui/QPainter>
+#include <QtGui/QTextDocument>
+#include <QtGui/QTextBlock>
+#include <QtGui/QAbstractTextDocumentLayout>
 
 QVLabel::QVLabel(QWidget *parent)
     : QLabel(parent)
 {
 }
 
-QVLabel::QVLabel(const QString &text, QWidget *parent)
-    : QLabel(text, parent)
+QVLabel::QVLabel(const QString &text, bool configure_for_left, QWidget *parent)
+    : configure_for_left(configure_for_left),
+      QLabel(text, parent)
 {
 }
 
@@ -17,9 +21,26 @@ void QVLabel::paintEvent(QPaintEvent* /*event*/)
     QPainter painter(this);
 
     QRect s = geometry();
-    painter.translate(0, s.height());
-    painter.rotate(-90);
-    painter.drawText(QRect(0, 0, s.height(), s.width()), Qt::AlignHCenter|Qt::AlignVCenter, text());
+    if(configure_for_left)
+    {
+        painter.translate(0, s.height());
+        painter.rotate(270);
+    }
+    else
+    {
+        painter.translate(s.width(), 0);
+        painter.rotate(90);
+    }
+
+    QTextDocument td;
+    td.setHtml(text());
+
+    QAbstractTextDocumentLayout::PaintContext ctx;
+    ctx.palette.setColor(QPalette::Text, painter.pen().color());
+    ctx.clip = QRect(0, 0, s.width(), s.height());
+    td.documentLayout()->draw( &painter, ctx );
+
+///    painter.drawText(QRect(0, 0, s.height(), s.width()), Qt::AlignHCenter|Qt::AlignVCenter, text());
 
 //    painter.save();
 //    painter.translate(sizeHint().width(),0);

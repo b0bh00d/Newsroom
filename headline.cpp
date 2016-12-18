@@ -16,6 +16,7 @@
 
 Headline::Headline(const QUrl& story,
                  const QString& headline,
+                 AnimEntryType entry_type,
                  QWidget* parent)
     : stay_visible(false),
       margin(5),
@@ -24,6 +25,7 @@ Headline::Headline(const QUrl& story,
       headline(headline),
       old_opacity(1.0),
       animation(nullptr),
+      entry_type(entry_type),
       QWidget(parent)
 {
 }
@@ -104,6 +106,7 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
     if(width < height)
     {
         label = new QVLabel(this);
+        static_cast<QVLabel*>(label)->set_for_left(entry_type != AnimEntryType::DashboardInRightTop && entry_type != AnimEntryType::DashboardInRightBottom);
         font_w = height;
         font_h = width;
     }
