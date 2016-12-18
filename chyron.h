@@ -33,6 +33,8 @@ public:
         bool            always_visible;
         AnimEntryType   entry_type;
         AnimExitType    exit_type;
+        int             anim_motion_duration;
+        int             fade_target_duration;
         ReportStacking  stacking_type;
         int             headline_pixel_width;
         int             headline_pixel_height;
@@ -47,7 +49,9 @@ public:
         int             margin;
 
         Settings()
-            : headline_pixel_width(0),
+            : anim_motion_duration(500),
+              fade_target_duration(500),
+              headline_pixel_width(0),
               headline_pixel_height(0),
               headline_percent_width(0.0),
               headline_percent_height(0.0),

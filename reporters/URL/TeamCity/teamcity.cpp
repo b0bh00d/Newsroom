@@ -6,7 +6,13 @@ TeamCity::TeamCity(QObject *parent)
       poll_timeout(60),
       first_update(true),
       IPlugin(parent)
-{}
+{
+    report_template << "Project \"<b>${PROJECT_NAME}</b>\" :: Builder \"<b>${BUILDER_NAME}</b>\" :: Build #<b>${BUILD_NUMBER}</b>";
+    report_template << "State: ${STATE}";
+    report_template << "Status: ${STATUS}";
+    report_template << "Completed: ${COMPLETED}";
+    report_template << "ETA: <b>${ETA}</b>";
+}
 
 // IPlugin
 QStringList TeamCity::DisplayName() const
@@ -72,13 +78,19 @@ bool TeamCity::FinishStory()
 QStringList TeamCity::Requires() const
 {
     // parameter names ending with an asterisk are required
-    return QStringList() << "Username*"     << "string" <<
-                            "Password*"     << "password" <<
-                            "Project Name*" << "string" <<
-                            "Builder"       << "string" <<      // if an explicit builder is not provided,
-                                                                // then all the builders of the project will
-                                                                // be monitored in the same Headline stream
-                            "Polling (sec)" << "integer:60";    // how many seconds between polls? (default: 60)
+    return QStringList() << "Username:*"     << "string" <<
+                            "Password:*"     << "password" <<
+                            "Project Name:*" << "string" <<
+
+                            // if an explicit builder is not provided,
+                            // then all the builders of the project will
+                            // be monitored in the same Headline stream
+                            "Builder:"       << "string" <<
+
+                            // how many seconds between polls? (default: 60)
+                            "Polling (sec):" << "integer:60" <<
+
+                            "Format:"        << QString("multiline:%1").arg(report_template.join("<br>\n"));
 }
 
 bool TeamCity::SetRequirements(const QStringList& parameters)
@@ -101,6 +113,8 @@ bool TeamCity::SetRequirements(const QStringList& parameters)
         poll_timeout = parameters[4].toInt();
         poll_timeout = poll_timeout < 30 ? 60 : poll_timeout;
     }
+    if(parameters.count() > 5 && !parameters[5].isEmpty())
+        report_template = parameters[4].split("<br>");
 
     if(username.isEmpty())
     {
@@ -272,11 +286,12 @@ void TeamCity::process_status(const QJsonObject& status)
     // these need to be added to the json_status[] list
     new_builds = c - p;
 
+    ReportMap report_map;
+
     for(int x = 0;x < count;++x)
     {
         QJsonObject build = builder_array.at(x).toObject();
 
-        int build_number = build["number"].toString().toInt();
         int build_id = build["id"].toInt();
 
         uint now = QDateTime::currentDateTime().toTime_t();
@@ -284,18 +299,9 @@ void TeamCity::process_status(const QJsonObject& status)
         if(new_builds.contains(build_id))
         {
             // new build entry
-            QString id = build["buildTypeId"].toString();//.split('_')[1];
             int complete = 0;
             if(build.contains("percentageComplete"))
                 complete = build["percentageComplete"].toInt();
-
-            QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build #<b>%3</b><br>")
-                                        .arg(project_name)
-                                        .arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name)
-                                        .arg(build_number);
-            status += QString("State: %1<br>").arg(build["state"].toString());
-            status += QString("Status: %1<br>").arg(build["status"].toString());
-            status += QString("Completed: %1%").arg(complete);
 
             build_status[build_id] = build;
 
@@ -307,8 +313,9 @@ void TeamCity::process_status(const QJsonObject& status)
 
             eta[build_id] = eta_data;
 
-            if(status.endsWith('\n'))
-                status.chop(1);
+            populate_report_map(report_map, build, builder_name);
+            QString status = render_report(report_map);
+
             emit signal_new_data(status.toUtf8());
         }
         else if(!finished_builds.contains(build_id))
@@ -317,20 +324,9 @@ void TeamCity::process_status(const QJsonObject& status)
             QJsonObject cached_json = build_status[build_id];
             if(cached_json != build)
             {
-                QString id = build["buildTypeId"].toString();//.split('_')[1];
                 int complete = 0;
                 if(build.contains("percentageComplete"))
                     complete = build["percentageComplete"].toInt();
-
-                QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build #<b>%3</b><br>")
-                                        .arg(project_name)
-                                        .arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name)
-                                        .arg(build_number);
-
-                // status change
-                status += QString("State: %1<br>").arg(build["state"].toString());
-                status += QString("Status: %1<br>").arg(build["status"].toString());
-                status += QString("Completed: %1%").arg(complete);
 
                 // update data for the hung-build check
                 if(complete != eta[build_id].last_completed)
@@ -341,6 +337,7 @@ void TeamCity::process_status(const QJsonObject& status)
 
                 // after a few updates, calculate an eta
 
+                QString eta_str;
                 uint completed_delta = complete - eta[build_id].initial_completed;
                 if(completed_delta > 5)
                 {
@@ -350,19 +347,18 @@ void TeamCity::process_status(const QJsonObject& status)
                     uint percent_left = 100 - complete;
                     uint time_left = percent_left * average_per_point;
                     QDateTime target = QDateTime::currentDateTime();
-                    QString eta_str = target.addSecs(time_left).toString("h:mm ap");
+                    eta_str = target.addSecs(time_left).toString("h:mm ap");
 
                     // check for hung build if no progress after 5 minutes
                     if((now - eta[build_id].last_changed) > 300)
-                        status += QString(" / <b><font color=\"#ff0000\">ETA: %1</font></b>").arg(eta_str);
-                    else
-                        status += QString(" / <b>ETA: %1</b>").arg(eta_str);
+                        eta_str = QString("<font color=\"#ff0000\">%1</font>").arg(eta_str);
                 }
 
                 build_status[build_id] = build;
 
-                if(status.endsWith('\n'))
-                    status.chop(1);
+                populate_report_map(report_map, build, builder_name, eta_str);
+                QString status = render_report(report_map);
+
                 emit signal_new_data(status.toUtf8());
             }
         }
@@ -409,24 +405,13 @@ void TeamCity::process_final(QNetworkReply *reply)
 {
     ReplyData& data = active_replies[reply];
 
+    ReportMap report_map;
+
     QJsonDocument d = QJsonDocument::fromJson(data.buffer);
     QJsonObject build = d.object();
 
-    QString id = build["buildTypeId"].toString();
-    int build_id = build["number"].toString().toInt();
-    int complete = 100;
-    if(build.contains("percentageComplete"))
-        complete = build["percentageComplete"].toInt();
-
-    QString status = QString("Project \"<b>%1</b>\" :: Builder \"<b>%2</b>\" :: Build #<b>%3</b><br>")
-                                .arg(project_name)
-                                .arg(builder_name.isEmpty() ? json_builders[id]["name"].toString() : builder_name)
-                                .arg(build_id);
-
-    // status change
-    status += QString("State: %1<br>").arg(build["state"].toString());
-    status += QString("Status: %1<br>").arg(build["status"].toString());
-    status += QString("Completed: %1% @ %2").arg(complete).arg(QDateTime::currentDateTime().toString("h:mm ap"));
+    populate_report_map(report_map, build, builder_name);
+    QString status = render_report(report_map);
 
     emit signal_new_data(status.toUtf8());
 }
@@ -439,6 +424,47 @@ void TeamCity::slot_get_read()
         ReplyData& data = active_replies[reply];
         data.buffer += reply->readAll();
     }
+}
+
+void TeamCity::populate_report_map(ReportMap& report_map,
+                                   const QJsonObject& build,
+                                   const QString& builder_id,
+                                   const QString& eta_str)
+{
+    report_map.clear();
+
+    report_map["PROJECT_NAME"] = project_name;
+    if(!builder_name.isEmpty())
+        report_map["BUILDER_NAME"] = builder_name;
+    else if(!builder_id.isEmpty() && json_builders.contains(builder_id))
+        report_map["BUILDER_NAME"] = json_builders[builder_id]["name"].toString();
+    else if(json_builders.count() == 1)
+        report_map["BUILDER_NAME"] = json_builders[json_builders.keys()[0]]["name"].toString();
+    report_map["BUILDER_ID"] = builder_id;
+    report_map["BUILD_ID"] = QString::number(build["id"].toInt());
+    report_map["BUILD_NUMBER"] = build["number"].toString();
+    report_map["STATE"] = build["state"].toString();
+    report_map["STATUS"] = build["status"].toString();
+    if(!report_map["STATE"].compare("finished"))
+        report_map["COMPLETED"] = QString("100% @ %1").arg(QDateTime::currentDateTime().toString("h:mm ap"));
+    else
+        report_map["COMPLETED"] = QString("%1%").arg(QString::number(build["percentageComplete"].toInt()));
+    if(eta_str.isEmpty() && !report_map["STATE"].compare("running"))
+        report_map["ETA"] = "(pending)";
+    else
+        report_map["ETA"] = eta_str;
+}
+
+QString TeamCity::render_report(const ReportMap& report_map)
+{
+    QString report = report_template.join("<br>\n");
+    foreach(const QString& key, report_map.keys())
+    {
+        QString token = QString("${%1}").arg(key);
+        report.replace(token, report_map[key]);
+    }
+
+    return report;
 }
 
 void TeamCity::slot_get_complete()

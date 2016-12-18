@@ -242,6 +242,8 @@ void MainWindow::dropEvent(QDropEvent* event)
                 chyron_settings.display                 = addstory_dlg.get_display();
                 chyron_settings.always_visible          = addstory_dlg.get_headlines_always_visible();
                 chyron_settings.exit_type               = addstory_dlg.get_animation_exit_type();
+                chyron_settings.anim_motion_duration    = addstory_dlg.get_anim_motion_duration();
+                chyron_settings.fade_target_duration    = addstory_dlg.get_fade_target_duration();
                 chyron_settings.stacking_type           = chyron_stacking;
                 chyron_settings.headline_pixel_width    = interpret_as_pixels ? pixel_width : 0;
                 chyron_settings.headline_pixel_height   = interpret_as_pixels ? pixel_height : 0;

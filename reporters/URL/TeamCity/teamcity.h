@@ -75,12 +75,18 @@ private:    // typedefs and enums
     SPECIALIZE_MAP(int, QJsonObject, Status)            // "StatusMap"
     SPECIALIZE_MAP(QNetworkReply*, ReplyData, Reply)    // "ReplyMap"
     SPECIALIZE_MAP(int, ETAData, ETA)                   // "ETAMap"
+    SPECIALIZE_MAP(QString, QString, Report)            // "ReportMap"
 
 private:    // methods
     void            process_reply(QNetworkReply *reply);
     void            process_status(const QJsonObject& status);
     void            process_final(QNetworkReply *reply);
     void            create_request(const QString& url_str, States state);
+    void            populate_report_map(ReportMap& report_map,
+                                        const QJsonObject& build,
+                                        const QString& builder_id = QString(),
+                                        const QString& eta_str = QString());
+    QString         render_report(const ReportMap& report_map);
 
 private:    // data members
     QString     username;
@@ -100,4 +106,6 @@ private:    // data members
     ETAMap      eta;
 
     bool        first_update;   // first update should report something if there are not active builds
+
+    QStringList report_template;
 };

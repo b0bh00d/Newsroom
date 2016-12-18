@@ -1,7 +1,7 @@
 #pragma once
 
-#include <QObject>
-#include <QtPlugin>
+#include <QtCore/QObject>
+#include <QtCore/QtPlugin>
 
 #include <QtCore/QUrl>
 #include <QtCore/QString>
@@ -67,22 +67,36 @@ public:     // methods
     virtual bool Supports(const QString& file) const = 0;
 
     /*!
-      This method returns a list of parameter names that it requires in order
-      to perform its function.  Each parameter name is followed by a type,
-      one of "string", "password", "integer" or "double".
+      This method returns a list of parameter names that the plug-in requires in
+      order to perform its function.
 
-      Parameter names that end with an asterisks (*) indicate a required value,
-      all others are considered optional.
+      Parameter names that end with an asterisk (*) indicate a required value,
+      all others are considered optional.  Required fields will be highlighted.
+
+      Each parameter should specify one of the following types:
+
+      - string
+        + This is a regular, single-line string value
+      - password
+        + This is identical to 'string', except the input field will handle as a password
+      - integer
+        + An integer type (validated using the regular expression "\d+")
+      - double
+        + A floating-point type (validate with a QDoubleValidator)
+      - multiline
+        + A multiline string value (edited with a QPlainTextEdit widget)
 
       Parameter types can specify default values by adding a colon (:) followed
       by a value as a suffix (e.g., "integer:10").  This default value will
-      become the placeholder value in the assigned edit field.
+      become the placeholder value in single-line edit fields.  In the case of
+      "multiline" editing, the default vlaue (if any) will be inserted into the
+      edit field for the user to modify.
 
-      The host should post a dialog requesting these parameters and types from
-      the user, and then provide them back to the plug-in via the SetStory()
+      Newroom will post a dialog requesting these parameters and types from
+      the user, and then provide them back to the plug-in via the SetRequirements()
       method.
 
-      \returns A string list of parameter names and types.
+      \returns A list of string pairs representing parameter names and types.
      */
     virtual QStringList Requires() const = 0;
 
@@ -135,6 +149,12 @@ protected:
 };
 
 typedef QSharedPointer<IPlugin> IPluginPointer;
+
+/// @class IPluginFactory
+/// @brief A factory interface for generating IPlugin-based plug-ins
+///
+/// All Newsroom Reporter plug-ins must provide this factory interface.
+/// This interface is the actual Qt interface employed by Newsroom.
 
 class IPluginFactory : public QObject
 {

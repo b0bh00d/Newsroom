@@ -64,7 +64,6 @@ void Chyron::initialize_headline(HeadlinePointer headline)
 
     int x = 0;
     int y = 0;
-//    QRect r = headline->geometry();
     int width = 0;
     int height = 0;
 
@@ -225,7 +224,7 @@ void Chyron::initialize_headline(HeadlinePointer headline)
 
 void Chyron::start_headline_entry(HeadlinePointer headline)
 {
-    int speed = 500;
+    int speed = settings.anim_motion_duration;
 
     QParallelAnimationGroup* animation_group = nullptr;
     QDesktopWidget* desktop = QApplication::desktop();
@@ -473,7 +472,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
     QRect r_desktop = desktop->screenGeometry(settings.display);
     QRect r = headline->geometry();
 
-    int speed = 500;
+    int speed = settings.fade_target_duration;
 
     if(IS_TRAIN(settings.entry_type))
     {
@@ -595,8 +594,6 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
 
 void Chyron::shift_left(int amount)
 {
-    int speed = 500;
-
     if(!headline_list.length())
         return;     // no headlines visible
 
@@ -605,7 +602,7 @@ void Chyron::shift_left(int amount)
     {
         QRect r = headline->geometry();
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
-        headline->animation->setDuration(speed);
+        headline->animation->setDuration(settings.anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
         headline->animation->setEasingCurve(QEasingCurve::InCubic);
         headline->animation->setEndValue(QRect(r.x() - amount, r.y(), r.width(), r.height()));
@@ -621,8 +618,6 @@ void Chyron::shift_left(int amount)
 
 void Chyron::shift_right(int amount)
 {
-    int speed = 500;
-
     if(!headline_list.length())
         return;     // no headlines visible
 
@@ -631,7 +626,7 @@ void Chyron::shift_right(int amount)
     {
         QRect r = headline->geometry();
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
-        headline->animation->setDuration(speed);
+        headline->animation->setDuration(settings.anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
         headline->animation->setEasingCurve(QEasingCurve::InCubic);
         headline->animation->setEndValue(QRect(r.x() + amount, r.y(), r.width(), r.height()));
@@ -647,8 +642,6 @@ void Chyron::shift_right(int amount)
 
 void Chyron::shift_up(int amount)
 {
-    int speed = 500;
-
     if(!headline_list.length())
         return;     // no headlines visible
 
@@ -657,7 +650,7 @@ void Chyron::shift_up(int amount)
     {
         QRect r = headline->geometry();
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
-        headline->animation->setDuration(speed);
+        headline->animation->setDuration(settings.anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
         headline->animation->setEasingCurve(QEasingCurve::InCubic);
         headline->animation->setEndValue(QRect(r.x(), r.y() - amount, r.width(), r.height()));
@@ -673,8 +666,6 @@ void Chyron::shift_up(int amount)
 
 void Chyron::shift_down(int amount)
 {
-    int speed = 500;
-
     if(!headline_list.length())
         return;     // no headlines visible
 
@@ -683,7 +674,7 @@ void Chyron::shift_down(int amount)
     {
         QRect r = headline->geometry();
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
-        headline->animation->setDuration(speed);
+        headline->animation->setDuration(settings.anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
         headline->animation->setEasingCurve(QEasingCurve::InCubic);
         headline->animation->setEndValue(QRect(r.x(), r.y() + amount, r.width(), r.height()));
