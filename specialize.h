@@ -15,7 +15,7 @@
     typedef name::iterator          name##Iter; \
     typedef name::const_iterator    name##ConstIter;
 
-#ifdef Q_OBJECT
+#ifdef QT_VERSION
 // We're building with Qt -- Use Qt-specific container types
 #include <QVector>
 #define SPECIALIZE_VECTOR(type, name) \
