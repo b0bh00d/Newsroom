@@ -5,7 +5,7 @@ TeamCity::TeamCity(QObject *parent)
       poll_timer(nullptr),
       poll_timeout(60),
       first_update(true),
-      IPlugin(parent)
+      IReporter(parent)
 {
     report_template << "Project \"<b>${PROJECT_NAME}</b>\" :: Builder \"<b>${BUILDER_NAME}</b>\" :: Build #<b>${BUILD_NUMBER}</b>";
     report_template << "State: ${STATE}";

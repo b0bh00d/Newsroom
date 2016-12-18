@@ -106,17 +106,17 @@ bool MainWindow::load_plugin_factories()
             pi_info.factory = plugin;
             pi_info.path = plugin_path;
 
-            IPluginFactory* ipluginfactory = reinterpret_cast<IPluginFactory*>(instance);
-            if(ipluginfactory)
+            IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+            if(ireporterfactory)
             {
-                IPluginPointer iplugin = ipluginfactory->newInstance();
+                IReporterPointer ireporter = ireporterfactory->newInstance();
 
-                QStringList display = iplugin->DisplayName();
+                QStringList display = ireporter->DisplayName();
                 pi_info.name = display[0];
                 pi_info.tooltip = display[1];
-                pi_info.id = iplugin->PluginID();
+                pi_info.id = ireporter->PluginID();
 
-                QString pi_class = iplugin->PluginClass();
+                QString pi_class = ireporter->PluginClass();
 
                 if(!plugins_map.contains(pi_class))
                     plugins_map[pi_class] = PluginsInfoVector();

@@ -4,7 +4,7 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QByteArray>
 
-#include <iplugin.h>
+#include <ireporter.h>
 
 #include "../../specialize.h"
 
@@ -12,7 +12,7 @@
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
-class TEXTFILE_SHARED_EXPORT TextFile : public IPlugin
+class TEXTFILE_SHARED_EXPORT TextFile : public IReporter
 {
     Q_OBJECT
 public:

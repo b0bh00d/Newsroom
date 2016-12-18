@@ -1,7 +1,7 @@
 #include "textfilefactory.h"
 
 // IPluginFactory
-IPluginPointer TextFileFactory::newInstance()
+IReporterPointer TextFileFactory::newInstance()
 {
-    return IPluginPointer(reinterpret_cast<IPlugin*>(new TextFile()));
+    return IReporterPointer(reinterpret_cast<IReporter*>(new TextFile()));
 }

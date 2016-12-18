@@ -7,7 +7,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QRegExp>
 
-#include <iplugin.h>
+#include <ireporter.h>
 
 #include "addstorydialog.h"
 #include "ui_addstorydialog.h"
@@ -224,9 +224,9 @@ void AddStoryDialog::set_reporters(PluginsInfoVector* reporters_info)
     ui->combo_AvailableReporters->setEnabled(info.count() > 1);
 
     QObject* instance = info[ui->combo_AvailableReporters->currentIndex()].factory->instance();
-    IPluginFactory* ipluginfactory = reinterpret_cast<IPluginFactory*>(instance);
-    Q_ASSERT(ipluginfactory);
-    plugin_reporter = ipluginfactory->newInstance();
+    IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+    Q_ASSERT(ireporterfactory);
+    plugin_reporter = ireporterfactory->newInstance();
 
     slot_configure_reporter_configure();
 }
@@ -583,9 +583,9 @@ void AddStoryDialog::slot_reporter_changed(int index)
     ui->combo_AvailableReporters->setToolTip(info[index].tooltip);
 
     QObject* instance = info[ui->combo_AvailableReporters->currentIndex()].factory->instance();
-    IPluginFactory* ipluginfactory = reinterpret_cast<IPluginFactory*>(instance);
-    Q_ASSERT(ipluginfactory);
-    plugin_reporter = ipluginfactory->newInstance();
+    IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+    Q_ASSERT(ireporterfactory);
+    plugin_reporter = ireporterfactory->newInstance();
     reporter_configuration.clear();
 
     slot_configure_reporter_configure();
