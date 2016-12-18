@@ -1,16 +1,16 @@
 #pragma once
 
-#include <iplugin.h>
+#include <ireporter.h>
 
 #include "teamcity.h"
 
-class TEAMCITYSHARED_EXPORT TeamCityFactory : public IPluginFactory
+class TEAMCITYSHARED_EXPORT TeamCityFactory : public IReporterFactory
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginFactory" FILE "")
-    Q_INTERFACES(IPluginFactory)
+    Q_INTERFACES(IReporterFactory)
 
 public:
     // IPluginFactory
-    IPluginPointer newInstance() Q_DECL_OVERRIDE;
+    IReporterPointer newInstance() Q_DECL_OVERRIDE;
 };

@@ -66,9 +66,11 @@ HEADERS  += mainwindow.h \
             producer.h \
             addstorydialog.h \
             qvlabel.h \
+            storyinfo.h \
+    reporters/interfaces/ireporter.h
 
 # Plug-in interface
-HEADERS += reporters/interfaces/iplugin.h \
+HEADERS += \
 
 FORMS    += mainwindow.ui \
             settingsdialog.ui \

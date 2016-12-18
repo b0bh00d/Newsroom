@@ -1,16 +1,16 @@
 #pragma once
 
-#include <iplugin.h>
+#include <ireporter.h>
 
 #include "textfile.h"
 
-class TEXTFILE_SHARED_EXPORT TextFileFactory : public IPluginFactory
+class TEXTFILE_SHARED_EXPORT TextFileFactory : public IReporterFactory
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginFactory" FILE "")
-    Q_INTERFACES(IPluginFactory)
+    Q_INTERFACES(IReporterFactory)
 
 public:
     // IPluginFactory
-    IPluginPointer newInstance() Q_DECL_OVERRIDE;
+    IReporterPointer newInstance() Q_DECL_OVERRIDE;
 };

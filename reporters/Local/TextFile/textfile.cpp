@@ -7,7 +7,7 @@
 TextFile::TextFile(QObject *parent)
     : poll_timer(nullptr),
       notices_only(false),
-      IPlugin(parent)
+      IReporter(parent)
 {}
 
 // IPlugin

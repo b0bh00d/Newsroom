@@ -9,17 +9,17 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QSharedPointer>
 
-/// @class IPlugin
-/// @brief Base interface for Newsroom plug-ins.
+/// @class IReporter
+/// @brief Base interface for Newsroom Reporter plug-ins.
 ///
 /// All Newsroom Reporter plug-ins support this minimal interface.
 
-class IPlugin : public QObject
+class IReporter : public QObject
 {
     Q_OBJECT
 public:     // methods
-    IPlugin(QObject* parent = nullptr) : QObject(parent) {}
-    virtual ~IPlugin() {}
+    IReporter(QObject* parent = nullptr) : QObject(parent) {}
+    virtual ~IReporter() {}
 
     /*!
       If a method returns an unexpected value, the host may retrieve any
@@ -148,21 +148,21 @@ protected:
     QUrl            story;
 };
 
-typedef QSharedPointer<IPlugin> IPluginPointer;
+typedef QSharedPointer<IReporter> IReporterPointer;
 
-/// @class IPluginFactory
+/// @class IReporterFactory
 /// @brief A factory interface for generating IPlugin-based plug-ins
 ///
 /// All Newsroom Reporter plug-ins must provide this factory interface.
 /// This interface is the actual Qt interface employed by Newsroom.
 
-class IPluginFactory : public QObject
+class IReporterFactory : public QObject
 {
     Q_OBJECT
 public:
-    virtual IPluginPointer newInstance() = 0;
+    virtual IReporterPointer newInstance() = 0;
 };
 
 QT_BEGIN_NAMESPACE
-Q_DECLARE_INTERFACE(IPluginFactory, "org.lucidgears.Newsroom.IPluginFactory")
+Q_DECLARE_INTERFACE(IReporterFactory, "org.lucidgears.Newsroom.IReporterFactory")
 QT_END_NAMESPACE

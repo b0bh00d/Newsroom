@@ -30,7 +30,7 @@
 
 #include "addstorydialog.h"
 
-#include "reporters/interfaces/iplugin.h"
+#include "reporters/interfaces/ireporter.h"
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 

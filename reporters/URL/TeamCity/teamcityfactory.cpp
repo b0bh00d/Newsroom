@@ -1,7 +1,7 @@
 #include "teamcityfactory.h"
 
 // IPluginFactory
-IPluginPointer TeamCityFactory::newInstance()
+IReporterPointer TeamCityFactory::newInstance()
 {
-    return IPluginPointer(reinterpret_cast<IPlugin*>(new TeamCity()));
+    return IReporterPointer(reinterpret_cast<IReporter*>(new TeamCity()));
 }

@@ -35,4 +35,4 @@ SOURCES += textfile.cpp \
 HEADERS += textfile.h\
            textfile_global.h \
            textfilefactory.h \
-           ../../interfaces/iplugin.h \
+           ../../interfaces/ireporter.h \

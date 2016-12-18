@@ -10,19 +10,22 @@
 
 #include "types.h"
 #include "specialize.h"
+#include "storyinfo.h"
 
-#include "reporters/interfaces/iplugin.h"
+#include "reporters/interfaces/ireporter.h"
 
 namespace Ui {
 class AddStoryDialog;
 }
 
 /// @class AddLocalDialog
-/// @brief A dialog for configuration a local Reporter instance.
+/// @brief A dialog for configurating a Story instance.
 ///
-/// When a local story is submitted to the Newsroom, a local Reporter
-/// instance is assigned to cover it.  This dialog gathers information
-/// for the Reporter when it submits Headlines for display on the Chyron.
+/// When a Story is submitted to the Newsroom, a Producer and a Reporter
+/// needs to be assigned to cover it.  This dialog gathers information
+/// from the user for customizing how the Reporter and the Producer will
+/// display Headlines on the Chyron, and how and where the Chyron will be
+/// displayed on the screen.
 
 class AddStoryDialog : public QDialog
 {
@@ -74,7 +77,7 @@ public:
 
     QUrl            get_target();
     LocalTrigger    get_trigger();
-    IPluginPointer  get_reporter() const { return plugin_reporter; }
+    IReporterPointer  get_reporter() const { return plugin_reporter; }
     QStringList     get_reporter_parameters() const { return reporter_configuration; }
     uint            get_ttl();
 
@@ -122,7 +125,7 @@ private:
     QStringList         reporter_configuration;
 
     PluginsInfoVector*  plugin_factories;
-    IPluginPointer      plugin_reporter;
+    IReporterPointer      plugin_reporter;
 
     QUrl                story;
 };

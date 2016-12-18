@@ -1,6 +1,6 @@
 #include "producer.h"
 
-Producer::Producer(IPluginPointer reporter,
+Producer::Producer(IReporterPointer reporter,
                    const QUrl& story,
                    const QFont& font,
                    const QString& normal_stylesheet,
@@ -28,12 +28,12 @@ bool Producer::start_covering_story()
     if(reporter_plugin.isNull())
         return false;
 
-    connect(reporter_plugin.data(), &IPlugin::signal_new_data, this, &Producer::slot_new_data);
+    connect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
     reporter_plugin->SetStory(story);
     reporter_plugin->SetCoverage(trigger_type == LocalTrigger::FileChange);
     if(!reporter_plugin->CoverStory())
     {
-        disconnect(reporter_plugin.data(), &IPlugin::signal_new_data, this, &Producer::slot_new_data);
+        disconnect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
         return false;
     }
 
@@ -45,7 +45,7 @@ bool Producer::stop_covering_story()
     if(reporter_plugin.isNull())
         return false;
 
-    disconnect(reporter_plugin.data(), &IPlugin::signal_new_data, this, &Producer::slot_new_data);
+    disconnect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
     return reporter_plugin->FinishStory();
 }
 

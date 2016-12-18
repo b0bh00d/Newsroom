@@ -6,7 +6,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QTimer>
 
-#include <iplugin.h>
+#include <ireporter.h>
 
 #include "types.h"
 #include "specialize.h"
@@ -25,7 +25,7 @@ class Producer : public QObject
 {
     Q_OBJECT
 public:
-    explicit Producer(IPluginPointer reporter,
+    explicit Producer(IReporterPointer reporter,
                       const QUrl& story,
                       const QFont& font,
                       const QString& normal_stylesheet,
@@ -55,7 +55,7 @@ private:        // methods
     void    file_headline(const QString& data);
 
 private:        // data members
-    IPluginPointer  reporter_plugin;
+    IReporterPointer  reporter_plugin;
 
     QUrl            story;
 

@@ -11,7 +11,7 @@
 #include <QtCore/QJsonValue>
 #include <QtCore/QJsonArray>
 
-#include <iplugin.h>
+#include <ireporter.h>
 
 #include "../../../specialize.h"
 
@@ -19,7 +19,7 @@
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
-class TEAMCITYSHARED_EXPORT TeamCity : public IPlugin
+class TEAMCITYSHARED_EXPORT TeamCity : public IReporter
 {
     Q_OBJECT
 public:
