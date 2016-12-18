@@ -46,7 +46,9 @@ void LaneManager::subscribe(Chyron* chyron)
         {
             dashboard_group = DashboardPointer(new DashboardData());
             dashboard_group->id = settings.dashboard_group;
-            dashboard_group->lane_header = HeadlinePointer(new Headline(QUrl(), QString("<h2><center>%1</center></h2>").arg(settings.dashboard_group)));
+            dashboard_group->lane_header = HeadlinePointer(new Headline(QUrl(),
+                                                                        QString("<h2><center>%1</center></h2>").arg(settings.dashboard_group),
+                                                                        settings.entry_type));
             dashboard_group->lane_header->set_font(headline_font);
             dashboard_group->lane_header->set_normal_stylesheet(headline_stylesheet);
 
@@ -75,12 +77,12 @@ void LaneManager::subscribe(Chyron* chyron)
                 case AnimEntryType::DashboardInRightBottom:
                     if(settings.headline_pixel_width)
                     {
-                        w = settings.headline_pixel_width * 0.35;
+                        w = settings.headline_pixel_width * 0.15;
                         h = settings.headline_pixel_height;
                     }
                     else
                     {
-                        w = (settings.headline_percent_width / 100.0) * r_desktop.width() * 0.35;
+                        w = (settings.headline_percent_width / 100.0) * r_desktop.width() * 0.15;
                         h = (settings.headline_percent_height / 100.0) * r_desktop.height();
                     }
                     break;
@@ -448,27 +450,26 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
             }
             break;
 
-        case AnimEntryType::DashboardDownLeftTop:
             // don't bake in the margin
+        case AnimEntryType::DashboardDownLeftTop:
+        case AnimEntryType::DashboardInLeftTop:
             r_header_x = left;
             r_header_y = top;
             break;
         case AnimEntryType::DashboardDownRightTop:
+        case AnimEntryType::DashboardInRightTop:
             r_header_x = right - r_header_w;
             r_header_y = top;
             break;
         case AnimEntryType::DashboardUpLeftBottom:
+        case AnimEntryType::DashboardInLeftBottom:
             r_header_x = left;
             r_header_y = bottom - r_header_h;
             break;
         case AnimEntryType::DashboardUpRightBottom:
+        case AnimEntryType::DashboardInRightBottom:
             r_header_x = right - r_header_w;
             r_header_y = bottom - r_header_h;
-            break;
-        case AnimEntryType::DashboardInLeftTop:
-        case AnimEntryType::DashboardInRightTop:
-        case AnimEntryType::DashboardInLeftBottom:
-        case AnimEntryType::DashboardInRightBottom:
             break;
     }
 
@@ -672,11 +673,14 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
         case AnimEntryType::DashboardInLeftTop:
         case AnimEntryType::DashboardInRightTop:
             // shift header down
+            r_header_y = r_header_y + (dashboard_position * (r_header_h + settings.margin));
+            break;
         case AnimEntryType::DashboardInLeftBottom:
         case AnimEntryType::DashboardInRightBottom:
             // shift header up
+            r_header_y = r_header_y - (dashboard_position * (r_header_h + settings.margin));
             break;
-    }
+      }
 
     if(IS_DASHBOARD(settings.entry_type))
     {
@@ -743,9 +747,41 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
                 break;
 
             case AnimEntryType::DashboardInLeftTop:
-            case AnimEntryType::DashboardInRightTop:
+                left = r_header_x;
+                right = left + r_header_w;
+                i = right + settings.margin + (chyron_position ? (chyron_position * (headline_w + settings.margin)) : 0);
+                lane_position.setTopLeft(QPoint(i, r_header_y));
+                lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
+                r_header_x += settings.margin;
+                r_header_y += settings.margin;
+                break;
+
             case AnimEntryType::DashboardInLeftBottom:
+                left = r_header_x;
+                right = left + r_header_w;
+                i = right + settings.margin + (chyron_position ? (chyron_position * (headline_w + settings.margin)) : 0);
+                lane_position.setTopLeft(QPoint(i, r_header_y));
+                lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
+                r_header_x += settings.margin;
+                r_header_y -= settings.margin;
+                break;
+
+            case AnimEntryType::DashboardInRightTop:
+                left = r_header_x - r_header_w;
+                i = left - settings.margin - (chyron_position ? (chyron_position * (headline_w + settings.margin)) : 0);
+                lane_position.setTopLeft(QPoint(i, r_header_y));
+                lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
+                r_header_x -= settings.margin;
+                r_header_y += settings.margin;
+                break;
+
             case AnimEntryType::DashboardInRightBottom:
+                left = r_header_x - r_header_w;
+                i = left - settings.margin - (chyron_position ? (chyron_position * (headline_w + settings.margin)) : 0);
+                lane_position.setTopLeft(QPoint(i, r_header_y));
+                lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
+                r_header_x -= settings.margin;
+                r_header_y -= settings.margin;
                 break;
         }
 
