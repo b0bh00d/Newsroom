@@ -24,9 +24,6 @@ class AddStoryDialog;
 /// instance is assigned to cover it.  This dialog gathers information
 /// for the Reporter when it submits Headlines for display on the Chyron.
 
-/*
-*/
-
 class AddStoryDialog : public QDialog
 {
     Q_OBJECT
@@ -56,6 +53,8 @@ public:
     void            set_headlines_fixed_text(FixedText fixed_type = FixedText::None);
                     // Animation
     void            set_animation_entry_and_exit(AnimEntryType entry_type, AnimExitType exit_type);
+    void            set_anim_motion_duration(int duration = 0);
+    void            set_fade_target_duration(int duration = 0);
                     //   Train
                     //     Age Effects
     void            set_train_age_effects(AgeEffects effect = AgeEffects::None, int percent = 0);
@@ -88,6 +87,8 @@ public:
 
     AnimEntryType   get_animation_entry_type();
     AnimExitType    get_animation_exit_type();
+    int             get_anim_motion_duration();
+    int             get_fade_target_duration();
     AgeEffects      get_train_age_effects(int& percent);
 
     bool            get_dashboard_age_effects(int& percent);
@@ -103,7 +104,6 @@ protected slots:
     void            slot_train_reduce_opacity_clicked(bool checked);
     void            slot_trigger_changed(int index);
     void            slot_reporter_changed(int index);
-//    void            slot_configure_reporter(bool checked);
     void            slot_config_reporter_check_required();
     void            slot_set_group_id_text(int index);
     void            slot_update_groupid_list();

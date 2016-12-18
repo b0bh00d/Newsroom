@@ -1,4 +1,5 @@
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QPlainTextEdit>
 
 #include <QtGui/QRegExpValidator>
 
@@ -47,6 +48,7 @@ AddStoryDialog::AddStoryDialog(QWidget *parent) :
     ui->edit_HeadlinesFixedWidth->setValidator(new QRegExpValidator(rx, this));
     ui->edit_HeadlinesFixedHeight->setValidator(new QRegExpValidator(rx, this));
     ui->edit_LimitContent->setValidator(new QRegExpValidator(rx, this));
+    ui->edit_FadeTargetMilliseconds->setValidator(new QRegExpValidator(rx, this));
     ui->edit_TrainReduceOpacity->setValidator(new QIntValidator(10, 90, this));
     ui->edit_DashboardReduceOpacity->setValidator(new QIntValidator(10, 90, this));
 
@@ -115,6 +117,8 @@ void AddStoryDialog::save_defaults(QSettings* settings)
     settings->setValue("entry_type", ui->combo_EntryType->currentIndex());
     settings->setValue("exit_type", ui->combo_ExitType->currentIndex());
     settings->setValue("exit_type_enabled", ui->combo_ExitType->isEnabled());
+    settings->setValue("anim_motion_duration", ui->edit_AnimMotionMilliseconds->text());
+    settings->setValue("fade_opacity_duration", ui->edit_FadeTargetMilliseconds->text());
     settings->setValue("group_age_effects", ui->group_AgeEffects->isChecked());
     settings->setValue("age_opacity_type", ui->radio_TrainReduceOpacityFixed->isChecked() ? 1 : 2);
     settings->setValue("age_opacity_fixed_percent", ui->edit_TrainReduceOpacity->text());
@@ -163,6 +167,8 @@ void AddStoryDialog::load_defaults(QSettings* settings)
     ui->combo_EntryType->setCurrentIndex(settings->value("entry_type", static_cast<int>(AnimEntryType::SlideDownLeftTop)).toInt());
     ui->combo_ExitType->setCurrentIndex(settings->value("exit_type", static_cast<int>(AnimExitType::SlideLeft)).toInt());
     ui->combo_ExitType->setEnabled(settings->value("exit_type_enabled", true).toBool());
+    ui->edit_AnimMotionMilliseconds->setText(settings->value("anim_motion_duration", QString()).toString());
+    ui->edit_FadeTargetMilliseconds->setText(settings->value("fade_opacity_duration", QString()).toString());
     ui->group_AgeEffects->setChecked(settings->value("group_age_effects", false).toBool());
     age_buttons[settings->value("age_opacity_type", 1).toInt()]->setChecked(true);
     if(ui->radio_TrainReduceOpacityFixed->isChecked())
@@ -299,6 +305,18 @@ void AddStoryDialog::set_animation_entry_and_exit(AnimEntryType entry_type, Anim
     slot_entry_type_changed(ui->combo_EntryType->currentIndex());
 }
 
+void AddStoryDialog::set_fade_target_duration(int duration)
+{
+    if(duration)
+        ui->edit_FadeTargetMilliseconds->setText(QString::number(duration));
+}
+
+void AddStoryDialog::set_anim_motion_duration(int duration)
+{
+    if(duration)
+        ui->edit_AnimMotionMilliseconds->setText(QString::number(duration));
+}
+
 void AddStoryDialog::set_train_age_effects(AgeEffects effect, int percent)
 {
     ui->group_AgeEffects->setEnabled(effect != AgeEffects::None);
@@ -349,7 +367,10 @@ QString AddStoryDialog::get_story_identity()
     if(!params.isEmpty())
     {
         foreach(const QString& param, reporter_configuration)
-            identity += QString(":%1").arg(param);
+        {
+            if(!param.startsWith("multiline:"))
+                identity += QString(":%1").arg(param);
+        }
     }
 
     return identity;
@@ -459,6 +480,20 @@ AnimExitType AddStoryDialog::get_animation_exit_type()
     return static_cast<AnimExitType>(ui->combo_ExitType->currentIndex());
 }
 
+int AddStoryDialog::get_fade_target_duration()
+{
+    if(ui->edit_FadeTargetMilliseconds->text().isEmpty())
+        return ui->edit_FadeTargetMilliseconds->placeholderText().toInt();
+    return ui->edit_FadeTargetMilliseconds->text().toInt();
+}
+
+int AddStoryDialog::get_anim_motion_duration()
+{
+    if(ui->edit_AnimMotionMilliseconds->text().isEmpty())
+        return ui->edit_AnimMotionMilliseconds->placeholderText().toInt();
+    return ui->edit_AnimMotionMilliseconds->text().toInt();
+}
+
 AgeEffects AddStoryDialog::get_train_age_effects(int& percent)
 {
     if(!ui->group_AgeEffects->isEnabled())
@@ -556,115 +591,6 @@ void AddStoryDialog::slot_reporter_changed(int index)
     slot_configure_reporter_configure();
 }
 
-//void AddStoryDialog::slot_configure_reporter(bool /*checked*/)
-//{
-//    // We construct a QDialog on the fly to get the parameters needed by the
-//    // selected URL Reporter.
-
-//    QPushButton* button;
-
-//    Q_ASSERT(!plugin_reporter.isNull());
-//    IPluginURL* ipluginurl = reinterpret_cast<IPluginURL*>(plugin_reporter.data());
-//    Q_ASSERT(ipluginurl);
-
-//    QStringList params = ipluginurl->Requires();
-
-//    params_dialog = new QDialog(this);
-//    params_dialog->setWindowTitle(tr("Newsroom: Configure Reporter"));
-//    params_dialog->setSizeGripEnabled(false);
-
-//    QVector<QLineEdit*> edit_fields;
-//    required_fields.resize(params.length() / 2);
-
-//    QVBoxLayout* vbox = new QVBoxLayout();
-//    for(int i = 0, j = 0;i < params.length();i += 2, ++j)
-//    {
-//        QString param_name(params[i]);
-//        if(param_name.endsWith(QChar('*')))
-//        {
-//            param_name.chop(1);
-//            required_fields.setBit(j);
-//        }
-//        else
-//            required_fields.clearBit(j);
-//        QLabel* label = new QLabel(param_name);
-//        QLineEdit* edit = new QLineEdit();
-//        edit->setObjectName(QString("edit_%1").arg(j));
-//        if(required_fields.at(j))
-//            edit->setStyleSheet("background-color: rgb(255, 245, 245);");
-
-//        QString type(params[i+1]);
-//        QString def_value;
-
-//        if(params[i+1].contains(':'))
-//        {
-//            QStringList items = params[i+1].split(':');
-//            type = items[0];
-//            def_value = items[1];
-//        }
-
-//        if(!params[i+1].compare("password"))
-//            edit->setEchoMode(QLineEdit::PasswordEchoOnEdit);
-//        else if(!params[i+1].compare("integer"))
-//            edit->setValidator(new QIntValidator());
-//        else if(!params[i+1].compare("double"))
-//            edit->setValidator(new QDoubleValidator());
-
-//        if(!def_value.isEmpty())
-//            edit->setPlaceholderText(def_value);
-
-//        if(reporter_configuration.count() > j)
-//            edit->setText(reporter_configuration[j]);
-
-//        edit_fields.push_back(edit);
-
-//        QHBoxLayout* hbox = new QHBoxLayout();
-//        hbox->addWidget(label);
-//        hbox->addWidget(edit);
-
-//        vbox->addLayout(hbox);
-//    }
-
-//    QDialogButtonBox* buttonBox = new QDialogButtonBox;
-//    buttonBox->setObjectName(QStringLiteral("buttonBox"));
-//    buttonBox->setOrientation(Qt::Horizontal);
-//    buttonBox->setStandardButtons(QDialogButtonBox::Cancel|QDialogButtonBox::Ok);
-
-//    QObject::connect(buttonBox, &QDialogButtonBox::accepted, params_dialog, &QDialog::accept);
-//    QObject::connect(buttonBox, &QDialogButtonBox::rejected, params_dialog, &QDialog::reject);
-
-//    if(required_fields.count(true))
-//    {
-//        for(int i = 0;i < edit_fields.count();++i)
-//        {
-//            if(required_fields.at(i))
-//                connect(edit_fields[i], &QLineEdit::textChanged, this, &AddStoryDialog::slot_config_reporter_check_required);
-//        }
-//    }
-
-//    vbox->addWidget(buttonBox);
-
-//    params_dialog->setLayout(vbox);
-
-//    slot_config_reporter_check_required();
-
-//    if(params_dialog->exec() == QDialog::Accepted)
-//    {
-//        reporter_configuration.clear();
-//        foreach(QLineEdit* edit, edit_fields)
-//            reporter_configuration << edit->text();
-
-//        if(!ipluginurl->SetRequirements(reporter_configuration))
-//            reporter_configuration.clear();
-//    }
-
-//    params_dialog->deleteLater();
-//    params_dialog = nullptr;
-
-//    button = ui->buttonBox->button(QDialogButtonBox::Ok);
-//    button->setEnabled(ui->button_ConfigureReporter->isVisible() && reporter_configuration.count());
-//}
-
 void AddStoryDialog::slot_set_group_id_text(int index)
 {
     QString str = ui->combo_DashboardGroupId->itemText(index);
@@ -707,7 +633,7 @@ void AddStoryDialog::slot_configure_reporter_configure()
         return;
     }
 
-    QVector<QLineEdit*> edit_fields;
+    QVector<QWidget*> edit_fields;
     required_fields.resize(params.length() / 2);
 
     QVBoxLayout* vbox = new QVBoxLayout();
@@ -722,41 +648,76 @@ void AddStoryDialog::slot_configure_reporter_configure()
         else
             required_fields.clearBit(j);
         QLabel* label = new QLabel(param_name);
-        QLineEdit* edit = new QLineEdit();
-        edit->setObjectName(QString("edit_%1").arg(j));
-        if(required_fields.at(j))
-            edit->setStyleSheet("background-color: rgb(255, 245, 245);");
+        QLineEdit* edit = nullptr;
+        QPlainTextEdit* multiline = nullptr;
 
         QString type(params[i+1]);
         QString def_value;
 
-        if(params[i+1].contains(':'))
+        if(!type.startsWith("multiline"))
         {
-            QStringList items = params[i+1].split(':');
-            type = items[0];
-            def_value = items[1];
+            edit = new QLineEdit();
+            edit->setObjectName(QString("edit_%1").arg(j));
+            if(required_fields.at(j))
+                edit->setStyleSheet("background-color: rgb(255, 245, 245);");
+
+            if(params[i+1].contains(':'))
+            {
+                QStringList items = params[i+1].split(':');
+                type = items[0];
+                def_value = items[1];
+            }
+        }
+        else if(type.startsWith("multiline:"))
+        {
+            multiline = new QPlainTextEdit();
+            multiline->setObjectName(QString("multiline_%1").arg(j));
+            multiline->setWordWrapMode(QTextOption::NoWrap);
+            if(required_fields.at(j))
+                multiline->setStyleSheet("background-color: rgb(255, 245, 245);");
+
+            def_value = type.right(type.length() - 10);
+            type = "multiline";
         }
 
-        if(!params[i+1].compare("password"))
-            edit->setEchoMode(QLineEdit::PasswordEchoOnEdit);
-        else if(!params[i+1].compare("integer"))
-            edit->setValidator(new QIntValidator());
-        else if(!params[i+1].compare("double"))
-            edit->setValidator(new QDoubleValidator());
+        if(!type.compare("multiline"))
+        {
+            if(reporter_configuration.count() > j)
+                multiline->insertPlainText(reporter_configuration[j]);
+            else
+                multiline->insertPlainText(def_value);
 
-        if(!def_value.isEmpty())
-            edit->setPlaceholderText(def_value);
+            edit_fields.push_back(multiline);
 
-        if(reporter_configuration.count() > j)
-            edit->setText(reporter_configuration[j]);
+            QHBoxLayout* hbox = new QHBoxLayout();
+            hbox->addWidget(label);
+            hbox->addWidget(multiline);
 
-        edit_fields.push_back(edit);
+            vbox->addLayout(hbox);
+        }
+        else
+        {
+            if(!type.compare("password"))
+                edit->setEchoMode(QLineEdit::PasswordEchoOnEdit);
+            else if(!type.compare("integer"))
+                edit->setValidator(new QIntValidator());
+            else if(!type.compare("double"))
+                edit->setValidator(new QDoubleValidator());
 
-        QHBoxLayout* hbox = new QHBoxLayout();
-        hbox->addWidget(label);
-        hbox->addWidget(edit);
+            if(!def_value.isEmpty())
+                edit->setPlaceholderText(def_value);
 
-        vbox->addLayout(hbox);
+            if(reporter_configuration.count() > j)
+                edit->setText(reporter_configuration[j]);
+
+            edit_fields.push_back(edit);
+
+            QHBoxLayout* hbox = new QHBoxLayout();
+            hbox->addWidget(label);
+            hbox->addWidget(edit);
+
+            vbox->addLayout(hbox);
+        }
     }
 
     if(required_fields.count(true))
@@ -764,7 +725,17 @@ void AddStoryDialog::slot_configure_reporter_configure()
         for(int i = 0;i < edit_fields.count();++i)
         {
             if(required_fields.at(i))
-                connect(edit_fields[i], &QLineEdit::textChanged, this, &AddStoryDialog::slot_config_reporter_check_required);
+            {
+                QLineEdit* edit = qobject_cast<QLineEdit*>(edit_fields[i]);
+                if(edit)
+                    connect(edit, &QLineEdit::textChanged, this, &AddStoryDialog::slot_config_reporter_check_required);
+                else
+                {
+                    QPlainTextEdit* multiline = qobject_cast<QPlainTextEdit*>(edit_fields[i]);
+                    if(multiline)
+                        connect(multiline, &QPlainTextEdit::textChanged, this, &AddStoryDialog::slot_config_reporter_check_required);
+                }
+            }
         }
     }
 
@@ -779,23 +750,54 @@ void AddStoryDialog::slot_config_reporter_check_required()
 
     reporter_configuration.clear();
 
-    QList<QLineEdit*> all_edits = ui->group_ReporterConfig->findChildren<QLineEdit*>();
-    foreach(QLineEdit* edit, all_edits)
+    QList<QWidget*> all_edits = ui->group_ReporterConfig->findChildren<QWidget*>();
+    foreach(QWidget* child, all_edits)
     {
-        QString name = edit->objectName();
-        int index = name.split(QChar('_'))[1].toInt();
-        if(required_fields.at(index))
+        QPlainTextEdit* multiline = nullptr;
+        QString name;
+
+        QLineEdit* edit = qobject_cast<QLineEdit*>(child);
+        if(edit)
+            name = edit->objectName();
+        else
         {
-            if(edit->text().isEmpty())
-            {
-                have_required_fields = false;
-                edit->setStyleSheet("background-color: rgb(255, 245, 245);");
-            }
-            else
-                edit->setStyleSheet("background-color: rgb(245, 255, 245);");
+            QPlainTextEdit* multiline = qobject_cast<QPlainTextEdit*>(child);
+            if(multiline)
+                name = multiline->objectName();
         }
 
-        reporter_configuration << edit->text();
+        if(name.isEmpty())
+            continue;
+
+        int index = name.split(QChar('_'))[1].toInt();
+
+        if(required_fields.at(index))
+        {
+            if(edit)
+            {
+                if(edit->text().isEmpty())
+                {
+                    have_required_fields = false;
+                    edit->setStyleSheet("background-color: rgb(255, 245, 245);");
+                }
+                else
+                    edit->setStyleSheet("background-color: rgb(245, 255, 245);");
+
+                reporter_configuration << edit->text();
+            }
+            else if(multiline)
+            {
+                if(multiline->toPlainText().isEmpty())
+                {
+                    have_required_fields = false;
+                    multiline->setStyleSheet("background-color: rgb(255, 245, 245);");
+                }
+                else
+                    multiline->setStyleSheet("background-color: rgb(245, 255, 245);");
+
+                reporter_configuration << multiline->toPlainText();
+            }
+        }
     }
 
     QDialogButtonBox* buttonBox = findChild<QDialogButtonBox*>("buttonBox");
