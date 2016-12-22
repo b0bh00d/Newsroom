@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QtCore/QPluginLoader>
+#include <QtCore/QSettings>
 
 #include "specialize.h"
 
@@ -48,7 +49,8 @@ enum class FixedText
     ClipToFit
 };
 
-SPECIALIZE_SHAREDPTR(QPluginLoader, Factory)             // "FactoryPointer"
+SPECIALIZE_SHAREDPTR(QPluginLoader, Factory)            // "FactoryPointer"
+SPECIALIZE_SHAREDPTR(QSettings, Settings)               // "SettingsPointer"
 
 struct PluginInfo
 {

@@ -11,6 +11,7 @@
 #include "types.h"
 #include "specialize.h"
 #include "headline.h"
+#include "storyinfo.h"
 
 /// @class Producer
 /// @brief Manages a Reporter covering a Story
@@ -26,23 +27,13 @@ class Producer : public QObject
     Q_OBJECT
 public:
     explicit Producer(IReporterPointer reporter,
-                      const QUrl& story,
-                      const QFont& font,
-                      const QString& normal_stylesheet,
-                      const QString& alert_stylesheet,
-                      const QStringList& alert_keywords,
-                      LocalTrigger trigger_type,
-                      bool limit_content,
-                      int limit_content_to,
+                      StoryInfoPointer story_info,
                       QObject *parent = 0);
 
-    QUrl    get_story() const { return story; }
+    QUrl    get_story() const { return story_info->story; }
 
     bool    start_covering_story();
     bool    stop_covering_story();
-
-    void    save(QSettings& settings);
-    void    load(QSettings& settings);
 
 signals:
     void    signal_new_headline(HeadlinePointer headline);
@@ -55,18 +46,8 @@ private:        // methods
     void    file_headline(const QString& data);
 
 private:        // data members
-    IReporterPointer  reporter_plugin;
-
-    QUrl            story;
-
-    QFont           headline_font;
-    QString         headline_stylesheet_normal;
-    QString         headline_stylesheet_alert;
-    QStringList     headline_alert_keywords;
-    LocalTrigger    trigger_type;
-
-    bool            limit_content;
-    int             limit_content_to;
+    IReporterPointer    reporter_plugin;
+    StoryInfoPointer    story_info;
 };
 
 SPECIALIZE_SHAREDPTR(Producer, Producer)    // "ProducerPointer"

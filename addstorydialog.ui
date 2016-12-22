@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>386</width>
-    <height>451</height>
+    <height>479</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,27 +17,64 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_9">
      <item>
-      <widget class="QLabel" name="label_Target">
+      <widget class="QLabel" name="label_Source">
+       <property name="minimumSize">
+        <size>
+         <width>40</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="text">
-        <string>Story</string>
+        <string>Source</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
        <property name="buddy">
-        <cstring>edit_Target</cstring>
+        <cstring>edit_Source</cstring>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="edit_Target"/>
+      <widget class="QLineEdit" name="edit_Source">
+       <property name="toolTip">
+        <string>This is the Source of the Story.  The same Story may be covered by numerous Reporters, each covering a unique Angle.</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_15">
+     <item>
+      <widget class="QLabel" name="label_Angle">
+       <property name="minimumSize">
+        <size>
+         <width>40</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Angle</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="edit_Angle">
+       <property name="toolTip">
+        <string>This is a unique Angle of the Source.  This value should uniquely identify this Story from other Stories that might use the same Source.</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>4</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_Reporters">
       <attribute name="title">
@@ -692,7 +729,7 @@
          <item>
           <widget class="QLabel" name="label_Fade1_2">
            <property name="text">
-            <string>Animation motion speeds are</string>
+            <string>Animations complete in</string>
            </property>
           </widget>
          </item>
@@ -889,7 +926,7 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
-           <widget class="QGroupBox" name="group_AgeEffects">
+           <widget class="QGroupBox" name="group_TrainAgeEffects">
             <property name="title">
              <string>Use Aging Effects</string>
             </property>
@@ -979,10 +1016,7 @@
       </layout>
       <zorder>group_Dashboard</zorder>
       <zorder>group_Train</zorder>
-      <zorder></zorder>
       <zorder>line</zorder>
-      <zorder>layoutWidget</zorder>
-      <zorder>label_Fade1_2</zorder>
      </widget>
     </widget>
    </item>
@@ -1012,7 +1046,7 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>edit_Target</tabstop>
+  <tabstop>edit_Source</tabstop>
   <tabstop>combo_LocalTrigger</tabstop>
   <tabstop>combo_AvailableReporters</tabstop>
   <tabstop>edit_TTL</tabstop>
@@ -1027,7 +1061,7 @@
   <tabstop>radio_HeadlinesSizeTextClip</tabstop>
   <tabstop>combo_EntryType</tabstop>
   <tabstop>combo_ExitType</tabstop>
-  <tabstop>group_AgeEffects</tabstop>
+  <tabstop>group_TrainAgeEffects</tabstop>
   <tabstop>radio_TrainReduceOpacityFixed</tabstop>
   <tabstop>edit_TrainReduceOpacity</tabstop>
   <tabstop>radio_TrainReduceOpacityByAge</tabstop>

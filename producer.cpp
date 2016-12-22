@@ -1,24 +1,10 @@
 #include "producer.h"
 
 Producer::Producer(IReporterPointer reporter,
-                   const QUrl& story,
-                   const QFont& font,
-                   const QString& normal_stylesheet,
-                   const QString& alert_stylesheet,
-                   const QStringList& alert_keywords,
-                   LocalTrigger trigger_type,
-                   bool limit_content,
-                   int limit_content_to,
+                   StoryInfoPointer story_info,
                    QObject *parent)
     : reporter_plugin(reporter),
-      story(story),
-      headline_font(font),
-      headline_stylesheet_normal(normal_stylesheet),
-      headline_stylesheet_alert(alert_stylesheet),
-      headline_alert_keywords(alert_keywords),
-      trigger_type(trigger_type),
-      limit_content(limit_content),
-      limit_content_to(limit_content_to),
+      story_info(story_info),
       QObject(parent)
 {
 }
@@ -29,8 +15,8 @@ bool Producer::start_covering_story()
         return false;
 
     connect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
-    reporter_plugin->SetStory(story);
-    reporter_plugin->SetCoverage(trigger_type == LocalTrigger::FileChange);
+    reporter_plugin->SetStory(story_info->story);
+    reporter_plugin->SetCoverage(story_info->trigger_type == LocalTrigger::FileChange);
     if(!reporter_plugin->CoverStory())
     {
         disconnect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
@@ -49,30 +35,22 @@ bool Producer::stop_covering_story()
     return reporter_plugin->FinishStory();
 }
 
-void Producer::save(QSettings& /*settings*/)
-{
-}
-
-void Producer::load(QSettings& /*settings*/)
-{
-}
-
 void Producer::file_headline(const QString& data)
 {
     // file a headline with the new content
-    HeadlinePointer headline(new Headline(story, data));
+    HeadlinePointer headline(new Headline(story_info->story, data));
 
-    headline->set_font(headline_font);
-    headline->set_normal_stylesheet(headline_stylesheet_normal);
-    headline->set_alert_stylesheet(headline_stylesheet_alert);
-    headline->set_alert_keywords(headline_alert_keywords);
+    headline->set_font(story_info->font);
+    headline->set_normal_stylesheet(story_info->normal_stylesheet);
+    headline->set_alert_stylesheet(story_info->alert_stylesheet);
+    headline->set_alert_keywords(story_info->alert_keywords);
 
     emit signal_new_headline(headline);
 }
 
 void Producer::slot_new_data(const QByteArray& data)
 {
-    if(!limit_content)
+    if(!story_info->limit_content)
     {
         file_headline(QString(data));
         return;
@@ -101,7 +79,7 @@ void Producer::slot_new_data(const QByteArray& data)
         new_line += line;
 
         ++current_limit;
-        if((current_limit % limit_content_to) == 0)
+        if((current_limit % story_info->limit_content_to) == 0)
         {
             if(!new_line.isEmpty())
                 file_headline(new_line);

@@ -1,3 +1,4 @@
+#include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QPlainTextEdit>
 
@@ -22,6 +23,13 @@ static const QStringList animentrytype_str
 #undef X
 };
 
+static const QMap<AnimEntryType, QString> animentrytype_map
+{
+#define X(a) { AnimEntryType::a, QObject::tr( #a ) },
+#include "animentrytype.def"
+#undef X
+};
+
 static const QStringList animexittype_str
 {
 #define X(a) QObject::tr( #a ),
@@ -29,9 +37,22 @@ static const QStringList animexittype_str
 #undef X
 };
 
-AddStoryDialog::AddStoryDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::AddStoryDialog)
+static const QMap<ReportStacking, QString> reportstacking_map
+{
+#define X(a) { ReportStacking::a, QObject::tr( #a ) },
+#include "reportstacking.def"
+#undef X
+};
+
+AddStoryDialog::AddStoryDialog(PluginsInfoVector *reporters_info,
+                               StoryInfoPointer story_info,
+                               SettingsPointer settings,
+                               QWidget *parent)
+    : plugin_factories(reporters_info),
+      story_info(story_info),
+      settings(settings),
+      QDialog(parent),
+      ui(new Ui::AddStoryDialog)
 {
     ui->setupUi(this);
 
@@ -45,8 +66,8 @@ AddStoryDialog::AddStoryDialog(QWidget *parent) :
 
     QRegExp rx("\\d+");
     ui->edit_TTL->setValidator(new QRegExpValidator(rx, this));
-    ui->edit_HeadlinesFixedWidth->setValidator(new QRegExpValidator(rx, this));
-    ui->edit_HeadlinesFixedHeight->setValidator(new QRegExpValidator(rx, this));
+//    ui->edit_HeadlinesFixedWidth->setValidator(new QRegExpValidator(rx, this));
+//    ui->edit_HeadlinesFixedHeight->setValidator(new QRegExpValidator(rx, this));
     ui->edit_LimitContent->setValidator(new QRegExpValidator(rx, this));
     ui->edit_FadeTargetMilliseconds->setValidator(new QRegExpValidator(rx, this));
     ui->edit_TrainReduceOpacity->setValidator(new QIntValidator(10, 90, this));
@@ -67,6 +88,8 @@ AddStoryDialog::AddStoryDialog(QWidget *parent) :
     connect(this, &QDialog::accepted, this, &AddStoryDialog::slot_accepted);
 //    connect(this, &QDialog::rejected, this, &AddStoryDialog::slot_cleanup);
 //    connect(this, &QDialog::finished, this, &AddStoryDialog::slot_cleanup);
+
+    load_settings();
 }
 
 AddStoryDialog::~AddStoryDialog()
@@ -92,254 +115,289 @@ void AddStoryDialog::showEvent(QShowEvent *event)
     connect(ui->combo_DashboardGroupId, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &AddStoryDialog::slot_set_group_id_text);
 
+    connect(ui->radio_Monitor1, &QCheckBox::clicked, this, &AddStoryDialog::set_angle);
+    connect(ui->radio_Monitor2, &QCheckBox::clicked, this, &AddStoryDialog::set_angle);
+    connect(ui->radio_Monitor3, &QCheckBox::clicked, this, &AddStoryDialog::set_angle);
+    connect(ui->radio_Monitor4, &QCheckBox::clicked, this, &AddStoryDialog::set_angle);
+
     QDialog::showEvent(event);
     activateWindow();
     raise();
 }
 
-void AddStoryDialog::save_defaults(QSettings* settings)
+void AddStoryDialog::save_settings()
 {
     settings->beginGroup("AddStoryDialog");
-
-    settings->setValue("target", story);
     settings->setValue("current_tab", ui->tabWidget->currentIndex());
-    settings->setValue("local_trigger", ui->combo_LocalTrigger->currentIndex());
-    settings->setValue("ttl", ui->edit_TTL->text());
-    settings->setValue("keep_on_top", ui->check_KeepOnTop->isChecked());
-    settings->setValue("display", ui->radio_Monitor1->isChecked() ? 0 : (ui->radio_Monitor2->isChecked() ? 1 : (ui->radio_Monitor3->isChecked() ? 2 : 3)));
-    settings->setValue("headlines_fixed_width", ui->edit_HeadlinesFixedWidth->text());
-    settings->setValue("headlines_fixed_height", ui->edit_HeadlinesFixedHeight->text());
-    settings->setValue("interpret_as_pixels", ui->radio_InterpretAsPixels->isChecked());
-    settings->setValue("interpret_as_percent", ui->radio_InterpretAsPercentage->isChecked());
-    settings->setValue("limit_content", ui->check_LimitContent->isChecked());
-    settings->setValue("limit_content_to", ui->edit_LimitContent->text());
-    settings->setValue("fixed_text", ui->radio_HeadlinesSizeTextScale->isChecked() ? 0 : 1);
-    settings->setValue("entry_type", ui->combo_EntryType->currentIndex());
-    settings->setValue("exit_type", ui->combo_ExitType->currentIndex());
-    settings->setValue("exit_type_enabled", ui->combo_ExitType->isEnabled());
-    settings->setValue("anim_motion_duration", ui->edit_AnimMotionMilliseconds->text());
-    settings->setValue("fade_opacity_duration", ui->edit_FadeTargetMilliseconds->text());
-    settings->setValue("group_age_effects", ui->group_AgeEffects->isChecked());
-    settings->setValue("age_opacity_type", ui->radio_TrainReduceOpacityFixed->isChecked() ? 1 : 2);
-    settings->setValue("age_opacity_fixed_percent", ui->edit_TrainReduceOpacity->text());
-    settings->setValue("reporter_configuration", reporter_configuration);
-    settings->setValue("dashboard_age_effects", ui->check_DashboardReduceOpacityFixed->isChecked());
-    settings->setValue("dashboard_age_effects_percent", ui->edit_DashboardReduceOpacity->text());
-    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
-    settings->setValue("dashboard_group_id", line_edit->text());
     QStringList id_list;
     for(int i = 0;i < ui->combo_DashboardGroupId->count() && i < 10;++i)
         id_list << ui->combo_DashboardGroupId->itemText(i);
     settings->setValue("dashboard_group_id_list", id_list);
     settings->endGroup();
+
+    QString story = ui->edit_Source->text();
+    if(QFile::exists(story))
+        story_info->story = QUrl::fromLocalFile(story);
+    else
+    {
+        if(story.endsWith("/"))
+            story.chop(1);
+        story_info->story.setUrl(story);
+    }
+
+    story_info->identity = ui->edit_Angle->text();
+    if(story_info->identity.isEmpty())
+        story_info->identity = ui->edit_Angle->placeholderText();
+
+    story_info->reporter_id = plugin_reporter->PluginID();
+
+    story_info->reporter_parameters.clear();
+    QList<QWidget*> all_edits = ui->group_ReporterConfig->findChildren<QWidget*>();
+    foreach(QWidget* child, all_edits)
+    {
+        QString value;
+        QLineEdit* edit = qobject_cast<QLineEdit*>(child);
+        if(edit)
+            story_info->reporter_parameters << edit->text();
+        else
+        {
+            QPlainTextEdit* multiline = qobject_cast<QPlainTextEdit*>(child);
+            if(multiline)
+                story_info->reporter_parameters << multiline->toPlainText();
+        }
+    }
+
+    story_info->trigger_type = static_cast<LocalTrigger>(ui->combo_LocalTrigger->currentIndex());
+    story_info->ttl = ui->edit_TTL->text().toInt();
+    story_info->headlines_always_visible = ui->check_KeepOnTop->isChecked();
+    story_info->primary_screen = ui->radio_Monitor1->isChecked() ? 0 : (ui->radio_Monitor2->isChecked() ? 1 : (ui->radio_Monitor3->isChecked() ? 2 : 3));
+    if(ui->radio_InterpretAsPixels->isChecked())
+    {
+        if(ui->edit_HeadlinesFixedWidth->text().isEmpty())
+            story_info->headlines_pixel_width = ui->edit_HeadlinesFixedWidth->placeholderText().toInt();
+        else
+            story_info->headlines_pixel_width = ui->edit_HeadlinesFixedWidth->text().toInt();
+
+        if(ui->edit_HeadlinesFixedHeight->text().isEmpty())
+            story_info->headlines_pixel_height = ui->edit_HeadlinesFixedHeight->placeholderText().toInt();
+        else
+            story_info->headlines_pixel_height = ui->edit_HeadlinesFixedHeight->text().toInt();
+
+        story_info->headlines_percent_width = 0.0;
+        story_info->headlines_percent_height = 0.0;
+    }
+    else
+    {
+        if(ui->edit_HeadlinesFixedWidth->text().isEmpty())
+            story_info->headlines_percent_width = ui->edit_HeadlinesFixedWidth->placeholderText().toDouble();
+        else
+            story_info->headlines_percent_width = ui->edit_HeadlinesFixedWidth->text().toDouble();
+
+        if(ui->edit_HeadlinesFixedHeight->text().isEmpty())
+            story_info->headlines_percent_height = ui->edit_HeadlinesFixedHeight->placeholderText().toDouble();
+        else
+            story_info->headlines_percent_height = ui->edit_HeadlinesFixedHeight->text().toDouble();
+
+        story_info->headlines_pixel_width = 0;
+        story_info->headlines_pixel_height = 0;
+    }
+    story_info->limit_content = ui->check_LimitContent->isChecked();
+    if(!ui->edit_LimitContent->text().isEmpty())
+        story_info->limit_content_to = ui->edit_LimitContent->text().toInt();
+    story_info->headlines_fixed_type = ui->radio_HeadlinesSizeTextScale->isChecked() ? FixedText::ScaleToFit : FixedText::ClipToFit;
+    story_info->entry_type = static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());
+    story_info->exit_type = static_cast<AnimExitType>(ui->combo_ExitType->currentIndex());
+    if(!ui->edit_AnimMotionMilliseconds->text().isEmpty())
+        story_info->anim_motion_duration = ui->edit_AnimMotionMilliseconds->text().toInt();
+    else
+        story_info->anim_motion_duration = ui->edit_AnimMotionMilliseconds->placeholderText().toInt();
+    if(!ui->edit_FadeTargetMilliseconds->text().isEmpty())
+        story_info->fade_target_duration = ui->edit_FadeTargetMilliseconds->text().toInt();
+    else
+        story_info->fade_target_duration = ui->edit_FadeTargetMilliseconds->placeholderText().toInt();
+    story_info->train_use_age_effect = ui->group_TrainAgeEffects->isChecked();
+    story_info->train_age_effect = static_cast<AgeEffects>(ui->radio_TrainReduceOpacityFixed->isChecked() ? 1 : 2);
+    if(!ui->edit_TrainReduceOpacity->text().isEmpty())
+        story_info->train_age_percent = ui->edit_TrainReduceOpacity->text().toInt();
+    story_info->dashboard_use_age_effect = ui->check_DashboardReduceOpacityFixed->isChecked();
+    if(!ui->edit_DashboardReduceOpacity->text().isEmpty())
+        story_info->dashboard_age_percent = ui->edit_DashboardReduceOpacity->text().toInt();
+    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
+    if(line_edit->text().isEmpty())
+        story_info->dashboard_group_id = line_edit->placeholderText();
+    else
+        story_info->dashboard_group_id = line_edit->text();
 }
 
-void AddStoryDialog::load_defaults(QSettings* settings)
+void AddStoryDialog::load_settings()
 {
-    QVector<QRadioButton*> display_buttons { ui->radio_Monitor1, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
     QVector<QRadioButton*> fixed_buttons { ui->radio_HeadlinesSizeTextScale, ui->radio_HeadlinesSizeTextClip };
     QVector<QRadioButton*> age_buttons { nullptr, ui->radio_TrainReduceOpacityFixed, ui->radio_TrainReduceOpacityByAge };
 
     settings->beginGroup("AddStoryDialog");
 
     ui->tabWidget->setCurrentIndex(settings->value("current_tab", 0).toInt());
-    story = settings->value("target", QUrl()).toUrl();
-    if(story.isLocalFile())
-        ui->edit_Target->setText(story.toLocalFile());
-    else
-        ui->edit_Target->setText(story.toString());
-    ui->combo_LocalTrigger->setCurrentIndex(settings->value("local_trigger", static_cast<int>(LocalTrigger::NewContent)).toInt());
-    ui->edit_TTL->setText(settings->value("ttl", "").toString());
-    ui->check_KeepOnTop->setChecked(settings->value("keep_on_top", true).toBool());
-    display_buttons[settings->value("display", 0).toInt()]->setChecked(true);
-
-    ui->radio_InterpretAsPixels->setChecked(settings->value("interpret_as_pixels", true).toBool());
-    ui->radio_InterpretAsPercentage->setChecked(settings->value("interpret_as_percent", false).toBool());
-    slot_interpret_size_clicked(true);
-
-    ui->edit_HeadlinesFixedWidth->setText(settings->value("headlines_fixed_width", QString()).toString());
-    ui->edit_HeadlinesFixedHeight->setText(settings->value("headlines_fixed_height", QString()).toString());
-
-    ui->check_LimitContent->setChecked(settings->value("limit_content", false).toBool());
-    ui->edit_LimitContent->setText(settings->value("limit_content_to", QString()).toString());
-
-    fixed_buttons[settings->value("fixed_text", 0).toInt()]->setChecked(true);
-    ui->combo_EntryType->setCurrentIndex(settings->value("entry_type", static_cast<int>(AnimEntryType::SlideDownLeftTop)).toInt());
-    ui->combo_ExitType->setCurrentIndex(settings->value("exit_type", static_cast<int>(AnimExitType::SlideLeft)).toInt());
-    ui->combo_ExitType->setEnabled(settings->value("exit_type_enabled", true).toBool());
-    ui->edit_AnimMotionMilliseconds->setText(settings->value("anim_motion_duration", QString()).toString());
-    ui->edit_FadeTargetMilliseconds->setText(settings->value("fade_opacity_duration", QString()).toString());
-    ui->group_AgeEffects->setChecked(settings->value("group_age_effects", false).toBool());
-    age_buttons[settings->value("age_opacity_type", 1).toInt()]->setChecked(true);
-    if(ui->radio_TrainReduceOpacityFixed->isChecked())
-        ui->edit_TrainReduceOpacity->setText(QString::number(settings->value("age_opacity_fixed_percent", 60).toInt()));
-    reporter_configuration = settings->value("reporter_configuration", QStringList()).toStringList();
-
-    ui->check_DashboardReduceOpacityFixed->setChecked(settings->value("dashboard_age_effects", false).toBool());
-    int percent = settings->value("dashboard_age_effects_percent", 60).toInt();
-    if(percent)
-        ui->edit_DashboardReduceOpacity->setText(QString::number(percent));
 
     QStringList id_list = settings->value("dashboard_group_id_list", QStringList()).toStringList();
     ui->combo_DashboardGroupId->addItems(id_list);
-    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
-    line_edit->setText(settings->value("dashboard_group_id", QString()).toString());
-
-    AnimEntryType entry_type = static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());
-    ui->group_Train->setHidden(!IS_TRAIN(entry_type));
-    ui->group_Dashboard->setHidden(!IS_DASHBOARD(entry_type));
 
     settings->endGroup();
-}
 
-void AddStoryDialog::set_story(const QUrl& story)
-{
-    this->story = story;
-
-    if(story.isLocalFile())
+    if(story_info->story.isLocalFile())
     {
-        ui->edit_Target->setText(QDir::toNativeSeparators(story.toLocalFile()));
-        ui->edit_Target->setEnabled(false);
+        ui->edit_Source->setText(QDir::toNativeSeparators(story_info->story.toLocalFile()));
+        ui->edit_Source->setEnabled(false);
     }
     else
-        ui->edit_Target->setText(story.toString());
+        ui->edit_Source->setText(story_info->story.toString());
 
-    configure_for_local(story.isLocalFile());
-}
+    if(story_info->identity.isEmpty())
+        ui->edit_Angle->setPlaceholderText(ui->edit_Source->text());
+    else
+        ui->edit_Angle->setText(story_info->identity);
 
-void AddStoryDialog::set_trigger(LocalTrigger trigger_type)
-{
-    ui->combo_LocalTrigger->setCurrentIndex(static_cast<int>(trigger_type));
-}
+    configure_for_local(story_info->story.isLocalFile());
 
-void AddStoryDialog::set_reporters(PluginsInfoVector* reporters_info)
-{
-    plugin_factories = reporters_info;
     PluginsInfoVector& info = *plugin_factories;
 
     ui->combo_AvailableReporters->clear();
     foreach(const PluginInfo& pi_info, info)
         ui->combo_AvailableReporters->addItem(pi_info.name);
 
-    ui->combo_AvailableReporters->setEnabled(info.count() > 1);
+    if(info.count() > 1)
+    {
+        // find the Reporter
+        if(!story_info->reporter_id.isEmpty())
+        {
+            int index = 0;
+            for(index = 0;index < info.count();++index)
+            {
+                QObject* instance = info[index].factory->instance();
+                IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+                Q_ASSERT(ireporterfactory);
+                plugin_reporter = ireporterfactory->newInstance();
+                if(!story_info->reporter_id.compare(plugin_reporter->PluginID()))
+                    break;
+            }
 
-    QObject* instance = info[ui->combo_AvailableReporters->currentIndex()].factory->instance();
-    IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
-    Q_ASSERT(ireporterfactory);
-    plugin_reporter = ireporterfactory->newInstance();
+            ui->combo_AvailableReporters->setCurrentIndex(index);
+        }
+    }
+    else
+    {
+        ui->combo_AvailableReporters->setEnabled(false);
+
+        QObject* instance = info[ui->combo_AvailableReporters->currentIndex()].factory->instance();
+        IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+        Q_ASSERT(ireporterfactory);
+        plugin_reporter = ireporterfactory->newInstance();
+    }
+
+    reporter_configuration = story_info->reporter_parameters;
 
     slot_configure_reporter_configure();
+
+    ui->combo_LocalTrigger->setCurrentIndex(static_cast<int>(story_info->trigger_type));
+    ui->edit_TTL->setText(QString::number(story_info->ttl));
+    ui->check_KeepOnTop->setChecked(story_info->headlines_always_visible);
+
+    set_display();
+
+    ui->radio_InterpretAsPixels->setChecked(story_info->interpret_as_pixels);
+    ui->radio_InterpretAsPercentage->setChecked(!story_info->interpret_as_pixels);
+
+    slot_interpret_size_clicked(true);
+
+    if(story_info->interpret_as_pixels)
+    {
+        if(story_info->headlines_pixel_width != 0 && ui->edit_HeadlinesFixedWidth->placeholderText().toInt() != story_info->headlines_pixel_width)
+            ui->edit_HeadlinesFixedWidth->setText(QString::number(story_info->headlines_pixel_width));
+        if(story_info->headlines_pixel_height != 0 && ui->edit_HeadlinesFixedHeight->placeholderText().toInt() != story_info->headlines_pixel_height)
+            ui->edit_HeadlinesFixedHeight->setText(QString::number(story_info->headlines_pixel_height));
+    }
+    else
+    {
+        if(story_info->headlines_percent_width != 0.0 && ui->edit_HeadlinesFixedWidth->placeholderText().toDouble() != story_info->headlines_percent_width)
+            ui->edit_HeadlinesFixedWidth->setText(QString::number(story_info->headlines_percent_width));
+        if(story_info->headlines_percent_height != 0.0 && ui->edit_HeadlinesFixedHeight->placeholderText().toDouble() != story_info->headlines_percent_height)
+            ui->edit_HeadlinesFixedHeight->setText(QString::number(story_info->headlines_percent_height));
+    }
+    slot_interpret_size_clicked(true);
+
+    ui->check_LimitContent->setChecked(story_info->limit_content);
+    ui->edit_LimitContent->setEnabled(ui->check_LimitContent->isChecked());
+    if(story_info->limit_content_to)
+        ui->edit_LimitContent->setText(QString::number(story_info->limit_content_to));
+
+    fixed_buttons[(story_info->headlines_fixed_type == FixedText::None || story_info->headlines_fixed_type == FixedText::ScaleToFit) ? 0 : 1]->setChecked(true);
+
+    ui->combo_EntryType->setCurrentIndex(static_cast<int>(story_info->entry_type));
+    ui->combo_ExitType->setCurrentIndex(static_cast<int>(story_info->exit_type));
+
+    slot_entry_type_changed(ui->combo_EntryType->currentIndex());
+
+    if(story_info->anim_motion_duration)
+    {
+        if(ui->edit_AnimMotionMilliseconds->placeholderText().toInt() != story_info->anim_motion_duration)
+            ui->edit_AnimMotionMilliseconds->setText(QString::number(story_info->anim_motion_duration));
+    }
+    if(story_info->fade_target_duration)
+    {
+        if(ui->edit_FadeTargetMilliseconds->placeholderText().toInt() != story_info->fade_target_duration)
+            ui->edit_FadeTargetMilliseconds->setText(QString::number(story_info->fade_target_duration));
+    }
+
+    ui->group_TrainAgeEffects->setChecked(story_info->train_use_age_effect);
+    age_buttons[(story_info->train_age_effect == AgeEffects::None || story_info->train_age_effect == AgeEffects::ReduceOpacityFixed) ? 1 : 2]->setChecked(true);
+    ui->edit_TrainReduceOpacity->setEnabled(ui->radio_TrainReduceOpacityFixed->isChecked());
+    if(ui->radio_TrainReduceOpacityFixed->isChecked())
+    {
+        if(ui->edit_TrainReduceOpacity->placeholderText().toInt() != story_info->train_age_percent)
+            ui->edit_TrainReduceOpacity->setText(QString::number(story_info->train_age_percent));
+    }
+
+//    ui->group_TrainAgeEffects->setEnabled(story_info->train_age_effect != AgeEffects::None);
+//    ui->radio_TrainReduceOpacityFixed->setEnabled(story_info->train_age_effect == AgeEffects::ReduceOpacityFixed);
+//    if(percent)
+//        ui->edit_TrainReduceOpacity->setText(QString::number(percent));
+//    ui->radio_TrainReduceOpacityByAge->setEnabled(story_info->train_age_effect == AgeEffects::ReduceOpacityByAge);
+
+    ui->check_DashboardReduceOpacityFixed->setChecked(story_info->dashboard_use_age_effect);
+    if(ui->check_DashboardReduceOpacityFixed->isChecked())
+    {
+        if(ui->edit_DashboardReduceOpacity->placeholderText().toInt() != story_info->dashboard_age_percent)
+            ui->edit_DashboardReduceOpacity->setText(QString::number(story_info->dashboard_age_percent));
+    }
+
+    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
+    line_edit->setText(story_info->dashboard_group_id);
+
+    ui->group_Train->setHidden(!IS_TRAIN(story_info->entry_type));
+    ui->group_Dashboard->setHidden(!IS_DASHBOARD(story_info->entry_type));
+
+    set_angle();
+
+    if(!ui->edit_Angle->placeholderText().compare(story_info->identity))
+        ui->edit_Angle->setText(QString());
 }
 
-void AddStoryDialog::set_ttl(uint ttl)
-{
-    ui->edit_TTL->setText(QString::number(ttl));
-}
-
-void AddStoryDialog::set_headlines_always_visible(bool visible)
-{
-    ui->check_KeepOnTop->setChecked(visible);
-}
-
-void AddStoryDialog::set_display(int primary_screen, int screen_count)
+void AddStoryDialog::set_display()
 {
     QVector<QRadioButton*> display_buttons { ui->radio_Monitor1, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
+
+    QDesktopWidget* desktop = QApplication::desktop();
+    int screen_count = desktop->screenCount();
+
     for(int i = 0; i < 4;++i)
     {
         if((i + 1) > screen_count)
             display_buttons[i]->setDisabled(true);
-       if(i == primary_screen)
+       if(i == story_info->primary_screen)
            display_buttons[i]->setChecked(true);
     }
 
     if(screen_count == 1)
         ui->radio_Monitor1->setDisabled(true);
-}
-
-void AddStoryDialog::set_headlines_size(int width, int height)
-{
-    ui->radio_InterpretAsPixels->setChecked(true);
-
-    QRegExp rx("\\d+");
-    ui->edit_HeadlinesFixedWidth->setValidator(new QRegExpValidator(rx, this));
-    ui->edit_HeadlinesFixedHeight->setValidator(new QRegExpValidator(rx, this));
-
-    if(width)
-        ui->edit_HeadlinesFixedWidth->setText(QString::number(width));
-    if(height)
-        ui->edit_HeadlinesFixedHeight->setText(QString::number(height));
-}
-
-void AddStoryDialog::set_headlines_size(double width, double height)
-{
-    ui->radio_InterpretAsPercentage->setChecked(true);
-
-    ui->edit_HeadlinesFixedWidth->setValidator(new QDoubleValidator(this));
-    ui->edit_HeadlinesFixedHeight->setValidator(new QDoubleValidator(this));
-
-    if(width)
-        ui->edit_HeadlinesFixedWidth->setText(QString::number(width));
-    if(height)
-        ui->edit_HeadlinesFixedHeight->setText(QString::number(height));
-}
-
-void AddStoryDialog::set_limit_content(int lines)
-{
-    ui->check_LimitContent->setChecked(lines != 0);
-    ui->edit_LimitContent->setEnabled(ui->check_LimitContent->isChecked());
-    if(lines)
-        ui->edit_LimitContent->setText(QString::number(lines));
-}
-
-void AddStoryDialog::set_headlines_fixed_text(FixedText fixed_type)
-{
-    ui->radio_HeadlinesSizeTextScale->setChecked(fixed_type == FixedText::None || fixed_type == FixedText::ScaleToFit);
-    ui->radio_HeadlinesSizeTextClip->setChecked(fixed_type == FixedText::ClipToFit);
-}
-
-void AddStoryDialog::set_animation_entry_and_exit(AnimEntryType entry_type, AnimExitType exit_type)
-{
-    ui->combo_EntryType->setCurrentIndex(static_cast<int>(entry_type));
-    ui->combo_ExitType->setCurrentIndex(static_cast<int>(exit_type));
-
-    slot_entry_type_changed(ui->combo_EntryType->currentIndex());
-}
-
-void AddStoryDialog::set_fade_target_duration(int duration)
-{
-    if(duration)
-        ui->edit_FadeTargetMilliseconds->setText(QString::number(duration));
-}
-
-void AddStoryDialog::set_anim_motion_duration(int duration)
-{
-    if(duration)
-        ui->edit_AnimMotionMilliseconds->setText(QString::number(duration));
-}
-
-void AddStoryDialog::set_train_age_effects(AgeEffects effect, int percent)
-{
-    ui->group_AgeEffects->setEnabled(effect != AgeEffects::None);
-    ui->radio_TrainReduceOpacityFixed->setEnabled(effect == AgeEffects::ReduceOpacityFixed);
-    if(percent)
-        ui->edit_TrainReduceOpacity->setText(QString::number(percent));
-    ui->edit_TrainReduceOpacity->setEnabled(effect == AgeEffects::ReduceOpacityFixed);
-    ui->radio_TrainReduceOpacityByAge->setEnabled(effect == AgeEffects::ReduceOpacityByAge);
-}
-
-void AddStoryDialog::set_dashboard_age_effects(int percent)
-{
-    ui->check_DashboardReduceOpacityFixed->setChecked(percent != 0);
-    if(!percent)
-        ui->edit_DashboardReduceOpacity->setText("");
-    else
-        ui->edit_DashboardReduceOpacity->setText(QString::number(percent));
-}
-
-void AddStoryDialog::set_dashboard_group_id(const QString& group_id)
-{
-    if(!group_id.isEmpty())
-        ui->combo_DashboardGroupId->setEditText(group_id);
 }
 
 void AddStoryDialog::configure_for_local(bool for_local)
@@ -352,180 +410,75 @@ void AddStoryDialog::configure_for_local(bool for_local)
     button->setEnabled(for_local || reporter_configuration.count());
 }
 
-QString AddStoryDialog::get_story_identity()
+void AddStoryDialog::set_angle()
 {
-    if(story.isLocalFile())
-        return story.toLocalFile();
+    if(!ui->edit_Angle->text().isEmpty())
+        return;
 
-    // otherwise, we try to make something unique to this URL...
-    Q_ASSERT(!plugin_reporter.isNull());
+    AnimEntryType entry_type = static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());
 
-    QString identity = ui->edit_Target->text();
-    identity += QString(":%1").arg(plugin_reporter->DisplayName()[0]);
-
-    QStringList params = plugin_reporter->Requires();
-    if(!params.isEmpty())
+    QString target;
+    if(story_info->story.isLocalFile())
     {
-        foreach(const QString& param, reporter_configuration)
+        QFileInfo info(story_info->story.toLocalFile());
+        target = info.fileName();
+    }
+    else
+    {
+        QString story_str = story_info->story.toString();
+        if(story_str.endsWith("/"))
+            story_str.chop(1);
+        target = story_str.split("/").back();
+    }
+
+    QStringList requirements = plugin_reporter->Requires();
+    QString plugin_params;
+    QList<QLineEdit*> all_edits = ui->group_ReporterConfig->findChildren<QLineEdit*>();
+    int index = 0;
+    foreach(QLineEdit* child, all_edits)
+    {
+        QString value = child->text();
+        if(!value.isEmpty() && !requirements[(index*2)+1].compare("string"))
         {
-            if(!param.startsWith("multiline:"))
-                identity += QString(":%1").arg(param);
+            if(plugin_params.length())
+                plugin_params += "?";
+            plugin_params += value.replace(" ", "_");
         }
+        ++index;
     }
+    QString plugin_id = QString("%1%2").arg(plugin_reporter->DisplayName()[0]).arg(plugin_params.isEmpty() ? "" : QString("(%1)").arg(plugin_params));
 
-    return identity;
-}
+    QString display = QString("Display %1").arg(ui->radio_Monitor1->isChecked() ? 1 : (ui->radio_Monitor2->isChecked() ? 2 : (ui->radio_Monitor3->isChecked() ? 3 : 4)));
 
-QUrl AddStoryDialog::get_target()
-{
-    if(ui->group_ReporterConfig->isHidden())
-        return QUrl::fromLocalFile(ui->edit_Target->text());
-
-    QString text = ui->edit_Target->text();
-    if(text.endsWith('/'))
-        text.chop(1);
-    return QUrl(text);
-}
-
-LocalTrigger AddStoryDialog::get_trigger()
-{
-    return static_cast<LocalTrigger>(ui->combo_LocalTrigger->currentIndex());
-}
-
-uint AddStoryDialog::get_ttl()
-{
-    QString value = ui->edit_TTL->text();
-    if(value.isEmpty())
-        return ui->edit_TTL->placeholderText().toInt();
-    return value.toInt();
-}
-
-bool AddStoryDialog::get_headlines_always_visible()
-{
-    return ui->check_KeepOnTop->isChecked();
-}
-
-int AddStoryDialog::get_display()
-{
-    QVector<QRadioButton*> buttons { ui->radio_Monitor1, ui->radio_Monitor2, ui->radio_Monitor3, ui->radio_Monitor4 };
-    for(int i = 0; i < 4;++i)
+    if(IS_DASHBOARD(entry_type))
     {
-        if(buttons[i]->isChecked())
-            return i;
+        QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
+        if(line_edit->text().isEmpty())
+            ui->edit_Angle->setPlaceholderText(QString("%1::%2::%3::%4::%5")
+                            .arg(display)
+                            .arg(animentrytype_map[entry_type])
+                            .arg(plugin_id)
+                            .arg(line_edit->placeholderText())
+                            .arg(target));
+        else
+            ui->edit_Angle->setPlaceholderText(QString("%1::%2::%3::%4::%5")
+                            .arg(display)
+                            .arg(animentrytype_map[entry_type])
+                            .arg(plugin_id)
+                            .arg(line_edit->text())
+                            .arg(target));
     }
-
-    return 0;
-}
-
-bool AddStoryDialog::get_headlines_size(int& width, int& height)
-{
-    if(!ui->radio_InterpretAsPixels->isChecked())
-        return false;
-
-    width = 0;
-    height = 0;
-
-    if(ui->edit_HeadlinesFixedWidth->text().isEmpty())
-        width = ui->edit_HeadlinesFixedWidth->placeholderText().toInt();
     else
-        width = ui->edit_HeadlinesFixedWidth->text().toInt();
-    if(ui->edit_HeadlinesFixedHeight->text().isEmpty())
-        height = ui->edit_HeadlinesFixedHeight->placeholderText().toInt();
-    else
-        height = ui->edit_HeadlinesFixedHeight->text().toInt();
-
-    return true;
-}
-
-bool AddStoryDialog::get_headlines_size(double& width, double& height)
-{
-    if(ui->radio_InterpretAsPixels->isChecked())
-        return false;
-
-    width = 0.0;
-    height = 0.0;
-
-    if(ui->edit_HeadlinesFixedWidth->text().isEmpty())
-        width = ui->edit_HeadlinesFixedWidth->placeholderText().toDouble();
-    else
-        width = ui->edit_HeadlinesFixedWidth->text().toDouble();
-    if(ui->edit_HeadlinesFixedHeight->text().isEmpty())
-        height = ui->edit_HeadlinesFixedHeight->placeholderText().toDouble();
-    else
-        height = ui->edit_HeadlinesFixedHeight->text().toDouble();
-
-    return true;
-}
-
-bool AddStoryDialog::get_limit_content(int& lines)
-{
-    lines = 0;
-    if(!ui->edit_LimitContent->text().isEmpty())
-        lines = ui->edit_LimitContent->text().toInt();
-    return ui->check_LimitContent->isChecked();
-}
-
-FixedText AddStoryDialog::get_headlines_fixed_text()
-{
-    return ui->radio_HeadlinesSizeTextScale->isChecked() ? FixedText::ScaleToFit : FixedText::ClipToFit;
-}
-
-AnimEntryType AddStoryDialog::get_animation_entry_type()
-{
-    return static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());
-}
-
-AnimExitType AddStoryDialog::get_animation_exit_type()
-{
-    return static_cast<AnimExitType>(ui->combo_ExitType->currentIndex());
-}
-
-int AddStoryDialog::get_fade_target_duration()
-{
-    if(ui->edit_FadeTargetMilliseconds->text().isEmpty())
-        return ui->edit_FadeTargetMilliseconds->placeholderText().toInt();
-    return ui->edit_FadeTargetMilliseconds->text().toInt();
-}
-
-int AddStoryDialog::get_anim_motion_duration()
-{
-    if(ui->edit_AnimMotionMilliseconds->text().isEmpty())
-        return ui->edit_AnimMotionMilliseconds->placeholderText().toInt();
-    return ui->edit_AnimMotionMilliseconds->text().toInt();
-}
-
-AgeEffects AddStoryDialog::get_train_age_effects(int& percent)
-{
-    if(!ui->group_AgeEffects->isEnabled())
-        return AgeEffects::None;
-
-    percent = ui->edit_TrainReduceOpacity->text().toInt();
-    return (ui->radio_TrainReduceOpacityFixed->isChecked() ? AgeEffects::ReduceOpacityFixed : AgeEffects::ReduceOpacityByAge);
-}
-
-bool AddStoryDialog::get_dashboard_age_effects(int& percent)
-{
-    percent = ui->edit_DashboardReduceOpacity->text().toInt();
-    return ui->check_DashboardReduceOpacityFixed->isChecked();
-}
-
-QString AddStoryDialog::get_dashboard_group_id()
-{
-    QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
-    QString group_id = line_edit->text();
-    if(group_id.isEmpty())
-        return line_edit->placeholderText();
-    return group_id;
+        ui->edit_Angle->setPlaceholderText(QString("%1::%2::%3::%4")
+                        .arg(display)
+                        .arg(animentrytype_map[entry_type])
+                        .arg(plugin_id)
+                        .arg(target));
 }
 
 void AddStoryDialog::slot_accepted()
 {
-    reporter_configuration.clear();
-    QList<QLineEdit*> all_edits = ui->group_ReporterConfig->findChildren<QLineEdit*>();
-    foreach(QLineEdit* edit, all_edits)
-        reporter_configuration << edit->text();
-
-    plugin_reporter->SetRequirements(reporter_configuration);
+    save_settings();
 }
 
 void AddStoryDialog::slot_entry_type_changed(int index)
@@ -537,6 +490,8 @@ void AddStoryDialog::slot_entry_type_changed(int index)
     ui->group_Dashboard->setHidden(!is_dashboard);
 
     ui->combo_ExitType->setEnabled(!is_train && !is_dashboard);
+
+    set_angle();
 }
 
 void AddStoryDialog::slot_interpret_size_clicked(bool /*checked*/)
@@ -597,6 +552,8 @@ void AddStoryDialog::slot_set_group_id_text(int index)
     if(str.isEmpty())
         return;
     ui->combo_DashboardGroupId->setEditText(str);
+
+    set_angle();
 }
 
 void AddStoryDialog::slot_update_groupid_list()
@@ -613,6 +570,8 @@ void AddStoryDialog::slot_update_groupid_list()
 
     ui->combo_DashboardGroupId->addItem(id);
     ui->combo_DashboardGroupId->lineEdit()->setText(id);
+
+    set_angle();
 }
 
 void AddStoryDialog::slot_configure_reporter_configure()
@@ -724,17 +683,19 @@ void AddStoryDialog::slot_configure_reporter_configure()
     {
         for(int i = 0;i < edit_fields.count();++i)
         {
-            if(required_fields.at(i))
+            QLineEdit* edit = qobject_cast<QLineEdit*>(edit_fields[i]);
+            if(edit)
             {
-                QLineEdit* edit = qobject_cast<QLineEdit*>(edit_fields[i]);
-                if(edit)
+                if(required_fields.at(i))
                     connect(edit, &QLineEdit::textChanged, this, &AddStoryDialog::slot_config_reporter_check_required);
                 else
-                {
-                    QPlainTextEdit* multiline = qobject_cast<QPlainTextEdit*>(edit_fields[i]);
-                    if(multiline)
-                        connect(multiline, &QPlainTextEdit::textChanged, this, &AddStoryDialog::slot_config_reporter_check_required);
-                }
+                    connect(edit, &QLineEdit::textChanged, this, &AddStoryDialog::set_angle);
+            }
+            else
+            {
+                QPlainTextEdit* multiline = qobject_cast<QPlainTextEdit*>(edit_fields[i]);
+                if(multiline && required_fields.at(i))
+                    connect(multiline, &QPlainTextEdit::textChanged, this, &AddStoryDialog::slot_config_reporter_check_required);
             }
         }
     }
@@ -803,4 +764,6 @@ void AddStoryDialog::slot_config_reporter_check_required()
     QDialogButtonBox* buttonBox = findChild<QDialogButtonBox*>("buttonBox");
     QPushButton* button = buttonBox->button(QDialogButtonBox::Ok);
     button->setEnabled(have_required_fields);
+
+    set_angle();
 }

@@ -114,7 +114,7 @@ bool TeamCity::SetRequirements(const QStringList& parameters)
         poll_timeout = poll_timeout < 30 ? 60 : poll_timeout;
     }
     if(parameters.count() > 5 && !parameters[5].isEmpty())
-        report_template = parameters[4].split("<br>");
+        report_template = parameters[5].split("<br>");
 
     if(username.isEmpty())
     {
