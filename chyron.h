@@ -9,6 +9,7 @@
 
 #include "types.h"
 #include "specialize.h"
+#include "storyinfo.h"
 
 #include "lanemanager.h"
 #include "headline.h"
@@ -26,56 +27,12 @@ class Chyron : public QObject
 {
     Q_OBJECT
 public:
-    struct Settings
-    {
-        uint            ttl;
-        int             display;
-        bool            always_visible;
-        AnimEntryType   entry_type;
-        AnimExitType    exit_type;
-        int             anim_motion_duration;
-        int             fade_target_duration;
-        ReportStacking  stacking_type;
-        int             headline_pixel_width;
-        int             headline_pixel_height;
-        double          headline_percent_width;
-        double          headline_percent_height;
-        FixedText       headline_fixed_text;
-        AgeEffects      train_effect;
-        int             train_reduce_opacity;
-        QString         dashboard_group;
-        bool            dashboard_effect;
-        int             dashboard_reduce_opacity;
-        int             margin;
-
-        Settings()
-            : anim_motion_duration(500),
-              fade_target_duration(500),
-              headline_pixel_width(0),
-              headline_pixel_height(0),
-              headline_percent_width(0.0),
-              headline_percent_height(0.0),
-              headline_fixed_text(FixedText::None),
-              train_effect(AgeEffects::None),
-              train_reduce_opacity(0),
-              dashboard_effect(false),
-              dashboard_reduce_opacity(0),
-              margin(5)
-        {}
-
-        Settings(const Settings& source)
-        {
-            *this = source;
-        }
-    };
-
-    explicit Chyron(const QUrl& story,
-                    const Chyron::Settings& chyron_settings,
+    explicit Chyron(StoryInfoPointer story_info,
                     LaneManagerPointer lane_manager,
                     QObject* parent = nullptr);
     ~Chyron();
 
-    const Settings& get_settings()      const   { return settings; }
+    StoryInfoPointer get_settings()      const   { return story_info; }
 
     // These methods are used by the Lane Manager to adjust lanes
     // when a Chyron is deleted.  This does an immediate move of
@@ -114,8 +71,7 @@ protected:  // methods
     void        dashboard_expire_headlines();
 
 protected:  // data members
-    QUrl            story;
-    Settings        settings;
+    StoryInfoPointer story_info;
 
     QTimer*         age_timer;
 

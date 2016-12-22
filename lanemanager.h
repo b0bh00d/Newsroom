@@ -8,6 +8,7 @@
 #include "specialize.h"
 
 #include "headline.h"
+#include "storyinfo.h"
 
 class Chyron;
 

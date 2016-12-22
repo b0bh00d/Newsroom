@@ -59,13 +59,23 @@ protected:  // methods
     void                dropEvent(QDropEvent *event);
 
 private:    // typedefs and enums
+    struct StaffInfo
+    {
+        // this is the staff and equipment assigned to
+        // cover a story
+        IReporterPointer    reporter;
+        ProducerPointer     producer;
+        ChyronPointer       chyron;
+    };
+
     SPECIALIZE_MAP(QString, QByteArray, Window)             // "WindowMap"
-    SPECIALIZE_MAP(QString, ChyronPointer, Story)              // "StoryMap"
-    SPECIALIZE_LIST(ProducerPointer, Producer)              // "ProducerList"
+//    SPECIALIZE_MAP(QString, ChyronPointer, Story)           // "StoryMap"
+//    SPECIALIZE_LIST(ProducerPointer, Producer)              // "ProducerList"
     SPECIALIZE_QUEUE(HeadlinePointer, Headline)             // "HeadlineQueue"
     SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)           // "HeadlineMap"
     SPECIALIZE_VECTOR(ChyronPointer, Story)                 // "StoryVector"
     SPECIALIZE_MAP(QString, PluginsInfoVector, Plugins)     // "PluginsMap"
+    SPECIALIZE_MAP(StoryInfoPointer, StaffInfo, Staff)      // "StaffMap"
 
 private slots:
     void                slot_quit();
@@ -81,6 +91,8 @@ private:    // methods
     void                save_application_settings();
     void                save_window_data(QWidget* window);
     void                restore_window_data(QWidget* window);
+    void                restore_story_defaults(StoryInfoPointer story_info);
+    void                save_story_defaults(StoryInfoPointer story_info);
 
     void                build_tray_menu();
 
@@ -105,8 +117,9 @@ private:    // data members
 
     QMimeDatabase       mime_db;
 
-    StoryMap            stories;
-    ProducerList        producers;
+    StaffMap            staff;
+//    StoryMap            stories;
+//    ProducerList        producers;
 
     QString             headline_stylesheet_normal;
     QString             headline_stylesheet_alert;
@@ -116,6 +129,6 @@ private:    // data members
 
     PluginsMap          plugins_map;
 
-    QSettings*          settings;
+    SettingsPointer     settings;
     QString             settings_file_name;
 };

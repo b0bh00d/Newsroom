@@ -1,6 +1,9 @@
 #pragma once
 
+#include <QtCore/QUrl>
+
 #include "types.h"
+#include "specialize.h"
 
 struct StoryInfo
 {
@@ -22,7 +25,7 @@ struct StoryInfo
 
                     // Notifications
     LocalTrigger    trigger_type;
-    int             ttl;
+    uint            ttl;
 
                     // Presentation
                     //   Display
@@ -32,10 +35,12 @@ struct StoryInfo
     bool            headlines_always_visible;
 
                     //   Size
+    bool            interpret_as_pixels;
     int             headlines_pixel_width, headlines_pixel_height;
     double          headlines_percent_width, headlines_percent_height;
 
                     //   Visibility
+    bool            limit_content;
     int             limit_content_to;
     FixedText       headlines_fixed_type;
 
@@ -47,30 +52,51 @@ struct StoryInfo
 
                     //   Train
                     //     Age Effects
+    bool            train_use_age_effect;
     AgeEffects      train_age_effect;
     int             train_age_percent;
 
                     //   Dashboard
                     //     Age Effects
-    int             dashboard_age_effects;
+    bool            dashboard_use_age_effect;
+    int             dashboard_age_percent;
 
                     //     Group ID
     QString         dashboard_group_id;
 
+                    // Chyron settings (reference only; not saved)
+    ReportStacking  stacking_type;
+    int             margin;
+
+                    // Producer settings (reference only; not saved)
+    QFont           font;
+    QString         normal_stylesheet;
+    QString         alert_stylesheet;
+    QStringList     alert_keywords;
+
     StoryInfo()
         : trigger_type(LocalTrigger::NewContent),
+          ttl(5),
           primary_screen(0),
           headlines_always_visible(true),
+          interpret_as_pixels(true),
           headlines_pixel_width(0),
           headlines_pixel_height(0),
           headlines_percent_width(0.0),
           headlines_percent_height(0.0),
+          limit_content(false),
           limit_content_to(0),
           headlines_fixed_type(FixedText::None),
-          anim_motion_duration(0),
-          fade_target_duration(0),
+          anim_motion_duration(500),
+          fade_target_duration(500),
+          train_use_age_effect(false),
           train_age_effect(AgeEffects::None),
-          train_age_percent(0),
-          dashboard_age_effects(0) {}
+          train_age_percent(60),
+          dashboard_use_age_effect(false),
+          dashboard_age_percent(60),
+          stacking_type(ReportStacking::Stacked),
+          margin(5) {}
     StoryInfo(const StoryInfo& source) { *this = source; }
 };
+
+SPECIALIZE_SHAREDPTR(StoryInfo, StoryInfo)      // "StoryInfoPointer"
