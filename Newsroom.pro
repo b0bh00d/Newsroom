@@ -52,6 +52,7 @@ SOURCES += main.cpp \
         producer.cpp \
         addstorydialog.cpp \
         qvlabel.cpp \
+    editheadlinedialog.cpp
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -67,7 +68,8 @@ HEADERS  += mainwindow.h \
             addstorydialog.h \
             qvlabel.h \
             storyinfo.h \
-    reporters/interfaces/ireporter.h
+    reporters/interfaces/ireporter.h \
+    editheadlinedialog.h
 
 # Plug-in interface
 HEADERS += \
@@ -75,6 +77,7 @@ HEADERS += \
 FORMS    += mainwindow.ui \
             settingsdialog.ui \
             addstorydialog.ui \
+    editheadlinedialog.ui
 
 highlight_lanes {
     SOURCES += highlightwidget.cpp

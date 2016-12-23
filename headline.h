@@ -37,9 +37,7 @@ public:
     }
 
     void    set_font(const QFont& font)                         { this->font = font; }
-    void    set_normal_stylesheet(const QString& stylesheet)    { normal_stylesheet = stylesheet; }
-    void    set_alert_stylesheet(const QString& stylesheet)     { alert_stylesheet = stylesheet; }
-    void    set_alert_keywords(const QStringList& keywords)     { alert_keywords = keywords; }
+    void    set_stylesheet(const QString& stylesheet)           { this->stylesheet = stylesheet; }
 
 signals:
     void    signal_mouse_enter();
@@ -70,9 +68,7 @@ protected:  // data members
     QUrl            story;
     QString         headline;
     QFont           font;
-    QString         normal_stylesheet;
-    QString         alert_stylesheet;
-    QStringList     alert_keywords;
+    QString         stylesheet;
 
     bool                ignore;     // Chyron
     uint                viewed;     // Chyron

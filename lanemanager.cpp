@@ -50,7 +50,7 @@ void LaneManager::subscribe(Chyron* chyron)
                                                                         QString("<h2><center>%1</center></h2>").arg(story_info->dashboard_group_id),
                                                                         story_info->entry_type));
             dashboard_group->lane_header->set_font(headline_font);
-            dashboard_group->lane_header->set_normal_stylesheet(headline_stylesheet);
+            dashboard_group->lane_header->set_stylesheet(headline_stylesheet);
 
             int w = 0;
             int h = 0;

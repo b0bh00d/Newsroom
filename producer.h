@@ -28,6 +28,7 @@ class Producer : public QObject
 public:
     explicit Producer(IReporterPointer reporter,
                       StoryInfoPointer story_info,
+                      StyleListPointer style_list,
                       QObject *parent = 0);
 
     QUrl    get_story() const { return story_info->story; }
@@ -48,6 +49,7 @@ private:        // methods
 private:        // data members
     IReporterPointer    reporter_plugin;
     StoryInfoPointer    story_info;
+    StyleListPointer    style_list;
 };
 
 SPECIALIZE_SHAREDPTR(Producer, Producer)    // "ProducerPointer"
