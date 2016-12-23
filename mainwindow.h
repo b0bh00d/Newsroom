@@ -4,6 +4,7 @@
 
 #include <QtWidgets/QAction>
 #include <QtWidgets/QSystemTrayIcon>
+#include <QtWidgets/QTreeWidgetItem>
 
 #include <QtGui/QCloseEvent>
 #include <QtGui/QDragEnterEvent>
@@ -52,6 +53,9 @@ public:
 
     void                set_visible(bool visible);
 
+    void                save_window_data(QWidget* window);
+    void                restore_window_data(QWidget* window);
+
 protected:  // methods
     void                closeEvent(QCloseEvent *event);
     void                dragEnterEvent(QDragEnterEvent *event);
@@ -89,8 +93,6 @@ private:    // methods
     bool                load_plugin_factories();
     void                load_application_settings();
     void                save_application_settings();
-    void                save_window_data(QWidget* window);
-    void                restore_window_data(QWidget* window);
     void                restore_story_defaults(StoryInfoPointer story_info);
     void                save_story_defaults(StoryInfoPointer story_info);
 
@@ -131,4 +133,10 @@ private:    // data members
 
     SettingsPointer     settings;
     QString             settings_file_name;
+
+    HeadlineStyleList   headline_styles;
+
+    QTreeWidgetItem*    settings_root;
+
+    StyleListPointer    headline_style_list;
 };

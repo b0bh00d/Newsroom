@@ -2,9 +2,11 @@
 
 Producer::Producer(IReporterPointer reporter,
                    StoryInfoPointer story_info,
+                   StyleListPointer style_list,
                    QObject *parent)
     : reporter_plugin(reporter),
       story_info(story_info),
+      style_list(style_list),
       QObject(parent)
 {
 }
@@ -37,13 +39,37 @@ bool Producer::stop_covering_story()
 
 void Producer::file_headline(const QString& data)
 {
+    // check for triggers, and select the stylesheet appropriately
+
+    QString lower_headline = data.toLower();
+
+    QString stylesheet;
+    foreach(const HeadlineStyle& style, (*style_list.data()))
+    {
+        if(!style.name.compare("Default"))
+            continue;
+
+        foreach(const QString& trigger, style.triggers)
+        {
+            if(lower_headline.contains(trigger.toLower()))
+            {
+                stylesheet = style.stylesheet;
+                break;
+            }
+        }
+
+        if(!stylesheet.isEmpty())
+            break;
+    }
+
+    if(stylesheet.isEmpty())
+        stylesheet = (*style_list.data())[0].stylesheet;    // set to Default
+
     // file a headline with the new content
     HeadlinePointer headline(new Headline(story_info->story, data));
 
     headline->set_font(story_info->font);
-    headline->set_normal_stylesheet(story_info->normal_stylesheet);
-    headline->set_alert_stylesheet(story_info->alert_stylesheet);
-    headline->set_alert_keywords(story_info->alert_keywords);
+    headline->set_stylesheet(stylesheet);
 
     emit signal_new_headline(headline);
 }

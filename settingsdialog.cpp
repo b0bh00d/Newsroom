@@ -1,5 +1,10 @@
+#include "mainwindow.h"
+#include "editheadlinedialog.h"
+
 #include "settingsdialog.h"
 #include "ui_settingsdialog.h"
+
+extern MainWindow* mainwindow;
 
 SettingsDialog::SettingsDialog(QWidget *parent) :
     QDialog(parent),
@@ -10,12 +15,12 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     connect(ui->combo_FontFamily, &QFontComboBox::currentFontChanged, this, &SettingsDialog::slot_update_font);
     connect(ui->combo_FontSize, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &SettingsDialog::slot_update_font_size);
+    connect(ui->button_AddStyle, &QPushButton::clicked, this, &SettingsDialog::slot_add_style);
+    connect(ui->button_DeleteStyle, &QPushButton::clicked, this, &SettingsDialog::slot_delete_style);
+    connect(ui->button_EditStyle, &QPushButton::clicked, this, &SettingsDialog::slot_edit_style);
     connect(ui->list_Stories, &QListWidget::itemSelectionChanged, this, &SettingsDialog::slot_story_update);
     connect(ui->button_RemoveStory, &QPushButton::clicked, this, &SettingsDialog::slot_remove_story);
-    connect(ui->edit_HeadlineStylesheetNormal, &QLineEdit::editingFinished, this, &SettingsDialog::slot_apply_normal_stylesheet);
-    connect(ui->edit_HeadlineStylesheetAlert, &QLineEdit::editingFinished, this, &SettingsDialog::slot_apply_alert_stylesheet);
-    connect(ui->combo_Styles, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-            this, &SettingsDialog::slot_apply_predefined_style);
+    connect(ui->tree_Styles, &QTreeWidget::itemSelectionChanged, this, &SettingsDialog::slot_apply_stylesheet);
 
     setWindowTitle(tr("Newsroom: Settings"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
@@ -39,21 +44,20 @@ void SettingsDialog::set_font(const QFont& font)
     slot_update_font(font);
 }
 
-void SettingsDialog::set_normal_stylesheet(const QString& stylesheet)
+void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
 {
-    ui->edit_HeadlineStylesheetNormal->setText(stylesheet);
-    ui->label_HeadlineNormal->setStyleSheet(stylesheet);
-}
+    while(ui->tree_Styles->topLevelItemCount())
+        delete ui->tree_Styles->takeTopLevelItem(0);
 
-void SettingsDialog::set_alert_stylesheet(const QString& stylesheet)
-{
-    ui->edit_HeadlineStylesheetAlert->setText(stylesheet);
-    ui->label_HeadlineAlert->setStyleSheet(stylesheet);
-}
+    new QTreeWidgetItem(ui->tree_Styles, QStringList() << "Default" << "" << "color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;");
 
-void SettingsDialog::set_alert_keywords(const QStringList& alert_words)
-{
-    ui->edit_HeadlineAlertKeywords->setText(alert_words.join(", "));
+    foreach(const HeadlineStyle& style, style_list)
+        new QTreeWidgetItem(ui->tree_Styles, QStringList() << style.name << style.triggers.join(", ") << style.stylesheet);
+
+    for(int i = 0;i < ui->tree_Styles->columnCount();++i)
+        ui->tree_Styles->resizeColumnToContents(i);
+
+    ui->tree_Styles->topLevelItem(0)->setSelected(true);
 }
 
 void SettingsDialog::set_stacking(ReportStacking stack_type)
@@ -88,22 +92,23 @@ QFont SettingsDialog::get_font()
     return f;
 }
 
-QString SettingsDialog::get_normal_stylesheet()
+void SettingsDialog::get_styles(HeadlineStyleList& style_list)
 {
-    return ui->edit_HeadlineStylesheetNormal->text();
-}
+    style_list.clear();
+    for(int i = 0;i < ui->tree_Styles->topLevelItemCount();++i)
+    {
+        QTreeWidgetItem* item = ui->tree_Styles->topLevelItem(i);
+        if(!item->text(0).compare("Default"))
+            continue;
 
-QString SettingsDialog::get_alert_stylesheet()
-{
-    return ui->edit_HeadlineStylesheetAlert->text();
-}
+        HeadlineStyle hs;
+        hs.name = item->text(0);
+        foreach(const QString& trigger, item->text(1).split(","))
+            hs.triggers << trigger.trimmed();
+        hs.stylesheet = item->text(2);
 
-QStringList SettingsDialog::get_alert_keywords()
-{
-    QStringList keywords;
-    foreach(const QString& kw, ui->edit_HeadlineAlertKeywords->text().split(QChar(',')))
-        keywords << kw.trimmed();
-    return keywords;
+        style_list.append(hs);
+    }
 }
 
 ReportStacking SettingsDialog::get_stacking()
@@ -135,8 +140,7 @@ void SettingsDialog::slot_update_font(const QFont& font)
 
     QFont f = font;
     f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
-    ui->label_HeadlineNormal->setFont(f);
-    ui->label_HeadlineAlert->setFont(f);
+    ui->label_HeadlineExample->setFont(f);
 }
 
 // font size changed
@@ -144,8 +148,80 @@ void SettingsDialog::slot_update_font_size(int index)
 {
     QFont f = ui->combo_FontFamily->currentFont();
     f.setPointSize(ui->combo_FontSize->itemText(index).toInt());
-    ui->label_HeadlineNormal->setFont(f);
-    ui->label_HeadlineAlert->setFont(f);
+    ui->label_HeadlineExample->setFont(f);
+}
+
+void SettingsDialog::slot_add_style()
+{
+    QTreeWidgetItem* item = ui->tree_Styles->topLevelItem(0);       // "Default"
+
+    EditHeadlineDialog dlg;
+    mainwindow->restore_window_data(&dlg);
+
+    QFont f = ui->combo_FontFamily->currentFont();
+    f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
+    dlg.set_style_font(f);
+    dlg.set_style_stylesheet(item->text(2));
+    QStringList triggers;
+    foreach(const QString& trigger, item->text(1).split(","))
+        triggers << trigger.trimmed();
+    dlg.set_style_triggers(triggers);
+
+    if(dlg.exec() == QDialog::Accepted)
+    {
+        QStringList elements;
+        elements << dlg.get_style_name();
+        elements << dlg.get_style_triggers().join(", ");
+        elements << dlg.get_style_stylesheet();
+
+        new QTreeWidgetItem(ui->tree_Styles, elements);
+
+        for(int i = 0;i < ui->tree_Styles->columnCount();++i)
+            ui->tree_Styles->resizeColumnToContents(i);
+    }
+
+    mainwindow->save_window_data(&dlg);
+}
+
+void SettingsDialog::slot_delete_style()
+{
+    QTreeWidgetItem* item = ui->tree_Styles->selectedItems()[0];
+    delete ui->tree_Styles->takeTopLevelItem(ui->tree_Styles->indexOfTopLevelItem(item));
+}
+
+void SettingsDialog::slot_edit_style()
+{
+    QTreeWidgetItem* item = ui->tree_Styles->selectedItems()[0];
+
+    EditHeadlineDialog dlg;
+    mainwindow->restore_window_data(&dlg);
+
+    QFont f = ui->combo_FontFamily->currentFont();
+    f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
+    dlg.set_style_font(f);
+    dlg.set_style_stylesheet(item->text(2));
+    QStringList triggers;
+    foreach(const QString& trigger, item->text(1).split(","))
+        triggers << trigger.trimmed();
+    dlg.set_style_triggers(triggers);
+
+    if(dlg.exec() == QDialog::Accepted)
+    {
+        item->setText(0, dlg.get_style_name());
+        item->setText(1, dlg.get_style_triggers().join(", "));
+        item->setText(2, dlg.get_style_stylesheet());
+
+        for(int i = 0;i < ui->tree_Styles->columnCount();++i)
+            ui->tree_Styles->resizeColumnToContents(i);
+    }
+
+    mainwindow->save_window_data(&dlg);
+}
+
+void SettingsDialog::slot_apply_stylesheet()
+{
+    QTreeWidgetItem* item = ui->tree_Styles->selectedItems()[0];
+    ui->label_HeadlineExample->setStyleSheet(item->text(2));
 }
 
 void SettingsDialog::slot_story_update()
@@ -162,29 +238,24 @@ void SettingsDialog::slot_remove_story()
         delete ui->list_Stories->takeItem(ui->list_Stories->row(item));
 }
 
-void SettingsDialog::slot_apply_normal_stylesheet()
-{
-    ui->label_HeadlineNormal->setStyleSheet(ui->edit_HeadlineStylesheetNormal->text());
-}
+//void SettingsDialog::slot_apply_alert_stylesheet()
+//{
+//    ui->label_HeadlineAlert->setStyleSheet(ui->edit_HeadlineStylesheetAlert->text());
+//}
 
-void SettingsDialog::slot_apply_alert_stylesheet()
-{
-    ui->label_HeadlineAlert->setStyleSheet(ui->edit_HeadlineStylesheetAlert->text());
-}
+//void SettingsDialog::slot_apply_predefined_style(int index)
+//{
+//    if(index == 0)
+//    {
+//        ui->edit_HeadlineStylesheetNormal->setText("color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;");
+//        ui->edit_HeadlineStylesheetAlert->setText("color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 0, 0, 255), stop:1 rgba(255, 0, 0, 255)); border: 1px solid black; border-radius: 10px;");
+//    }
+//    else if(index == 1)
+//    {
+//        ui->edit_HeadlineStylesheetNormal->setText("color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;");
+//        ui->edit_HeadlineStylesheetAlert->setText("color: rgb(255, 200, 200); background-color: rgb(75, 0, 0); border: 1px solid black;");
+//    }
 
-void SettingsDialog::slot_apply_predefined_style(int index)
-{
-    if(index == 0)
-    {
-        ui->edit_HeadlineStylesheetNormal->setText("color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;");
-        ui->edit_HeadlineStylesheetAlert->setText("color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 0, 0, 255), stop:1 rgba(255, 0, 0, 255)); border: 1px solid black; border-radius: 10px;");
-    }
-    else if(index == 1)
-    {
-        ui->edit_HeadlineStylesheetNormal->setText("color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;");
-        ui->edit_HeadlineStylesheetAlert->setText("color: rgb(255, 200, 200); background-color: rgb(75, 0, 0); border: 1px solid black;");
-    }
-
-    slot_apply_normal_stylesheet();
-    slot_apply_alert_stylesheet();
-}
+//    slot_apply_normal_stylesheet();
+//    slot_apply_alert_stylesheet();
+//}

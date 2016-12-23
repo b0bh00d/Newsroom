@@ -24,6 +24,8 @@ static const QVector<ReportStacking> reportstacking_vec
 #   undef X
 };
 
+MainWindow* mainwindow;
+
 MainWindow::MainWindow(QWidget *parent)
     : trayIconMenu(0),
       window_geometry_save_enabled(true),
@@ -33,6 +35,8 @@ MainWindow::MainWindow(QWidget *parent)
       QMainWindow(parent),
       ui(new Ui::MainWindow)
 {
+    mainwindow = this;
+
     ui->setupUi(this);
 
     headline_font = ui->label->font();
@@ -46,14 +50,27 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle(tr("Newsroom by Bob Hood"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
 
+    headline_style_list = StyleListPointer(new HeadlineStyleList());
+
     settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
     settings = SettingsPointer(new QSettings(settings_file_name, QSettings::IniFormat));
 
+    settings_root = new QTreeWidgetItem(0);
+
     load_application_settings();
+
+    if(headline_style_list->isEmpty())
+    {
+        // add a Default stylesheet entry on first runs
+        HeadlineStyle hs;
+        hs.name = "Default";
+        hs.stylesheet = "color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;";
+        headline_style_list->append(hs);
+    }
 
     setAcceptDrops(true);
 
-    lane_manager = LaneManagerPointer(new LaneManager(headline_font, headline_stylesheet_normal, this));
+    lane_manager = LaneManagerPointer(new LaneManager(headline_font, (*headline_style_list.data())[0].stylesheet, this));
 
     // Load all the available Reporter plug-ins
     if(!load_plugin_factories())
@@ -336,7 +353,7 @@ void MainWindow::dropEvent(QDropEvent* event)
 
             // assign a staff Producer to receive Reporter filings and create headlines
 
-            staff_info.producer = ProducerPointer(new Producer(staff_info.reporter, story_info, this));
+            staff_info.producer = ProducerPointer(new Producer(staff_info.reporter, story_info, headline_style_list, this));
             if(staff_info.producer->start_covering_story())
             {
                 connect(staff_info.producer.data(), &Producer::signal_new_headline,
@@ -420,6 +437,7 @@ void MainWindow::build_tray_menu()
 
 void MainWindow::save_application_settings()
 {
+return;
 //    QString settings_file_name;
 //    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
 //    QSettings settings(settings_file_name, QSettings::IniFormat);
@@ -448,18 +466,36 @@ void MainWindow::save_application_settings()
 //      }
 //    settings.endArray();
 
+    settings->beginGroup("General");
+
     settings->setValue("auto_start", false);
     settings->setValue("chyron.font", headline_font.toString());
     settings->setValue("chyron.stacking", reportstacking_vec.indexOf(chyron_stacking));
 
-    settings->setValue("settings.headline.stylesheet.normal", headline_stylesheet_normal);
-    settings->setValue("settings.headline.stylesheet.alert", headline_stylesheet_alert);
-    settings->setValue("settings.headline.alert.keywords", headline_alert_keywords);
+//    settings->setValue("settings.headline.stylesheet.normal", headline_stylesheet_normal);
+//    settings->setValue("settings.headline.stylesheet.alert", headline_stylesheet_alert);
+//    settings->setValue("settings.headline.alert.keywords", headline_alert_keywords);
+
+    settings->beginWriteArray("HeadlineStyles");
+    quint32 item_index = 0;
+    foreach(const HeadlineStyle& style, headline_styles)
+    {
+        settings->setArrayIndex(item_index++);
+        settings->setValue("name", style.name);
+        settings->setValue("triggers", style.triggers);
+        settings->setValue("stylesheet", style.stylesheet);
+    }
+
+    settings->endArray();
+
+//    settings->endGroup();
+
+//    settings->beginGroup("Application");
 
     if(window_data.size())
     {
-        settings->beginWriteArray("window_data");
-          quint32 item_index = 0;
+        settings->beginWriteArray("WindowData");
+          item_index = 0;
           QList<QString> keys = window_data.keys();
           foreach(QString key, keys)
           {
@@ -471,7 +507,9 @@ void MainWindow::save_application_settings()
         settings->endArray();
     }
 
-    settings->sync();
+    settings->endGroup();
+
+//    settings->sync();
 
     settings_modified = false;
 }
@@ -479,6 +517,10 @@ void MainWindow::save_application_settings()
 void MainWindow::load_application_settings()
 {
     window_data.clear();
+    headline_styles.clear();
+
+return;
+    settings->beginGroup("General");
 
 //    QString settings_file_name;
 //    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
@@ -486,16 +528,32 @@ void MainWindow::load_application_settings()
 
     (void)settings->value("auto_start", false).toBool();
     QFont f = ui->label->font();
-    QString font_str = settings->value("chyron.font", QString()).toString();
+    QString font_str = settings->value("chyron.font", f.toString()).toString();
     if(!font_str.isEmpty())
         headline_font.fromString(font_str);
     chyron_stacking = reportstacking_vec[settings->value("chyron.stacking", 0).toInt()];
 
-    headline_stylesheet_normal = settings->value("settings.headline.stylesheet.normal", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 50, 255), stop:1 rgba(0, 0, 255, 255)); border: 1px solid black; border-radius: 10px;").toString();
-    headline_stylesheet_alert = settings->value("settings.headline.stylesheet.alert", "color: rgb(255, 255, 255); background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 0, 0, 255), stop:1 rgba(255, 0, 0, 255)); border: 1px solid black; border-radius: 10px;").toString();
-    headline_alert_keywords = settings->value("settings.headline.alert.keywords", QStringList()).toStringList();
+    int styles_size = settings->beginReadArray("HeadlineStyles");
+    if(styles_size)
+    {
+        for(int i = 0; i < styles_size; ++i)
+        {
+            settings->setArrayIndex(i);
 
-    int windata_size = settings->beginReadArray("window_data");
+            HeadlineStyle hs;
+            hs.name = settings->value("name").toString();
+            hs.triggers = settings->value("triggers").toStringList();
+            hs.stylesheet = settings->value("triggers").toString();
+
+            headline_styles.append(hs);
+        }
+    }
+
+//    settings->endGroup();
+
+//    settings->beginGroup("Application");
+
+    int windata_size = settings->beginReadArray("WindowData");
     if(windata_size)
     {
         for(int i = 0; i < windata_size; ++i)
@@ -507,6 +565,9 @@ void MainWindow::load_application_settings()
         }
     }
     settings->endArray();
+
+    settings->endGroup();
+
     settings_modified = !QFile::exists(settings_file_name);
 }
 
@@ -569,9 +630,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     dlg.set_autostart(false);
     dlg.set_font(headline_font);
-    dlg.set_normal_stylesheet(headline_stylesheet_normal);
-    dlg.set_alert_stylesheet(headline_stylesheet_alert);
-    dlg.set_alert_keywords(headline_alert_keywords);
+    dlg.set_styles(headline_styles);
     dlg.set_stacking(chyron_stacking);
     dlg.set_stories(story_identities);
 
@@ -580,12 +639,11 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     if(dlg.exec() == QDialog::Accepted)
     {
         (void)dlg.get_autostart();
-        headline_font               = dlg.get_font();
-        chyron_stacking             = dlg.get_stacking();
-        headline_stylesheet_normal  = dlg.get_normal_stylesheet();
-        headline_stylesheet_alert   = dlg.get_alert_stylesheet();
-        headline_alert_keywords     = dlg.get_alert_keywords();
+        headline_font                    = dlg.get_font();
+        chyron_stacking                  = dlg.get_stacking();
         QList<QString> remaining_stories = dlg.get_stories();
+
+        dlg.get_styles(headline_styles);
 
         if(remaining_stories.count() != staff.count())
         {

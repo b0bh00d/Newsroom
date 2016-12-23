@@ -2,6 +2,8 @@
 
 #include <QtCore/QPluginLoader>
 #include <QtCore/QSettings>
+#include <QtCore/QString>
+#include <QtCore/QStringList>
 
 #include "specialize.h"
 
@@ -62,3 +64,13 @@ struct PluginInfo
 };
 
 SPECIALIZE_VECTOR(PluginInfo, PluginsInfo)              // "PluginsInfoVector"
+
+struct HeadlineStyle
+{
+    QString     name;
+    QString     stylesheet;
+    QStringList triggers;
+};
+
+SPECIALIZE_LIST(HeadlineStyle, HeadlineStyle)           // "HeadlineStyleList"
+SPECIALIZE_SHAREDPTR(HeadlineStyleList, StyleList)      // "StyleListPointer"
