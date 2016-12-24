@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QtCore/QPluginLoader>
-#include <QtCore/QSettings>
+//#include <QtCore/QSettings>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 
@@ -52,7 +52,6 @@ enum class FixedText
 };
 
 SPECIALIZE_SHAREDPTR(QPluginLoader, Factory)            // "FactoryPointer"
-SPECIALIZE_SHAREDPTR(QSettings, Settings)               // "SettingsPointer"
 
 struct PluginInfo
 {

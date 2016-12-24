@@ -11,6 +11,8 @@
 
 #include "types.h"
 #include "storyinfo.h"
+#include "settings.h"
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
@@ -52,10 +54,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     headline_style_list = StyleListPointer(new HeadlineStyleList());
 
-    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-    settings = SettingsPointer(new QSettings(settings_file_name, QSettings::IniFormat));
-
-    settings_root = new QTreeWidgetItem(0);
+    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.xml").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    settings = SettingsPointer(new Settings("Newsroom", settings_file_name));
+    settings->cache();
 
     load_application_settings();
 
@@ -148,90 +149,92 @@ bool MainWindow::load_plugin_factories()
 
 void MainWindow::restore_story_defaults(StoryInfoPointer story_info)
 {
-    settings->beginGroup("StoryDefaults");
+    settings->begin_section("/StoryDefaults");
 
-    story_info->story                    = settings->value("story", QUrl()).toUrl();
-    story_info->identity                 = settings->value("identity", QString()).toString();
-    story_info->reporter_class           = settings->value("reporter_class", QString()).toString();
-    story_info->reporter_id              = settings->value("reporter_id", QString()).toString();
-    story_info->reporter_parameters      = settings->value("reporter_parameters", QStringList()).toStringList();
-    story_info->trigger_type             = static_cast<LocalTrigger>(settings->value("local_trigger", 0).toInt());
-    story_info->ttl                      = settings->value("ttl", story_info->ttl).toInt();
-    story_info->primary_screen           = settings->value("primary_screen", 0).toInt();
-    story_info->headlines_always_visible = settings->value("headlines_always_visible", true).toBool();
-    story_info->interpret_as_pixels      = settings->value("interpret_as_pixels", true).toBool();
-    story_info->headlines_pixel_width    = settings->value("headlines_pixel_width", 0).toInt();
-    story_info->headlines_pixel_height   = settings->value("headlines_pixel_height", 0).toInt();
-    story_info->headlines_percent_width  = settings->value("headlines_percent_width", 0.0).toDouble();
-    story_info->headlines_percent_height = settings->value("headlines_percent_height", 0.0).toDouble();
-    story_info->limit_content_to         = settings->value("limit_content_to", 0).toInt();
-    story_info->headlines_fixed_type     = static_cast<FixedText>(settings->value("headlines_fixed_type", 0).toInt());
-    story_info->entry_type               = static_cast<AnimEntryType>(settings->value("entry_type", 0).toInt());
-    story_info->exit_type                = static_cast<AnimExitType>(settings->value("exit_type", 0).toInt());
-    story_info->anim_motion_duration     = settings->value("anim_motion_duration", story_info->anim_motion_duration).toInt();
-    story_info->fade_target_duration     = settings->value("fade_target_duration", story_info->fade_target_duration).toInt();
-    story_info->train_use_age_effect     = settings->value("train_use_age_effects", false).toBool();
-    story_info->train_age_effect         = static_cast<AgeEffects>(settings->value("train_age_effect", 0).toInt());
-    story_info->train_age_percent        = settings->value("train_age_percent", story_info->train_age_percent).toInt();
-    story_info->dashboard_use_age_effect = settings->value("dashboard_use_age_effects", false).toBool();
-    story_info->dashboard_age_percent    = settings->value("dashboard_age_percent", story_info->dashboard_age_percent).toInt();
-    story_info->dashboard_group_id       = settings->value("dashboard_group_id", QString()).toString();
+    story_info->story                    = settings->get_item("story", QUrl()).toUrl();
+    story_info->identity                 = settings->get_item("identity", QString()).toString();
+    story_info->reporter_class           = settings->get_item("reporter_class", QString()).toString();
+    story_info->reporter_id              = settings->get_item("reporter_id", QString()).toString();
+    story_info->reporter_parameters      = settings->get_item("reporter_parameters", QStringList()).toStringList();
+    story_info->trigger_type             = static_cast<LocalTrigger>(settings->get_item("local_trigger", 0).toInt());
+    story_info->ttl                      = settings->get_item("ttl", story_info->ttl).toInt();
+    story_info->primary_screen           = settings->get_item("primary_screen", 0).toInt();
+    story_info->headlines_always_visible = settings->get_item("headlines_always_visible", true).toBool();
+    story_info->interpret_as_pixels      = settings->get_item("interpret_as_pixels", true).toBool();
+    story_info->headlines_pixel_width    = settings->get_item("headlines_pixel_width", 0).toInt();
+    story_info->headlines_pixel_height   = settings->get_item("headlines_pixel_height", 0).toInt();
+    story_info->headlines_percent_width  = settings->get_item("headlines_percent_width", 0.0).toDouble();
+    story_info->headlines_percent_height = settings->get_item("headlines_percent_height", 0.0).toDouble();
+    story_info->limit_content_to         = settings->get_item("limit_content_to", 0).toInt();
+    story_info->headlines_fixed_type     = static_cast<FixedText>(settings->get_item("headlines_fixed_type", 0).toInt());
+    story_info->entry_type               = static_cast<AnimEntryType>(settings->get_item("entry_type", 0).toInt());
+    story_info->exit_type                = static_cast<AnimExitType>(settings->get_item("exit_type", 0).toInt());
+    story_info->anim_motion_duration     = settings->get_item("anim_motion_duration", story_info->anim_motion_duration).toInt();
+    story_info->fade_target_duration     = settings->get_item("fade_target_duration", story_info->fade_target_duration).toInt();
+    story_info->train_use_age_effect     = settings->get_item("train_use_age_effects", false).toBool();
+    story_info->train_age_effect         = static_cast<AgeEffects>(settings->get_item("train_age_effect", 0).toInt());
+    story_info->train_age_percent        = settings->get_item("train_age_percent", story_info->train_age_percent).toInt();
+    story_info->dashboard_use_age_effect = settings->get_item("dashboard_use_age_effects", false).toBool();
+    story_info->dashboard_age_percent    = settings->get_item("dashboard_age_percent", story_info->dashboard_age_percent).toInt();
+    story_info->dashboard_group_id       = settings->get_item("dashboard_group_id", QString()).toString();
 
     // Chyron settings
-    story_info->stacking_type            = static_cast<ReportStacking>(settings->value("stacking_type", static_cast<int>(chyron_stacking)).toInt());
-    story_info->margin                   = settings->value("margins", story_info->margin).toInt();
+    story_info->stacking_type            = static_cast<ReportStacking>(settings->get_item("stacking_type", static_cast<int>(chyron_stacking)).toInt());
+    story_info->margin                   = settings->get_item("margins", story_info->margin).toInt();
 
     // Producer settings
-    story_info->font.fromString(settings->value("font", headline_font.toString()).toString());
-    story_info->normal_stylesheet        = settings->value("normal_stylesheet", headline_stylesheet_normal).toString();
-    story_info->alert_stylesheet         = settings->value("alert_stylesheet", headline_stylesheet_alert).toString();
-    story_info->alert_keywords           = settings->value("alert_keywords", headline_alert_keywords).toStringList();
+    story_info->font.fromString(settings->get_item("font", headline_font.toString()).toString());
+    story_info->normal_stylesheet        = settings->get_item("normal_stylesheet", headline_stylesheet_normal).toString();
+    story_info->alert_stylesheet         = settings->get_item("alert_stylesheet", headline_stylesheet_alert).toString();
+    story_info->alert_keywords           = settings->get_item("alert_keywords", headline_alert_keywords).toStringList();
 
-    settings->endGroup();
+    settings->end_section();
 }
 
 void MainWindow::save_story_defaults(StoryInfoPointer story_info)
 {
-    settings->beginGroup("StoryDefaults");
+    settings->begin_section("/StoryDefaults");
 
-    settings->setValue("story", story_info->story);
-    settings->setValue("identity", story_info->identity);
-    settings->setValue("reporter_class", story_info->reporter_class);
-    settings->setValue("reporter_id", story_info->reporter_id);
-    settings->setValue("reporter_parameters", story_info->reporter_parameters);
-    settings->setValue("local_trigger", static_cast<int>(story_info->trigger_type));
-    settings->setValue("ttl", story_info->ttl);
-    settings->setValue("primary_screen", story_info->primary_screen);
-    settings->setValue("headlines_always_visible", story_info->headlines_always_visible);
-    settings->setValue("interpret_as_pixels", story_info->interpret_as_pixels);
-    settings->setValue("headlines_pixel_width", story_info->headlines_pixel_width);
-    settings->setValue("headlines_pixel_height", story_info->headlines_pixel_height);
-    settings->setValue("headlines_percent_width", story_info->headlines_percent_width);
-    settings->setValue("headlines_percent_height", story_info->headlines_percent_height);
-    settings->setValue("limit_content_to", story_info->limit_content_to);
-    settings->setValue("headlines_fixed_type", static_cast<int>(story_info->headlines_fixed_type));
-    settings->setValue("entry_type", static_cast<int>(story_info->entry_type));
-    settings->setValue("exit_type", static_cast<int>(story_info->exit_type));
-    settings->setValue("anim_motion_duration", story_info->anim_motion_duration);
-    settings->setValue("fade_target_duration", story_info->fade_target_duration);
-    settings->setValue("train_use_age_effects", story_info->train_use_age_effect);
-    settings->setValue("train_age_effect", static_cast<int>(story_info->train_age_effect));
-    settings->setValue("train_age_percent", story_info->train_age_percent);
-    settings->setValue("dashboard_use_age_effects", story_info->dashboard_use_age_effect);
-    settings->setValue("dashboard_age_percent", story_info->dashboard_age_percent);
-    settings->setValue("dashboard_group_id", story_info->dashboard_group_id);
+    settings->set_item("story", story_info->story);
+    settings->set_item("identity", story_info->identity);
+    settings->set_item("reporter_class", story_info->reporter_class);
+    settings->set_item("reporter_id", story_info->reporter_id);
+    settings->set_item("reporter_parameters", story_info->reporter_parameters);
+    settings->set_item("local_trigger", static_cast<int>(story_info->trigger_type));
+    settings->set_item("ttl", story_info->ttl);
+    settings->set_item("primary_screen", story_info->primary_screen);
+    settings->set_item("headlines_always_visible", story_info->headlines_always_visible);
+    settings->set_item("interpret_as_pixels", story_info->interpret_as_pixels);
+    settings->set_item("headlines_pixel_width", story_info->headlines_pixel_width);
+    settings->set_item("headlines_pixel_height", story_info->headlines_pixel_height);
+    settings->set_item("headlines_percent_width", story_info->headlines_percent_width);
+    settings->set_item("headlines_percent_height", story_info->headlines_percent_height);
+    settings->set_item("limit_content_to", story_info->limit_content_to);
+    settings->set_item("headlines_fixed_type", static_cast<int>(story_info->headlines_fixed_type));
+    settings->set_item("entry_type", static_cast<int>(story_info->entry_type));
+    settings->set_item("exit_type", static_cast<int>(story_info->exit_type));
+    settings->set_item("anim_motion_duration", story_info->anim_motion_duration);
+    settings->set_item("fade_target_duration", story_info->fade_target_duration);
+    settings->set_item("train_use_age_effects", story_info->train_use_age_effect);
+    settings->set_item("train_age_effect", static_cast<int>(story_info->train_age_effect));
+    settings->set_item("train_age_percent", story_info->train_age_percent);
+    settings->set_item("dashboard_use_age_effects", story_info->dashboard_use_age_effect);
+    settings->set_item("dashboard_age_percent", story_info->dashboard_age_percent);
+    settings->set_item("dashboard_group_id", story_info->dashboard_group_id);
 
     // Chyron settings
-    settings->setValue("stacking_type", static_cast<int>(story_info->stacking_type));
-    settings->setValue("margin", story_info->margin);
+    settings->set_item("stacking_type", static_cast<int>(story_info->stacking_type));
+    settings->set_item("margin", story_info->margin);
 
     // Producer settings
-    settings->setValue("font", story_info->font.toString());
-    settings->setValue("normal_stylesheet", story_info->normal_stylesheet);
-    settings->setValue("alert_stylesheet", story_info->alert_stylesheet);
-    settings->setValue("alert_keywords", story_info->alert_keywords);
+    settings->set_item("font", story_info->font.toString());
+    settings->set_item("normal_stylesheet", story_info->normal_stylesheet);
+    settings->set_item("alert_stylesheet", story_info->alert_stylesheet);
+    settings->set_item("alert_keywords", story_info->alert_keywords);
 
-    settings->endGroup();
+    settings->end_section();
+
+    settings_modified = true;
 }
 
 void MainWindow::set_visible(bool visible)
@@ -437,79 +440,39 @@ void MainWindow::build_tray_menu()
 
 void MainWindow::save_application_settings()
 {
-return;
-//    QString settings_file_name;
-//    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-//    QSettings settings(settings_file_name, QSettings::IniFormat);
+    settings->begin_section("/Application");
 
-//    settings.clear();
+    settings->set_item("auto_start", false);
+    settings->set_item("chyron.font", headline_font.toString());
+    settings->set_item("chyron.stacking", reportstacking_vec.indexOf(chyron_stacking));
 
-//    settings.setValue("next_tab_icon", next_tab_icon);
-//    settings.setValue("backup_database", backup_database);
-//    settings.setValue("max_backups", max_backups);
-//    settings.setValue("add_hook_key", QChar(add_hook_key));
-//    settings.setValue("start_automatically", start_automatically);
-//    settings.setValue("selected_opacity", selected_opacity);
-//    settings.setValue("unselected_opacity", unselected_opacity);
-//    settings.setValue("favored_side", favored_side);
-
-//    settings.setValue("clipboard_ttl", clipboard_ttl);
-//    settings.setValue("clipboard_ttl_timeout", clipboard_ttl_timeout);
-
-//    settings.setValue("enable_sound_effects", enable_sound_effects);
-//    settings.beginWriteArray("sound_files");
-//      quint32 item_index = 0;
-//      foreach(QString key, sound_files)
-//      {
-//          settings.setArrayIndex(item_index++);
-//          settings.setValue(QString("sound_file_%1").arg(item_index), sound_files[item_index-1]);
-//      }
-//    settings.endArray();
-
-    settings->beginGroup("General");
-
-    settings->setValue("auto_start", false);
-    settings->setValue("chyron.font", headline_font.toString());
-    settings->setValue("chyron.stacking", reportstacking_vec.indexOf(chyron_stacking));
-
-//    settings->setValue("settings.headline.stylesheet.normal", headline_stylesheet_normal);
-//    settings->setValue("settings.headline.stylesheet.alert", headline_stylesheet_alert);
-//    settings->setValue("settings.headline.alert.keywords", headline_alert_keywords);
-
-    settings->beginWriteArray("HeadlineStyles");
+    settings->begin_array("HeadlineStyles");
     quint32 item_index = 0;
     foreach(const HeadlineStyle& style, headline_styles)
     {
-        settings->setArrayIndex(item_index++);
-        settings->setValue("name", style.name);
-        settings->setValue("triggers", style.triggers);
-        settings->setValue("stylesheet", style.stylesheet);
+        settings->set_array_item(item_index, "name", style.name);
+        settings->set_array_item(item_index, "triggers", style.triggers);
+        settings->set_array_item(item_index++, "stylesheet", style.stylesheet);
     }
 
-    settings->endArray();
-
-//    settings->endGroup();
-
-//    settings->beginGroup("Application");
+    settings->end_array();
 
     if(window_data.size())
     {
-        settings->beginWriteArray("WindowData");
+        settings->begin_array("WindowData");
           item_index = 0;
           QList<QString> keys = window_data.keys();
           foreach(QString key, keys)
           {
-              settings->setArrayIndex(item_index++);
-
-              settings->setValue("key", key);
-              settings->setValue("geometry", window_data[key]);
+              settings->set_array_item(item_index, "key", key);
+              settings->set_array_item(item_index++, "geometry", window_data[key]);
           }
-        settings->endArray();
+        settings->end_array();
     }
 
-    settings->endGroup();
+    settings->end_section();
 
-//    settings->sync();
+    settings->flush();
 
     settings_modified = false;
 }
@@ -519,54 +482,42 @@ void MainWindow::load_application_settings()
     window_data.clear();
     headline_styles.clear();
 
-return;
-    settings->beginGroup("General");
+    settings->begin_section("/Application");
 
-//    QString settings_file_name;
-//    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.ini").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-//    QSettings settings(settings_file_name, QSettings::IniFormat);
-
-    (void)settings->value("auto_start", false).toBool();
+    (void)settings->get_item("auto_start", false).toBool();
     QFont f = ui->label->font();
-    QString font_str = settings->value("chyron.font", f.toString()).toString();
+    QString font_str = settings->get_item("chyron.font", f.toString()).toString();
     if(!font_str.isEmpty())
         headline_font.fromString(font_str);
-    chyron_stacking = reportstacking_vec[settings->value("chyron.stacking", 0).toInt()];
+    chyron_stacking = reportstacking_vec[settings->get_item("chyron.stacking", 0).toInt()];
 
-    int styles_size = settings->beginReadArray("HeadlineStyles");
+    int styles_size = settings->begin_array("HeadlineStyles");
     if(styles_size)
     {
         for(int i = 0; i < styles_size; ++i)
         {
-            settings->setArrayIndex(i);
-
             HeadlineStyle hs;
-            hs.name = settings->value("name").toString();
-            hs.triggers = settings->value("triggers").toStringList();
-            hs.stylesheet = settings->value("triggers").toString();
+            hs.name = settings->get_array_item(i, "name").toString();
+            hs.triggers = settings->get_array_item(i, "triggers").toStringList();
+            hs.stylesheet = settings->get_array_item(i, "stylesheet").toString();
 
             headline_styles.append(hs);
         }
     }
+    settings->end_array();
 
-//    settings->endGroup();
-
-//    settings->beginGroup("Application");
-
-    int windata_size = settings->beginReadArray("WindowData");
+    int windata_size = settings->begin_array("WindowData");
     if(windata_size)
     {
         for(int i = 0; i < windata_size; ++i)
         {
-            settings->setArrayIndex(i);
-
-            QString key = settings->value("key").toString();
-            window_data[key] = settings->value("geometry").toByteArray();
+            QString key = settings->get_array_item(i, "key").toString();
+            window_data[key] = settings->get_array_item(i, "geometry").toByteArray();
         }
     }
-    settings->endArray();
+    settings->end_array();
 
-    settings->endGroup();
+    settings->end_section();
 
     settings_modified = !QFile::exists(settings_file_name);
 }

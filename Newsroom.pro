@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT += core gui network widgets
+QT += core gui network widgets xml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -44,15 +44,16 @@ RCC_DIR = $$INTERMEDIATE_NAME/rcc
 UI_DIR = $$INTERMEDIATE_NAME/ui
 
 SOURCES += main.cpp \
-        mainwindow.cpp \
-        headline.cpp \
-        chyron.cpp \
-        settingsdialog.cpp \
-        lanemanager.cpp \
-        producer.cpp \
-        addstorydialog.cpp \
-        qvlabel.cpp \
-    editheadlinedialog.cpp
+           mainwindow.cpp \
+           headline.cpp \
+           chyron.cpp \
+           settingsdialog.cpp \
+           lanemanager.cpp \
+           producer.cpp \
+           addstorydialog.cpp \
+           qvlabel.cpp \
+           editheadlinedialog.cpp \
+           settings.cpp
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -68,8 +69,9 @@ HEADERS  += mainwindow.h \
             addstorydialog.h \
             qvlabel.h \
             storyinfo.h \
-    reporters/interfaces/ireporter.h \
-    editheadlinedialog.h
+            reporters/interfaces/ireporter.h \
+            editheadlinedialog.h \
+            settings.h
 
 # Plug-in interface
 HEADERS += \
@@ -77,7 +79,7 @@ HEADERS += \
 FORMS    += mainwindow.ui \
             settingsdialog.ui \
             addstorydialog.ui \
-    editheadlinedialog.ui
+            editheadlinedialog.ui
 
 highlight_lanes {
     SOURCES += highlightwidget.cpp
