@@ -28,6 +28,7 @@
 #include "chyron.h"
 #include "lanemanager.h"
 #include "producer.h"
+#include "settings.h"
 
 #include "addstorydialog.h"
 
@@ -135,8 +136,6 @@ private:    // data members
     QString             settings_file_name;
 
     HeadlineStyleList   headline_styles;
-
-    QTreeWidgetItem*    settings_root;
 
     StyleListPointer    headline_style_list;
 };

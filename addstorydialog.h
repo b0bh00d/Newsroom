@@ -11,6 +11,7 @@
 #include "types.h"
 #include "specialize.h"
 #include "storyinfo.h"
+#include "settings.h"
 
 #include "reporters/interfaces/ireporter.h"
 

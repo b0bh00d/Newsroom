@@ -6,6 +6,8 @@
 
 extern MainWindow* mainwindow;
 
+const QString default_stylesheet("color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;");
+
 SettingsDialog::SettingsDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SettingsDialog)
@@ -49,10 +51,20 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     while(ui->tree_Styles->topLevelItemCount())
         delete ui->tree_Styles->takeTopLevelItem(0);
 
-    new QTreeWidgetItem(ui->tree_Styles, QStringList() << "Default" << "" << "color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;");
+    new QTreeWidgetItem(ui->tree_Styles, QStringList() << "Default" << "" << default_stylesheet);
 
     foreach(const HeadlineStyle& style, style_list)
-        new QTreeWidgetItem(ui->tree_Styles, QStringList() << style.name << style.triggers.join(", ") << style.stylesheet);
+    {
+        QList<QTreeWidgetItem*> items = ui->tree_Styles->findItems(style.name, Qt::MatchExactly, 0);
+        if(items.isEmpty())
+            new QTreeWidgetItem(ui->tree_Styles, QStringList() << style.name << style.triggers.join(", ") << style.stylesheet);
+        else
+        {
+            items[0]->setText(0, style.name);
+            items[0]->setText(1, style.triggers.join(", "));
+            items[0]->setText(2, style.stylesheet);
+        }
+    }
 
     for(int i = 0;i < ui->tree_Styles->columnCount();++i)
         ui->tree_Styles->resizeColumnToContents(i);
@@ -99,7 +111,10 @@ void SettingsDialog::get_styles(HeadlineStyleList& style_list)
     {
         QTreeWidgetItem* item = ui->tree_Styles->topLevelItem(i);
         if(!item->text(0).compare("Default"))
-            continue;
+        {
+            if(!default_stylesheet.compare(item->text(2)))
+                continue;   // unchanged, so don't save it to settings
+        }
 
         HeadlineStyle hs;
         hs.name = item->text(0);
@@ -196,6 +211,7 @@ void SettingsDialog::slot_edit_style()
     EditHeadlineDialog dlg;
     mainwindow->restore_window_data(&dlg);
 
+    dlg.set_style_name(item->text(0));
     QFont f = ui->combo_FontFamily->currentFont();
     f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
     dlg.set_style_font(f);

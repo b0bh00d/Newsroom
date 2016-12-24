@@ -27,8 +27,8 @@ void EditHeadlineDialog::set_style_name(const QString& name)
 {
     ui->edit_StyleName->setText(name);
 
-    ui->edit_StyleName->setEnabled(!name.compare("Default"));
-    ui->edit_StyleTriggers->setEnabled(!name.compare("Default"));
+    ui->edit_StyleName->setEnabled(name.compare("Default"));
+    ui->edit_StyleTriggers->setEnabled(name.compare("Default"));
 
     slot_update_ok();
 }

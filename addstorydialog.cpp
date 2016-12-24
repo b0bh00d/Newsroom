@@ -127,13 +127,13 @@ void AddStoryDialog::showEvent(QShowEvent *event)
 
 void AddStoryDialog::save_settings()
 {
-    settings->beginGroup("AddStoryDialog");
-    settings->setValue("current_tab", ui->tabWidget->currentIndex());
+    settings->begin_section("/AddStoryDialog");
+    settings->set_item("current_tab", ui->tabWidget->currentIndex());
     QStringList id_list;
     for(int i = 0;i < ui->combo_DashboardGroupId->count() && i < 10;++i)
         id_list << ui->combo_DashboardGroupId->itemText(i);
-    settings->setValue("dashboard_group_id_list", id_list);
-    settings->endGroup();
+    settings->set_item("dashboard_group_id_list", id_list);
+    settings->end_section();
 
     QString story = ui->edit_Source->text();
     if(QFile::exists(story))
@@ -155,7 +155,6 @@ void AddStoryDialog::save_settings()
     QList<QWidget*> all_edits = ui->group_ReporterConfig->findChildren<QWidget*>();
     foreach(QWidget* child, all_edits)
     {
-        QString value;
         QLineEdit* edit = qobject_cast<QLineEdit*>(child);
         if(edit)
             story_info->reporter_parameters << edit->text();
@@ -234,14 +233,14 @@ void AddStoryDialog::load_settings()
     QVector<QRadioButton*> fixed_buttons { ui->radio_HeadlinesSizeTextScale, ui->radio_HeadlinesSizeTextClip };
     QVector<QRadioButton*> age_buttons { nullptr, ui->radio_TrainReduceOpacityFixed, ui->radio_TrainReduceOpacityByAge };
 
-    settings->beginGroup("AddStoryDialog");
+    settings->begin_section("/AddStoryDialog");
 
-    ui->tabWidget->setCurrentIndex(settings->value("current_tab", 0).toInt());
+    ui->tabWidget->setCurrentIndex(settings->get_item("current_tab", 0).toInt());
 
-    QStringList id_list = settings->value("dashboard_group_id_list", QStringList()).toStringList();
+    QStringList id_list = settings->get_item("dashboard_group_id_list", QStringList()).toStringList();
     ui->combo_DashboardGroupId->addItems(id_list);
 
-    settings->endGroup();
+    settings->end_section();
 
     if(story_info->story.isLocalFile())
     {
