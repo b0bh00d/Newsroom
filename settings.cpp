@@ -255,43 +255,60 @@ Settings::Item* Settings::read_item(QDomNode *node, Settings::Item* parent)
     Item* item = new Item(parent, QStringList() << "Item" << element.attribute("name"));
 
     QString type = element.attribute("type");
-    QString data;
-
-    QDomNodeList children = node->childNodes();
-    for(int i = 0;i < children.length() && data.isEmpty();i++)
+    if(!type.compare("stringlist"))
     {
-        QDomNode child_node = children.at(i);
-        QDomCDATASection cdata_node = child_node.toCDATASection();
-        if(!cdata_node.isNull())
-            data = cdata_node.data();
-        else
+        QStringList sl;
+        QDomNodeList children = node->childNodes();
+        for(int i = 0;i < children.length();++i)
         {
-            QDomText text_node = child_node.toText();
-            if(!text_node.isNull())
-                data = text_node.data();
+            QDomNode child_node = children.at(i);
+            QDomNodeList sub_children = child_node.childNodes();
+            for(int j = 0;j < sub_children.length();++j)
+            {
+                QDomNode sub_child_node = sub_children.at(j);
+                QDomCDATASection cdata_node = sub_child_node.toCDATASection();
+                if(!cdata_node.isNull())
+                    sl << cdata_node.data();
+            }
         }
 
-        if(!data.isEmpty())
+        QVariant v(sl);
+        item->setData(0, Qt::UserRole, v);
+    }
+    else
+    {
+        QString data;
+
+        QDomNodeList children = node->childNodes();
+        for(int i = 0;i < children.length() && data.isEmpty();++i)
         {
-            if(!type.compare("stringlist"))
-            {
-                QStringList sl = data.split(",");
-                QVariant v(sl);
-                item->setData(0, Qt::UserRole, v);
-            }
-            else if(!type.compare("bytearray"))
-            {
-                QByteArray ba = QByteArray::fromHex(data.toUtf8());
-                QVariant v(ba);
-                item->setData(0, Qt::UserRole, v);
-            }
+            QDomNode child_node = children.at(i);
+            QDomCDATASection cdata_node = child_node.toCDATASection();
+            if(!cdata_node.isNull())
+                data = cdata_node.data();
             else
             {
-                QVariant v(data);
-                item->setData(0, Qt::UserRole, v);
+                QDomText text_node = child_node.toText();
+                if(!text_node.isNull())
+                    data = text_node.data();
             }
 
-            break;
+            if(!data.isEmpty())
+            {
+                if(!type.compare("bytearray"))
+                {
+                    QByteArray ba = QByteArray::fromHex(data.toUtf8());
+                    QVariant v(ba);
+                    item->setData(0, Qt::UserRole, v);
+                }
+                else
+                {
+                    QVariant v(data);
+                    item->setData(0, Qt::UserRole, v);
+                }
+
+                break;
+            }
         }
     }
 
@@ -402,17 +419,35 @@ void Settings::write_item(Item* item, QDomNode* parent, QDomDocument* doc)
     QString type = item->text(2);
     child.setAttribute("type", type);
 
-    QString data;
     if(!type.compare("stringlist"))
-        data = item->data(0, Qt::UserRole).toStringList().join(",");
-    else if(!type.compare("bytearray"))
-        data = item->data(0, Qt::UserRole).toByteArray().toHex();
-    else
-        data = item->data(0, Qt::UserRole).toString();
+    {
+        // create an array-like list where each element is a string
+        // in the list.  that way, we don't have to guard against
+        // strings containing the separate character.
 
-    QDomCDATASection child_text = doc->createCDATASection(data);
-    child.appendChild(child_text);
-    parent->appendChild(child);
+        QStringList data = item->data(0, Qt::UserRole).toStringList();
+        foreach(const QString& str, data)
+        {
+            QDomElement element = doc->createElement("Element");
+            QDomCDATASection element_text = doc->createCDATASection(str);
+            element.appendChild(element_text);
+            child.appendChild(element);
+        }
+
+        parent->appendChild(child);
+    }
+    else
+    {
+        QString data;
+        if(!type.compare("bytearray"))
+            data = item->data(0, Qt::UserRole).toByteArray().toHex();
+        else
+            data = item->data(0, Qt::UserRole).toString();
+
+        QDomCDATASection child_text = doc->createCDATASection(data);
+        child.appendChild(child_text);
+        parent->appendChild(child);
+    }
 }
 
 void Settings::begin_section(const QString& path)
