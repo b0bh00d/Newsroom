@@ -70,9 +70,6 @@ struct StoryInfo
 
                     // Producer settings (reference only; not saved)
     QFont           font;
-    QString         normal_stylesheet;
-    QString         alert_stylesheet;
-    QStringList     alert_keywords;
 
     StoryInfo()
         : trigger_type(LocalTrigger::NewContent),

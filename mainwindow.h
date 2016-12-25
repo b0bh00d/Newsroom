@@ -57,6 +57,9 @@ public:
     void                save_window_data(QWidget* window);
     void                restore_window_data(QWidget* window);
 
+public:     // data members;
+    QString             default_stylesheet;
+
 protected:  // methods
     void                closeEvent(QCloseEvent *event);
     void                dragEnterEvent(QDragEnterEvent *event);
@@ -121,21 +124,12 @@ private:    // data members
     QMimeDatabase       mime_db;
 
     StaffMap            staff;
-//    StoryMap            stories;
-//    ProducerList        producers;
-
-    QString             headline_stylesheet_normal;
-    QString             headline_stylesheet_alert;
-    QStringList         headline_alert_keywords;
-
     LaneManagerPointer  lane_manager;
 
     PluginsMap          plugins_map;
 
     SettingsPointer     settings;
     QString             settings_file_name;
-
-    HeadlineStyleList   headline_styles;
 
     StyleListPointer    headline_style_list;
 };

@@ -118,19 +118,6 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
     label->setFont(font);
     label->setStyleSheet(stylesheet);
 
-//    QString stylesheet = normal_stylesheet;
-//    QString lower_headline = headline.toLower();
-//    foreach(const QString& keyword, alert_keywords)
-//    {
-//        if(lower_headline.contains(keyword.toLower()))
-//        {
-//            stylesheet = alert_stylesheet;
-//            break;
-//        }
-//    }
-
-//    label->setStyleSheet(stylesheet);
-
     if(fixed_text == FixedText::None)
     {
         QVBoxLayout *main_layout = new QVBoxLayout;

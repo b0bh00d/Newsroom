@@ -42,6 +42,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     headline_font = ui->label->font();
+    default_stylesheet = "color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;";
 
 //    QPixmap bkgnd(":/images/Add.png");
 //    bkgnd = bkgnd.scaled(this->size(), Qt::IgnoreAspectRatio);
@@ -59,15 +60,6 @@ MainWindow::MainWindow(QWidget *parent)
     settings->cache();
 
     load_application_settings();
-
-    if(headline_style_list->isEmpty())
-    {
-        // add a Default stylesheet entry on first runs
-        HeadlineStyle hs;
-        hs.name = "Default";
-        hs.stylesheet = "color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;";
-        headline_style_list->append(hs);
-    }
 
     setAcceptDrops(true);
 
@@ -184,9 +176,6 @@ void MainWindow::restore_story_defaults(StoryInfoPointer story_info)
 
     // Producer settings
     story_info->font.fromString(settings->get_item("font", headline_font.toString()).toString());
-    story_info->normal_stylesheet        = settings->get_item("normal_stylesheet", headline_stylesheet_normal).toString();
-    story_info->alert_stylesheet         = settings->get_item("alert_stylesheet", headline_stylesheet_alert).toString();
-    story_info->alert_keywords           = settings->get_item("alert_keywords", headline_alert_keywords).toStringList();
 
     settings->end_section();
 }
@@ -228,9 +217,6 @@ void MainWindow::save_story_defaults(StoryInfoPointer story_info)
 
     // Producer settings
     settings->set_item("font", story_info->font.toString());
-    settings->set_item("normal_stylesheet", story_info->normal_stylesheet);
-    settings->set_item("alert_stylesheet", story_info->alert_stylesheet);
-    settings->set_item("alert_keywords", story_info->alert_keywords);
 
     settings->end_section();
 
@@ -448,7 +434,7 @@ void MainWindow::save_application_settings()
 
     settings->begin_array("HeadlineStyles");
     quint32 item_index = 0;
-    foreach(const HeadlineStyle& style, headline_styles)
+    foreach(const HeadlineStyle& style, *(headline_style_list.data()))
     {
         settings->set_array_item(item_index, "name", style.name);
         settings->set_array_item(item_index, "triggers", style.triggers);
@@ -480,7 +466,13 @@ void MainWindow::save_application_settings()
 void MainWindow::load_application_settings()
 {
     window_data.clear();
-    headline_styles.clear();
+
+    headline_style_list->clear();
+    // add a Default stylesheet entry on first runs
+    HeadlineStyle hs;
+    hs.name = "Default";
+    hs.stylesheet = default_stylesheet;//"color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;";
+    headline_style_list->append(hs);
 
     settings->begin_section("/Application");
 
@@ -501,7 +493,21 @@ void MainWindow::load_application_settings()
             hs.triggers = settings->get_array_item(i, "triggers").toStringList();
             hs.stylesheet = settings->get_array_item(i, "stylesheet").toString();
 
-            headline_styles.append(hs);
+            bool updated = false;
+            for(HeadlineStyleList::iterator iter = headline_style_list->begin();
+                iter != headline_style_list->end();++iter)
+            {
+                if(!iter->name.compare(hs.name))
+                {
+                    iter->triggers = hs.triggers;
+                    iter->stylesheet = hs.stylesheet;
+                    updated = true;
+                    break;
+                }
+            }
+
+            if(!updated)
+                headline_style_list->append(hs);
         }
     }
     settings->end_array();
@@ -581,7 +587,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     dlg.set_autostart(false);
     dlg.set_font(headline_font);
-    dlg.set_styles(headline_styles);
+    dlg.set_styles(*(headline_style_list.data()));
     dlg.set_stacking(chyron_stacking);
     dlg.set_stories(story_identities);
 
@@ -594,7 +600,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
         chyron_stacking                  = dlg.get_stacking();
         QList<QString> remaining_stories = dlg.get_stories();
 
-        dlg.get_styles(headline_styles);
+        dlg.get_styles(*(headline_style_list.data()));
 
         if(remaining_stories.count() != staff.count())
         {

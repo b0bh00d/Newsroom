@@ -7,6 +7,8 @@
 
 #include "settings.h"
 
+// https://doc.qt.io/qt-5/qtwidgets-itemviews-simpletreemodel-example.html
+
 const int ItemType = 0;
 
 Settings::Settings(const QString& application, const QString &filename)
