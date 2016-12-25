@@ -6,8 +6,6 @@
 
 extern MainWindow* mainwindow;
 
-const QString default_stylesheet("color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;");
-
 SettingsDialog::SettingsDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SettingsDialog)
@@ -51,7 +49,7 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     while(ui->tree_Styles->topLevelItemCount())
         delete ui->tree_Styles->takeTopLevelItem(0);
 
-    new QTreeWidgetItem(ui->tree_Styles, QStringList() << "Default" << "" << default_stylesheet);
+    new QTreeWidgetItem(ui->tree_Styles, QStringList() << "Default" << "" << mainwindow->default_stylesheet);
 
     foreach(const HeadlineStyle& style, style_list)
     {
@@ -112,7 +110,7 @@ void SettingsDialog::get_styles(HeadlineStyleList& style_list)
         QTreeWidgetItem* item = ui->tree_Styles->topLevelItem(i);
         if(!item->text(0).compare("Default"))
         {
-            if(!default_stylesheet.compare(item->text(2)))
+            if(!mainwindow->default_stylesheet.compare(item->text(2)))
                 continue;   // unchanged, so don't save it to settings
         }
 

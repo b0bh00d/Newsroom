@@ -43,27 +43,26 @@ void Producer::file_headline(const QString& data)
 
     QString lower_headline = data.toLower();
 
-    QString stylesheet;
+    QString stylesheet, default_stylesheet;
     foreach(const HeadlineStyle& style, (*style_list.data()))
     {
         if(!style.name.compare("Default"))
-            continue;
-
-        foreach(const QString& trigger, style.triggers)
+            default_stylesheet = style.stylesheet;
+        else
         {
-            if(lower_headline.contains(trigger.toLower()))
+            foreach(const QString& trigger, style.triggers)
             {
-                stylesheet = style.stylesheet;
-                break;
+                if(lower_headline.contains(trigger.toLower()))
+                {
+                    stylesheet = style.stylesheet;
+                    break;
+                }
             }
         }
-
-        if(!stylesheet.isEmpty())
-            break;
     }
 
     if(stylesheet.isEmpty())
-        stylesheet = (*style_list.data())[0].stylesheet;    // set to Default
+        stylesheet = default_stylesheet;    // set to Default
 
     // file a headline with the new content
     HeadlinePointer headline(new Headline(story_info->story, data));
