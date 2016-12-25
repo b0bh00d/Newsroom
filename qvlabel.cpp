@@ -151,12 +151,46 @@ void QHLabel::paintEvent(QPaintEvent* /*event*/)
         x = (x < 0) ? 0 : x;
     }
 
+    painter.save();
     painter.translate(x, y);
 
     QAbstractTextDocumentLayout::PaintContext ctx;
     ctx.palette.setColor(QPalette::Text, painter.pen().color());
     ctx.clip = QRect(0, 0, s.width(), s.height());
     td.documentLayout()->draw(&painter, ctx);
+
+    painter.restore();
+    painter.save();
+
+    // see if we can detect any progress indicator in the plain
+    // text, and put a progress bar on the headline if so.
+
+    QString plain_text = td.toPlainText();
+    QRegExp re("\\s(\\d+)%");
+    if(re.indexIn(plain_text) != -1)
+    {
+        float percent = re.cap(1).toFloat() / 100.0f;
+
+        // draw a progress bar along the bottom
+        x = 5;
+        y = s.height() - 5 - 5;
+        int w = s.width() - x * 2;
+        int h = 5;
+
+        QPalette p = palette();
+        QColor base_color = p.color(QPalette::Window).lighter(50);
+        painter.setPen(QPen(base_color));
+        painter.setBrush(QBrush(base_color));
+        painter.drawRect(x, y, w, h);
+
+        QColor highlight_color = base_color.lighter(100);
+
+        painter.setPen(QPen(highlight_color));
+        painter.setBrush(QBrush(highlight_color));
+        painter.drawRect(x, y, (int)(w * percent), h);
+    }
+
+    painter.restore();
 }
 
 QSize QHLabel::minimumSizeHint() const
