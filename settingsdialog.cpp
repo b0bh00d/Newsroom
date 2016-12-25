@@ -49,7 +49,7 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     while(ui->tree_Styles->topLevelItemCount())
         delete ui->tree_Styles->takeTopLevelItem(0);
 
-    new QTreeWidgetItem(ui->tree_Styles, QStringList() << "Default" << "" << mainwindow->default_stylesheet);
+//    new QTreeWidgetItem(ui->tree_Styles, QStringList() << "Default" << "" << mainwindow->default_stylesheet);
 
     foreach(const HeadlineStyle& style, style_list)
     {
@@ -108,11 +108,6 @@ void SettingsDialog::get_styles(HeadlineStyleList& style_list)
     for(int i = 0;i < ui->tree_Styles->topLevelItemCount();++i)
     {
         QTreeWidgetItem* item = ui->tree_Styles->topLevelItem(i);
-        if(!item->text(0).compare("Default"))
-        {
-            if(!mainwindow->default_stylesheet.compare(item->text(2)))
-                continue;   // unchanged, so don't save it to settings
-        }
 
         HeadlineStyle hs;
         hs.name = item->text(0);
