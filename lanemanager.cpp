@@ -48,7 +48,8 @@ void LaneManager::subscribe(Chyron* chyron)
             dashboard_group->id = story_info->dashboard_group_id;
             dashboard_group->lane_header = HeadlinePointer(new Headline(QUrl(),
                                                                         QString("<h2><center>%1</center></h2>").arg(story_info->dashboard_group_id),
-                                                                        story_info->entry_type));
+                                                                        story_info->entry_type,
+                                                                        Qt::AlignHCenter|Qt::AlignVCenter));
             dashboard_group->lane_header->set_font(headline_font);
             dashboard_group->lane_header->set_stylesheet(headline_stylesheet);
 

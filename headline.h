@@ -28,6 +28,7 @@ public:
     explicit Headline(const QUrl& story,
                       const QString& headline,
                       AnimEntryType entry_type = AnimEntryType::PopCenter,
+                      Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
                       QWidget* parent = nullptr);
     explicit Headline(const Headline& source)
     {
@@ -79,6 +80,8 @@ protected:  // data members
     double          old_opacity;
 
     AnimEntryType   entry_type;
+
+    Qt::Alignment   alignment;
 
     friend class Chyron;        // the Chyron manages the headlines on the screen
     friend class LaneManager;   // needs to initialize() it's Dashboard headline banner
