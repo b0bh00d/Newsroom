@@ -94,13 +94,60 @@ QSize QVLabel::sizeHint() const
 
 
 QHLabel::QHLabel(QWidget *parent)
-    : NewsroomLabel(parent)
+    : detect_progress(false),
+      NewsroomLabel(parent)
 {
+    init();
 }
 
 QHLabel::QHLabel(const QString &text, QWidget *parent)
-    : NewsroomLabel(text, parent)
+    : detect_progress(false),
+      NewsroomLabel(text, parent)
 {
+    init();
+}
+
+void QHLabel::init()
+{
+    QPalette p = palette();
+    progress_color = p.color(QPalette::Active, QPalette::Mid).lighter(75);
+    progress_highlight = progress_color.lighter(135);
+}
+
+void QHLabel::set_progress_detection(bool detect, const QString& re, bool on_top)
+{
+    detect_progress = detect;
+    progress_re = re;
+    progress_on_top = on_top;
+
+    progress_margin = 5;
+    progress_x = 5;
+    progress_y = 5;     // preset for top
+    progress_w = 0;
+    progress_h = 5;
+}
+
+void QHLabel::changeEvent(QEvent* event)
+{
+    if(event->type() == QEvent::StyleChange)
+    {
+        QString stylesheet = styleSheet();
+        QRegExp bc("background\\-color\\s*:.*rgb[a]?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)");
+        if(bc.indexIn(stylesheet) != -1)
+        {
+            int r = bc.cap(1).toInt();
+            int g = bc.cap(2).toInt();
+            int b = bc.cap(3).toInt();
+            progress_color = QColor(r, g, b).lighter(125);
+            progress_highlight = progress_color.lighter(150);
+        }
+        else
+        {
+            QPalette p = palette();
+            progress_color = p.color(QPalette::Active, QPalette::Mid).lighter(75);
+            progress_highlight = progress_color.lighter(135);
+        }
+    }
 }
 
 void QHLabel::paintEvent(QPaintEvent* /*event*/)
@@ -160,37 +207,40 @@ void QHLabel::paintEvent(QPaintEvent* /*event*/)
     td.documentLayout()->draw(&painter, ctx);
 
     painter.restore();
-    painter.save();
 
-    // see if we can detect any progress indicator in the plain
-    // text, and put a progress bar on the headline if so.
-
-    QString plain_text = td.toPlainText();
-    QRegExp re("\\s(\\d+)%");
-    if(re.indexIn(plain_text) != -1)
+    if(detect_progress)
     {
-        float percent = re.cap(1).toFloat() / 100.0f;
+        painter.save();
 
-        // draw a progress bar along the bottom
-        x = 5;
-        y = s.height() - 5 - 5;
-        int w = s.width() - x * 2;
-        int h = 5;
+        // see if we can detect any progress indicator in the plain
+        // text, and put a progress bar on the headline if so.
 
-        QPalette p = palette();
-        QColor base_color = p.color(QPalette::Window).lighter(50);
-        painter.setPen(QPen(base_color));
-        painter.setBrush(QBrush(base_color));
-        painter.drawRect(x, y, w, h);
+        QString plain_text = td.toPlainText();
+        QRegExp re(progress_re);
+        if(re.indexIn(plain_text) != -1)
+        {
+            float percent = re.cap(1).toFloat() / 100.0f;
 
-        QColor highlight_color = base_color.lighter(100);
+            // draw a progress bar along the bottom
+            progress_h = 5;
+            progress_x = progress_margin;
+            progress_y = s.height() - progress_h - progress_margin;
+            progress_w = s.width() - progress_margin * 2;
 
-        painter.setPen(QPen(highlight_color));
-        painter.setBrush(QBrush(highlight_color));
-        painter.drawRect(x, y, (int)(w * percent), h);
+            if(progress_on_top)
+                progress_y = 5;
+
+            painter.setPen(QPen(progress_color));
+            painter.setBrush(QBrush(progress_color));
+            painter.drawRect(progress_x, progress_y, progress_w, progress_h);
+
+            painter.setPen(QPen(progress_highlight));
+            painter.setBrush(QBrush(progress_highlight));
+            painter.drawRect(progress_x, progress_y, (int)(progress_w * percent), progress_h);
+        }
+
+        painter.restore();
     }
-
-    painter.restore();
 }
 
 QSize QHLabel::minimumSizeHint() const

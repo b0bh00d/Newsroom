@@ -159,6 +159,9 @@ void MainWindow::restore_story_defaults(StoryInfoPointer story_info)
     story_info->headlines_percent_height = settings->get_item("headlines_percent_height", 0.0).toDouble();
     story_info->limit_content_to         = settings->get_item("limit_content_to", 0).toInt();
     story_info->headlines_fixed_type     = static_cast<FixedText>(settings->get_item("headlines_fixed_type", 0).toInt());
+    story_info->include_progress_bar     = settings->get_item("include_progress_bar", false).toBool();
+    story_info->progress_text_re         = settings->get_item("progress_text_re", story_info->progress_text_re).toString();
+    story_info->progress_on_top          = settings->get_item("progress_on_top", false).toBool();
     story_info->entry_type               = static_cast<AnimEntryType>(settings->get_item("entry_type", 0).toInt());
     story_info->exit_type                = static_cast<AnimExitType>(settings->get_item("exit_type", 0).toInt());
     story_info->anim_motion_duration     = settings->get_item("anim_motion_duration", story_info->anim_motion_duration).toInt();
@@ -200,6 +203,9 @@ void MainWindow::save_story_defaults(StoryInfoPointer story_info)
     settings->set_item("headlines_percent_height", story_info->headlines_percent_height);
     settings->set_item("limit_content_to", story_info->limit_content_to);
     settings->set_item("headlines_fixed_type", static_cast<int>(story_info->headlines_fixed_type));
+    settings->set_item("include_progress_bar", story_info->include_progress_bar);
+    settings->set_item("progress_text_re", story_info->progress_text_re);
+    settings->set_item("progress_on_top", story_info->progress_on_top);
     settings->set_item("entry_type", static_cast<int>(story_info->entry_type));
     settings->set_item("exit_type", static_cast<int>(story_info->exit_type));
     settings->set_item("anim_motion_duration", story_info->anim_motion_duration);

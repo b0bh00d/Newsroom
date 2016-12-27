@@ -27,11 +27,10 @@ struct StoryInfo
     LocalTrigger    trigger_type;
     uint            ttl;
 
-                    // Presentation
-                    //   Display
+                    // Display
     int             primary_screen;
 
-                    //   Headlines
+                    // Headlines
     bool            headlines_always_visible;
 
                     //   Size
@@ -43,6 +42,11 @@ struct StoryInfo
     bool            limit_content;
     int             limit_content_to;
     FixedText       headlines_fixed_type;
+
+                    //   Extras
+    bool            include_progress_bar;
+    QString         progress_text_re;
+    bool            progress_on_top;        // true = bar on top, false = bar on bottom
 
                     // Animation
     AnimEntryType   entry_type;
@@ -84,6 +88,9 @@ struct StoryInfo
           limit_content(false),
           limit_content_to(0),
           headlines_fixed_type(FixedText::None),
+          include_progress_bar(false),
+          progress_text_re("\\s(\\d+)%"),
+          progress_on_top(false),
           anim_motion_duration(500),
           fade_target_duration(500),
           train_use_age_effect(false),

@@ -120,6 +120,8 @@ void AddStoryDialog::showEvent(QShowEvent *event)
     connect(ui->radio_Monitor3, &QCheckBox::clicked, this, &AddStoryDialog::set_angle);
     connect(ui->radio_Monitor4, &QCheckBox::clicked, this, &AddStoryDialog::set_angle);
 
+    connect(ui->check_ProgressText, &QCheckBox::clicked, this, &AddStoryDialog::slot_progress_clicked);
+
     QDialog::showEvent(event);
     activateWindow();
     raise();
@@ -167,7 +169,10 @@ void AddStoryDialog::save_settings()
     }
 
     story_info->trigger_type = static_cast<LocalTrigger>(ui->combo_LocalTrigger->currentIndex());
-    story_info->ttl = ui->edit_TTL->text().toInt();
+    if(!ui->edit_TTL->text().isEmpty())
+        story_info->ttl = ui->edit_TTL->text().toInt();
+    else
+        story_info->ttl = ui->edit_TTL->placeholderText().toInt();
     story_info->headlines_always_visible = ui->check_KeepOnTop->isChecked();
     story_info->primary_screen = ui->radio_Monitor1->isChecked() ? 0 : (ui->radio_Monitor2->isChecked() ? 1 : (ui->radio_Monitor3->isChecked() ? 2 : 3));
     if(ui->radio_InterpretAsPixels->isChecked())
@@ -200,10 +205,19 @@ void AddStoryDialog::save_settings()
         story_info->headlines_pixel_width = 0;
         story_info->headlines_pixel_height = 0;
     }
+
     story_info->limit_content = ui->check_LimitContent->isChecked();
     if(!ui->edit_LimitContent->text().isEmpty())
         story_info->limit_content_to = ui->edit_LimitContent->text().toInt();
     story_info->headlines_fixed_type = ui->radio_HeadlinesSizeTextScale->isChecked() ? FixedText::ScaleToFit : FixedText::ClipToFit;
+
+    story_info->include_progress_bar = ui->check_ProgressText->isChecked();
+    if(!ui->edit_ProgressText->text().isEmpty())
+        story_info->progress_text_re = ui->edit_ProgressText->text();
+    else
+        story_info->progress_text_re = ui->edit_ProgressText->placeholderText();
+    story_info->progress_on_top = ui->radio_ProgressOnTop->isChecked();
+
     story_info->entry_type = static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());
     story_info->exit_type = static_cast<AnimExitType>(ui->combo_ExitType->currentIndex());
     if(!ui->edit_AnimMotionMilliseconds->text().isEmpty())
@@ -297,7 +311,10 @@ void AddStoryDialog::load_settings()
     slot_configure_reporter_configure();
 
     ui->combo_LocalTrigger->setCurrentIndex(static_cast<int>(story_info->trigger_type));
-    ui->edit_TTL->setText(QString::number(story_info->ttl));
+    if(ui->edit_TTL->placeholderText().toInt() == story_info->ttl)
+        ui->edit_TTL->setText(QString());
+    else
+        ui->edit_TTL->setText(QString::number(story_info->ttl));
     ui->check_KeepOnTop->setChecked(story_info->headlines_always_visible);
 
     set_display();
@@ -329,6 +346,16 @@ void AddStoryDialog::load_settings()
         ui->edit_LimitContent->setText(QString::number(story_info->limit_content_to));
 
     fixed_buttons[(story_info->headlines_fixed_type == FixedText::None || story_info->headlines_fixed_type == FixedText::ScaleToFit) ? 0 : 1]->setChecked(true);
+
+    ui->check_ProgressText->setChecked(story_info->include_progress_bar);
+    if(!ui->edit_ProgressText->placeholderText().compare(story_info->progress_text_re))
+        ui->edit_ProgressText->setText(QString());
+    else
+        ui->edit_ProgressText->setText(story_info->progress_text_re);
+    ui->radio_ProgressOnTop->setChecked(story_info->progress_on_top);
+    ui->radio_ProgressOnBottom->setChecked(!story_info->progress_on_top);
+
+    slot_progress_clicked(story_info->include_progress_bar);
 
     ui->combo_EntryType->setCurrentIndex(static_cast<int>(story_info->entry_type));
     ui->combo_ExitType->setCurrentIndex(static_cast<int>(story_info->exit_type));
@@ -516,6 +543,13 @@ void AddStoryDialog::slot_interpret_size_clicked(bool /*checked*/)
         if(ui->edit_HeadlinesFixedHeight->text().isEmpty())
             ui->edit_HeadlinesFixedHeight->setPlaceholderText("8.3");
     }
+}
+
+void AddStoryDialog::slot_progress_clicked(bool checked)
+{
+    ui->edit_ProgressText->setEnabled(checked);
+    ui->radio_ProgressOnTop->setEnabled(checked);
+    ui->radio_ProgressOnBottom->setEnabled(checked);
 }
 
 void AddStoryDialog::slot_train_reduce_opacity_clicked(bool /*checked*/)

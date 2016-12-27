@@ -39,6 +39,7 @@ public:
 
     void    set_font(const QFont& font)                         { this->font = font; }
     void    set_stylesheet(const QString& stylesheet)           { this->stylesheet = stylesheet; }
+    void    set_progress(bool include_progress, const QString& re, bool on_top);
 
 signals:
     void    signal_mouse_enter();
@@ -82,6 +83,10 @@ protected:  // data members
     AnimEntryType   entry_type;
 
     Qt::Alignment   alignment;
+
+    bool            include_progress_bar;
+    QString         progress_text_re;
+    bool            progress_on_top;
 
     friend class Chyron;        // the Chyron manages the headlines on the screen
     friend class LaneManager;   // needs to initialize() it's Dashboard headline banner
