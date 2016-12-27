@@ -69,6 +69,7 @@ void Producer::file_headline(const QString& data)
 
     headline->set_font(story_info->font);
     headline->set_stylesheet(stylesheet);
+    headline->set_progress(story_info->include_progress_bar, story_info->progress_text_re, story_info->progress_on_top);
 
     emit signal_new_headline(headline);
 }

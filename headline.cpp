@@ -28,6 +28,8 @@ Headline::Headline(const QUrl& story,
       animation(nullptr),
       entry_type(entry_type),
       alignment(alignment),
+      include_progress_bar(false),
+      progress_on_top(false),
       QWidget(parent)
 {
 }
@@ -87,6 +89,13 @@ void Headline::leaveEvent(QEvent *event)
     event->accept();
 }
 
+void Headline::set_progress(bool include, const QString& re, bool on_top)
+{
+    include_progress_bar = include;
+    progress_text_re = re;
+    progress_on_top = on_top;
+}
+
 void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, int height)
 {
     this->stay_visible = stay_visible;
@@ -109,7 +118,10 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
         static_cast<QVLabel*>(label)->set_for_left(entry_type != AnimEntryType::DashboardInRightTop && entry_type != AnimEntryType::DashboardInRightBottom);
     }
     else
+    {
         label = new QHLabel(this);
+        static_cast<QHLabel*>(label)->set_progress_detection(include_progress_bar, progress_text_re, progress_on_top);
+    }
     static_cast<NewsroomLabel*>(label)->shrink_to_fit(fixed_text == FixedText::ScaleToFit);
     label->setAlignment(alignment);
     label->setContentsMargins(0, 0, 0, 0);

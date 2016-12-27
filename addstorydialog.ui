@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>386</width>
-    <height>479</height>
+    <height>542</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -377,6 +377,9 @@
         <layout class="QHBoxLayout" name="horizontalLayout_7">
          <item>
           <widget class="QCheckBox" name="check_KeepOnTop">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enabling this setting will cause all Headlines to remain locked above all other windows on your desktop.&lt;/p&gt;&lt;p&gt;Under Windows, if this option is disabled, Headlines will attempt to &amp;quot;glue&amp;quot; themselves directly onto the desktop, &lt;span style=&quot; font-style:italic;&quot;&gt;below&lt;/span&gt; all other windows on the desktop.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
            <property name="text">
             <string>Lock headlines on top</string>
            </property>
@@ -416,6 +419,9 @@
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <item>
              <widget class="QLabel" name="label_10">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;All headlines have fixed dimensions, whether actual screen pixels or percentages of desktop resolution.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
               <property name="text">
                <string>Headlines have a size of</string>
               </property>
@@ -486,6 +492,9 @@
             <layout class="QVBoxLayout" name="verticalLayout_5">
              <item>
               <widget class="QRadioButton" name="radio_InterpretAsPixels">
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This setting causes the values entered above to be used as fixed-size pixel dimensions.  This may cause Headline sizes to shrink or expand on different desktop resolutions.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               </property>
                <property name="text">
                 <string>Size is pixels</string>
                </property>
@@ -496,6 +505,9 @@
              </item>
              <item>
               <widget class="QRadioButton" name="radio_InterpretAsPercentage">
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If enabled, floating-point values entered above are interpreted as percentage  values.  These are applied to the to current width and height of the desktop used for display to determine the dimensions of Headlines.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               </property>
                <property name="text">
                 <string>Size is percentage of screen dimensions</string>
                </property>
@@ -522,6 +534,9 @@
                 <layout class="QHBoxLayout" name="horizontalLayout_12">
                  <item>
                   <widget class="QCheckBox" name="check_LimitContent">
+                   <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You may wish to limit the amount of content each Headline displays (i.e., the number of lines of text). If enabled, you may enter the maximum number of lines that each will display.&lt;/p&gt;&lt;p&gt;Additional Headlines may be required to fully display all text submitted by a Reporter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   </property>
                    <property name="text">
                     <string>Limit headline content to</string>
                    </property>
@@ -540,6 +555,9 @@
                      <width>40</width>
                      <height>16777215</height>
                     </size>
+                   </property>
+                   <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You may wish to limit the amount of content each Headline displays (i.e., the number of lines of text). If enabled, you may enter the maximum number of lines that each will display.&lt;/p&gt;&lt;p&gt;Additional Headlines may be required to fully display all text submitted by a Reporter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                    </property>
                   </widget>
                  </item>
@@ -567,6 +585,9 @@
                </item>
                <item>
                 <widget class="QRadioButton" name="radio_HeadlinesSizeTextScale">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If enabled, this option will cause a Headline to attempt to reduce the size of displayed text until it fits fully into the dimensions specified above.&lt;/p&gt;&lt;p&gt;Please note that this may cause some Headlines to be virtually unreadable. You may use the &amp;quot;Limit headline content&amp;quot; setting in conjunction with this setting to ensure that does not happen.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
                  <property name="text">
                   <string>Scale text to fit headline</string>
                  </property>
@@ -574,12 +595,143 @@
                </item>
                <item>
                 <widget class="QRadioButton" name="radio_HeadlinesSizeTextClip">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Text that overflows the boundaries of a Headline will simply be clipped.&lt;/p&gt;&lt;p&gt;If this frequently results in unreadable text, you may wish to consider scaling instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
                  <property name="text">
                   <string>Clip text to fit headline</string>
                  </property>
                 </widget>
                </item>
               </layout>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_3">
+         <property name="title">
+          <string>Extras</string>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_13">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_16">
+            <item>
+             <widget class="QCheckBox" name="check_ProgressText">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Headline will include a progress bar when it detects the indicated regular expression within the text of a post. Be sure to include capture semantics of a numeric value, or the progress bar will probably not display correctly.&lt;/p&gt;&lt;p&gt;If you do not understand regular expression syntax, then you're probably just better off accepting the default value.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string>Include progress bar when</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="edit_ProgressText">
+              <property name="minimumSize">
+               <size>
+                <width>60</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>40</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Headline will include a progress bar when it detects the indicated regular expression within the text of a post. Be sure to include capture semantics of a numeric value, or the progress bar will probably not display correctly.&lt;/p&gt;&lt;p&gt;If you do not understand regular expression syntax, then you're probably just better off accepting the default value.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="placeholderText">
+               <string>\s(\d+)%</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_13">
+              <property name="text">
+               <string>is detected.</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_12">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_17">
+            <item>
+             <widget class="QLabel" name="label_14">
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="radio_ProgressOnTop">
+              <property name="text">
+               <string>Place progress bar on top</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_18">
+            <item>
+             <widget class="QLabel" name="label_15">
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="radio_ProgressOnBottom">
+              <property name="text">
+               <string>Place progress bar on bottom</string>
+              </property>
              </widget>
             </item>
            </layout>
@@ -645,6 +797,9 @@
              <height>16777215</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Each Headline appears on the Display in a certain way.  You select this &amp;quot;entry type&amp;quot; per Story.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
           </widget>
          </item>
          <item>
@@ -699,6 +854,9 @@
              <width>150</width>
              <height>16777215</height>
             </size>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Like entry, each Headline &amp;quot;leaves&amp;quot; the Display in a certain way.&lt;/p&gt;&lt;p&gt;Some entry types do not have corresponding &amp;quot;exits&amp;quot;, so this option may be disabled.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
           </widget>
          </item>
@@ -837,6 +995,9 @@
            <layout class="QHBoxLayout" name="horizontalLayout_10">
             <item>
              <widget class="QCheckBox" name="check_DashboardReduceOpacityFixed">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;For Dashboard-type Chyrons, you may reduce the opacity of Headlines by a certain amount after the timeout period expires.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
               <property name="text">
                <string>Reduce headline opacity to</string>
               </property>
@@ -906,6 +1067,9 @@
             </item>
             <item>
              <widget class="QComboBox" name="combo_DashboardGroupId">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dashboard-type Chyrons group their Stories into logical headings.  You may specify the name of a Dashboard group here, and it will be displayed above, or next to, the associated Headlines.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
               <property name="editable">
                <bool>true</bool>
               </property>
@@ -944,6 +1108,9 @@
               <layout class="QHBoxLayout" name="horizontalLayout_4">
                <item>
                 <widget class="QRadioButton" name="radio_TrainReduceOpacityFixed">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;For Train-type Chyrons, you may reduce the opacity of Headlines by a certain amount after the timeout period expires.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
                  <property name="text">
                   <string>Reduce headline opacity to</string>
                  </property>
