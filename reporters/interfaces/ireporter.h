@@ -85,12 +85,19 @@ public:     // methods
         + A floating-point type (validate with a QDoubleValidator)
       - multiline
         + A multiline string value (edited with a QPlainTextEdit widget)
+      - combo
+        + A combo box
 
       Parameter types can specify default values by adding a colon (:) followed
       by a value as a suffix (e.g., "integer:10").  This default value will
-      become the placeholder value in single-line edit fields.  In the case of
-      "multiline" editing, the default vlaue (if any) will be inserted into the
-      edit field for the user to modify.
+      become the placeholder value in single-line edit fields.
+
+      In the case of "multiline" editing, the default vlaue (if any) will be
+      inserted into the edit field for the user to modify.
+
+      For "combo", combo box values are provided in a comma-separated list.
+      The default index can be specified by following an item with an asterisk,
+      otherwise the first item in the list will be selected by default.
 
       Newroom will post a dialog requesting these parameters and types from
       the user, and then provide them back to the plug-in via the SetRequirements()
@@ -116,15 +123,6 @@ public:     // methods
     virtual void SetStory(const QUrl& story) = 0;
 
     /*!
-      Local Reporters can cover stories as notices or in depth.  Notices just
-      make mention of a change in the story (file changes), while in-depth
-      coverage actually produces tangible content (file data deltas).
-
-      \param notices_only True if only file changes will be reported, otherwise file deltas will be provided.
-     */
-    virtual void SetCoverage(bool notices_only = false) = 0;
-
-    /*!
       Start covering the Story.  The plug-in should begin any actions required
       to retrieve status information from the REST API when this method is invoked.
 
@@ -144,8 +142,8 @@ signals:
     void        signal_new_data(const QByteArray& data);
 
 protected:
-    QString         error_message;
-    QUrl            story;
+    QString     error_message;
+    QUrl        story;
 };
 
 typedef QSharedPointer<IReporter> IReporterPointer;

@@ -18,26 +18,32 @@ class TEXTFILE_SHARED_EXPORT TextFile : public IReporter
 public:
     TextFile(QObject* parent = nullptr);
 
-    // IPlugin
+    // IReporter
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
     QStringList DisplayName() const Q_DECL_OVERRIDE;
     QString PluginClass() const                 { return "Local"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     bool Supports(const QString& file) const Q_DECL_OVERRIDE;
-    QStringList Requires() const  Q_DECL_OVERRIDE { return QStringList(); }
-    bool SetRequirements(const QStringList& /*parameters*/) Q_DECL_OVERRIDE { return false; }
+    QStringList Requires() const Q_DECL_OVERRIDE;
+    bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& story) Q_DECL_OVERRIDE;
-    void SetCoverage(bool notices_only) Q_DECL_OVERRIDE;
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
 
-protected slots:
+private slots:
     void            slot_poll();
 
-protected:
+private:    // typedefs and enums
+    enum class LocalTrigger
+    {
+        NewContent,
+        FileChange
+    };
+
+private:    // data membvers
     QFileInfo       target;
     int             stabilize_count;
-//    QDateTime       last_modified;
+
     qint64          seek_offset;
     qint64          last_size;
 
@@ -45,5 +51,5 @@ protected:
 
     QString         report;
 
-    bool            notices_only;
+    LocalTrigger    trigger;
 };

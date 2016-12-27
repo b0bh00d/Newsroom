@@ -24,7 +24,6 @@ struct StoryInfo
     QStringList     reporter_parameters;
 
                     // Notifications
-    LocalTrigger    trigger_type;
     uint            ttl;
 
                     // Display
@@ -76,8 +75,7 @@ struct StoryInfo
     QFont           font;
 
     StoryInfo()
-        : trigger_type(LocalTrigger::NewContent),
-          ttl(5),
+        : ttl(5),
           primary_screen(0),
           headlines_always_visible(true),
           interpret_as_pixels(true),

@@ -48,7 +48,6 @@ protected slots:
     void            slot_interpret_size_clicked(bool checked);
     void            slot_progress_clicked(bool checked);
     void            slot_train_reduce_opacity_clicked(bool checked);
-    void            slot_trigger_changed(int index);
     void            slot_reporter_changed(int index);
     void            slot_config_reporter_check_required();
     void            slot_set_group_id_text(int index);
@@ -59,7 +58,6 @@ private:        // methods
     void            save_settings();
     void            load_settings();
 
-    void            configure_for_local(bool for_local = true);
     void            set_display();
     void            set_angle();
 

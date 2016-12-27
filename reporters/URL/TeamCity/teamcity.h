@@ -25,7 +25,7 @@ class TEAMCITYSHARED_EXPORT TeamCity : public IReporter
 public:
     TeamCity(QObject* parent = nullptr);
 
-    // IPlugin
+    // IReporter
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
     QStringList DisplayName() const Q_DECL_OVERRIDE;
     QString PluginClass() const Q_DECL_OVERRIDE { return "URL"; }
@@ -34,7 +34,6 @@ public:
     QStringList Requires() const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
-    void SetCoverage(bool /*notices_only*/) Q_DECL_OVERRIDE {}
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
 
@@ -105,7 +104,7 @@ private:    // data members
 
     ETAMap      eta;
 
-    bool        first_update;   // first update should report something if there are not active builds
+    bool        first_update;   // first update should report something if there are no active builds
 
     QStringList report_template;
 };

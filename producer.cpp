@@ -18,7 +18,6 @@ bool Producer::start_covering_story()
 
     connect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
     reporter_plugin->SetStory(story_info->story);
-    reporter_plugin->SetCoverage(story_info->trigger_type == LocalTrigger::FileChange);
     if(!reporter_plugin->CoverStory())
     {
         disconnect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
@@ -39,7 +38,7 @@ bool Producer::stop_covering_story()
 
 void Producer::file_headline(const QString& data)
 {
-    // check for triggers, and select the stylesheet appropriately
+    // check for keyword triggers, and select the stylesheet appropriately
 
     QString lower_headline = data.toLower();
 

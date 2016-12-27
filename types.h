@@ -31,12 +31,6 @@ enum class ReportStacking
 #   undef X
 };
 
-enum class LocalTrigger
-{
-    NewContent,
-    FileChange
-};
-
 enum class AgeEffects
 {
     None,
