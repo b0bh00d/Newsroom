@@ -137,46 +137,6 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_9">
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <widget class="QLabel" name="label_Triggers">
-           <property name="minimumSize">
-            <size>
-             <width>160</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>160</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>New headlines are triggered by</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="combo_LocalTrigger">
-           <item>
-            <property name="text">
-             <string>new content</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>file changes</string>
-            </property>
-           </item>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
         <layout class="QHBoxLayout" name="horizontalLayout_5">
          <item>
           <widget class="QLabel" name="label_2">
@@ -1214,7 +1174,6 @@
  </widget>
  <tabstops>
   <tabstop>edit_Source</tabstop>
-  <tabstop>combo_LocalTrigger</tabstop>
   <tabstop>combo_AvailableReporters</tabstop>
   <tabstop>edit_TTL</tabstop>
   <tabstop>radio_Monitor1</tabstop>

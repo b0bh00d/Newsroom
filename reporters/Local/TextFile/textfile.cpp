@@ -6,7 +6,7 @@
 
 TextFile::TextFile(QObject *parent)
     : poll_timer(nullptr),
-      notices_only(false),
+      trigger(LocalTrigger::NewContent),
       IReporter(parent)
 {}
 
@@ -19,6 +19,31 @@ QStringList TextFile::DisplayName() const
 QByteArray TextFile::PluginID() const
 {
     return "{F1949758-2A08-4E8A-8290-90DCD270A8B9}";
+}
+
+bool TextFile::Supports(const QString& /*file*/) const
+{
+    return true;
+}
+
+QStringList TextFile::Requires() const
+{
+    return QStringList() << "New headlines are triggered by" << "combo:new content,file changes";
+}
+
+bool TextFile::SetRequirements(const QStringList& parameters)
+{
+    error_message.clear();
+
+    if(parameters.isEmpty())
+    {
+        error_message = QStringLiteral("TextFile: Not enough parameters provided.");
+        return false;
+    }
+
+    trigger = static_cast<LocalTrigger>(parameters[0].toInt());
+
+    return true;
 }
 
 void TextFile::SetStory(const QUrl& story)
@@ -61,17 +86,6 @@ bool TextFile::FinishStory()
     return true;
 }
 
-// IPluginLocal
-bool TextFile::Supports(const QString& /*file*/) const
-{
-    return true;
-}
-
-void TextFile::SetCoverage(bool notices_only)
-{
-    this->notices_only = notices_only;
-}
-
 void TextFile::slot_poll()
 {
     target.refresh();
@@ -79,9 +93,8 @@ void TextFile::slot_poll()
     if(stabilize_count > 0 && target.size() == last_size)
     {
         stabilize_count = 0;
-//        last_modified = target.lastModified();
 
-        if(notices_only)
+        if(trigger == LocalTrigger::FileChange)
         {
             // this is enough to trigger a headline
             QString data = QString("Story '%1' was updated on %2").arg(story.toString()).arg(target.lastModified().toString());

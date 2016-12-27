@@ -25,56 +25,6 @@ QByteArray TeamCity::PluginID() const
     return "{A34020FD-80CC-48D4-9EC0-DFD52B912B2D}";
 }
 
-void TeamCity::SetStory(const QUrl& url)
-{
-    story = url;
-}
-
-bool TeamCity::CoverStory()
-{
-    if(QNAM)
-        return false;       // they're calling us a second time
-
-    error_message.clear();
-
-    QNAM = new QNetworkAccessManager(this);
-
-    // get projects listing first
-    QString projects_url = QString("%1/httpAuth/app/rest/projects").arg(story.toString());
-    create_request(projects_url, States::GettingProjects);
-
-    return true;
-}
-
-bool TeamCity::FinishStory()
-{
-    error_message.clear();
-
-    if(poll_timer)
-    {
-        poll_timer->stop();
-        poll_timer->deleteLater();
-        poll_timer = nullptr;
-    }
-
-    if(QNAM)
-    {
-        foreach(QNetworkReply* reply, active_replies.keys())
-        {
-            reply->abort();
-            reply->deleteLater();
-        }
-
-        active_replies.clear();
-
-        QNAM->deleteLater();
-        QNAM = nullptr;
-    }
-
-    return false;
-}
-
-// IPluginURL
 QStringList TeamCity::Requires() const
 {
     // parameter names ending with an asterisk are required
@@ -135,6 +85,55 @@ bool TeamCity::SetRequirements(const QStringList& parameters)
     }
 
     return true;
+}
+
+void TeamCity::SetStory(const QUrl& url)
+{
+    story = url;
+}
+
+bool TeamCity::CoverStory()
+{
+    if(QNAM)
+        return false;       // they're calling us a second time
+
+    error_message.clear();
+
+    QNAM = new QNetworkAccessManager(this);
+
+    // get projects listing first
+    QString projects_url = QString("%1/httpAuth/app/rest/projects").arg(story.toString());
+    create_request(projects_url, States::GettingProjects);
+
+    return true;
+}
+
+bool TeamCity::FinishStory()
+{
+    error_message.clear();
+
+    if(poll_timer)
+    {
+        poll_timer->stop();
+        poll_timer->deleteLater();
+        poll_timer = nullptr;
+    }
+
+    if(QNAM)
+    {
+        foreach(QNetworkReply* reply, active_replies.keys())
+        {
+            reply->abort();
+            reply->deleteLater();
+        }
+
+        active_replies.clear();
+
+        QNAM->deleteLater();
+        QNAM = nullptr;
+    }
+
+    return false;
 }
 
 void TeamCity::create_request(const QString& url_str, States state)

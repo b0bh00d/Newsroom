@@ -148,7 +148,6 @@ void MainWindow::restore_story_defaults(StoryInfoPointer story_info)
     story_info->reporter_class           = settings->get_item("reporter_class", QString()).toString();
     story_info->reporter_id              = settings->get_item("reporter_id", QString()).toString();
     story_info->reporter_parameters      = settings->get_item("reporter_parameters", QStringList()).toStringList();
-    story_info->trigger_type             = static_cast<LocalTrigger>(settings->get_item("local_trigger", 0).toInt());
     story_info->ttl                      = settings->get_item("ttl", story_info->ttl).toInt();
     story_info->primary_screen           = settings->get_item("primary_screen", 0).toInt();
     story_info->headlines_always_visible = settings->get_item("headlines_always_visible", true).toBool();
@@ -192,7 +191,6 @@ void MainWindow::save_story_defaults(StoryInfoPointer story_info)
     settings->set_item("reporter_class", story_info->reporter_class);
     settings->set_item("reporter_id", story_info->reporter_id);
     settings->set_item("reporter_parameters", story_info->reporter_parameters);
-    settings->set_item("local_trigger", static_cast<int>(story_info->trigger_type));
     settings->set_item("ttl", story_info->ttl);
     settings->set_item("primary_screen", story_info->primary_screen);
     settings->set_item("headlines_always_visible", story_info->headlines_always_visible);
