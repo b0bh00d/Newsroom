@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>386</width>
-    <height>542</height>
+    <width>474</width>
+    <height>545</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -57,8 +57,14 @@
        <property name="text">
         <string>Angle</string>
        </property>
+       <property name="scaledContents">
+        <bool>false</bool>
+       </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="margin">
+        <number>0</number>
        </property>
       </widget>
      </item>
@@ -74,9 +80,13 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="tab_Reporters">
+      <attribute name="icon">
+       <iconset resource="Newsroom.qrc">
+        <normaloff>:/images/Reporter.png</normaloff>:/images/Reporter.png</iconset>
+      </attribute>
       <attribute name="title">
        <string>Reporters</string>
       </attribute>
@@ -132,6 +142,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_Notifications">
+      <attribute name="icon">
+       <iconset resource="Newsroom.qrc">
+        <normaloff>:/images/Notifications.png</normaloff>:/images/Notifications.png</iconset>
+      </attribute>
       <attribute name="title">
        <string>Notifications</string>
       </attribute>
@@ -214,6 +228,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_Display">
+      <attribute name="icon">
+       <iconset resource="Newsroom.qrc">
+        <normaloff>:/images/Display.png</normaloff>:/images/Display.png</iconset>
+      </attribute>
       <attribute name="title">
        <string>Display</string>
       </attribute>
@@ -329,6 +347,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_Headlines">
+      <attribute name="icon">
+       <iconset resource="Newsroom.qrc">
+        <normaloff>:/images/Headlines.png</normaloff>:/images/Headlines.png</iconset>
+      </attribute>
       <attribute name="title">
        <string>Headlines</string>
       </attribute>
@@ -715,6 +737,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_Animation">
+      <attribute name="icon">
+       <iconset resource="Newsroom.qrc">
+        <normaloff>:/images/Animation.png</normaloff>:/images/Animation.png</iconset>
+      </attribute>
       <attribute name="title">
        <string>Animation</string>
       </attribute>

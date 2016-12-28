@@ -159,6 +159,10 @@
    </property>
   </action>
   <action name="action_Settings">
+   <property name="icon">
+    <iconset resource="Newsroom.qrc">
+     <normaloff>:/images/Options.png</normaloff>:/images/Options.png</iconset>
+   </property>
    <property name="text">
     <string>Settings...</string>
    </property>
@@ -167,8 +171,12 @@
    </property>
   </action>
   <action name="action_About">
+   <property name="icon">
+    <iconset resource="Newsroom.qrc">
+     <normaloff>:/images/About.png</normaloff>:/images/About.png</iconset>
+   </property>
    <property name="text">
-    <string>About Dashboard...</string>
+    <string>About Newsroom...</string>
    </property>
   </action>
   <action name="action_RemoveAll">
@@ -181,6 +189,8 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="Newsroom.qrc"/>
+ </resources>
  <connections/>
 </ui>
