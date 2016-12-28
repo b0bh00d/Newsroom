@@ -1,6 +1,8 @@
 #include "teamcity.h"
 
-TeamCity::TeamCity(QObject *parent)
+#define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
+
+TeamCity9::TeamCity9(QObject *parent)
     : QNAM(nullptr),
       poll_timer(nullptr),
       poll_timeout(60),
@@ -15,17 +17,17 @@ TeamCity::TeamCity(QObject *parent)
 }
 
 // IPlugin
-QStringList TeamCity::DisplayName() const
+QStringList TeamCity9::DisplayName() const
 {
     return QStringList() << QObject::tr("Team City v9") << QObject::tr("Supports the Team City REST API for v9.x");
 }
 
-QByteArray TeamCity::PluginID() const
+QByteArray TeamCity9::PluginID() const
 {
     return "{A34020FD-80CC-48D4-9EC0-DFD52B912B2D}";
 }
 
-QStringList TeamCity::Requires() const
+QStringList TeamCity9::Requires() const
 {
     // parameter names ending with an asterisk are required
     return QStringList() << "Username:*"     << "string" <<
@@ -43,13 +45,13 @@ QStringList TeamCity::Requires() const
                             "Format:"        << QString("multiline:%1").arg(report_template.join("<br>\n"));
 }
 
-bool TeamCity::SetRequirements(const QStringList& parameters)
+bool TeamCity9::SetRequirements(const QStringList& parameters)
 {
     error_message.clear();
 
     if(parameters.count() < 3)
     {
-        error_message = QStringLiteral("TeamCity: Not enough parameters provided.");
+        error_message = QStringLiteral("TeamCity9: Not enough parameters provided.");
         return false;
     }
 
@@ -68,31 +70,31 @@ bool TeamCity::SetRequirements(const QStringList& parameters)
 
     if(username.isEmpty())
     {
-        error_message = QStringLiteral("TeamCity: The Username parameter is required.");
+        error_message = QStringLiteral("TeamCity9: The Username parameter is required.");
         return false;
     }
 
     if(password.isEmpty())
     {
-        error_message = QStringLiteral("TeamCity: The Password parameter is required.");
+        error_message = QStringLiteral("TeamCity9: The Password parameter is required.");
         return false;
     }
 
     if(project_name.isEmpty())
     {
-        error_message = QStringLiteral("TeamCity: The Project ID parameter is required.");
+        error_message = QStringLiteral("TeamCity9: The Project ID parameter is required.");
         return false;
     }
 
     return true;
 }
 
-void TeamCity::SetStory(const QUrl& url)
+void TeamCity9::SetStory(const QUrl& url)
 {
     story = url;
 }
 
-bool TeamCity::CoverStory()
+bool TeamCity9::CoverStory()
 {
     if(QNAM)
         return false;       // they're calling us a second time
@@ -108,7 +110,7 @@ bool TeamCity::CoverStory()
     return true;
 }
 
-bool TeamCity::FinishStory()
+bool TeamCity9::FinishStory()
 {
     error_message.clear();
 
@@ -136,7 +138,7 @@ bool TeamCity::FinishStory()
     return false;
 }
 
-void TeamCity::create_request(const QString& url_str, States state)
+void TeamCity9::create_request(const QString& url_str, States state)
 {
     QUrl url(url_str);
     url.setUserName(username);
@@ -147,12 +149,12 @@ void TeamCity::create_request(const QString& url_str, States state)
     request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
 
     QNetworkReply* reply = QNAM->get(request);
-    bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity::slot_get_read);
+    bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity9::slot_get_read);
     ASSERT_UNUSED(connected);
-    connected = connect(reply, &QNetworkReply::finished, this, &TeamCity::slot_get_complete);
+    connected = connect(reply, &QNetworkReply::finished, this, &TeamCity9::slot_get_complete);
     ASSERT_UNUSED(connected);
     connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
-                        this, &TeamCity::slot_get_failed);
+                        this, &TeamCity9::slot_get_failed);
     ASSERT_UNUSED(connected);
 
     ReplyData reply_data;
@@ -161,7 +163,7 @@ void TeamCity::create_request(const QString& url_str, States state)
     active_replies[reply] = reply_data;
 }
 
-void TeamCity::process_reply(QNetworkReply *reply)
+void TeamCity9::process_reply(QNetworkReply *reply)
 {
     ReplyData& data = active_replies[reply];
     if(data.state == States::GettingProjects)
@@ -186,7 +188,7 @@ void TeamCity::process_reply(QNetworkReply *reply)
         // get the builders for the project we are watching
 
         if(!json_projects.contains(project_name))
-            error_message = QString("TeamCity: The project id \"%1\" was not found on server \"%2\".").arg(project_name).arg(story.toString());
+            error_message = QString("TeamCity9: The project id \"%1\" was not found on server \"%2\".").arg(project_name).arg(story.toString());
         else
         {
             QJsonObject project = json_projects[project_name];
@@ -216,7 +218,7 @@ void TeamCity::process_reply(QNetworkReply *reply)
 
         if(!builder_name.isEmpty() && json_builders.isEmpty())
         {
-            error_message = QString("TeamCity: The build id \"%1\" was not found for project \"%2\" on server \"%3\".")
+            error_message = QString("TeamCity9: The build id \"%1\" was not found for project \"%2\" on server \"%3\".")
                                     .arg(builder_name)
                                     .arg(project_name)
                                     .arg(story.toString());
@@ -228,7 +230,7 @@ void TeamCity::process_reply(QNetworkReply *reply)
 
             poll_timer = new QTimer(this);
             poll_timer->setInterval(poll_timeout * 1000);
-            connect(poll_timer, &QTimer::timeout, this, &TeamCity::slot_poll);
+            connect(poll_timer, &QTimer::timeout, this, &TeamCity9::slot_poll);
             poll_timer->start();
 
             slot_poll();        // get an initial update
@@ -244,7 +246,7 @@ void TeamCity::process_reply(QNetworkReply *reply)
         process_final(reply);
 }
 
-void TeamCity::process_status(const QJsonObject& status)
+void TeamCity9::process_status(const QJsonObject& status)
 {
     int count = status["count"].toInt();
     if(count == 0 && first_update)
@@ -388,7 +390,7 @@ void TeamCity::process_status(const QJsonObject& status)
 
         foreach(const QString& buildTypeId, buildTypeIds.keys())
         {
-// curl -X GET --url "https://teamcity.lightwave3d.com/private_1/httpAuth/app/rest/buildTypes/id:DaveV_Windows/builds/running:false?count=1&start=0" --user "bhood:pylg>Swok4" --header "Content-type:application/json" --header "Accept:application/json"
+// curl -X GET --url "https://TeamCity9.lightwave3d.com/private_1/httpAuth/app/rest/buildTypes/id:DaveV_Windows/builds/running:false?count=1&start=0" --user "bhood:pylg>Swok4" --header "Content-type:application/json" --header "Accept:application/json"
             QString build_url = QString("%1/httpAuth/app/rest/buildTypes/id:%2/builds/running:false?count=%3&start=0")
                                             .arg(story.toString())
                                             .arg(buildTypeId)
@@ -400,7 +402,7 @@ void TeamCity::process_status(const QJsonObject& status)
     first_update = false;
 }
 
-void TeamCity::process_final(QNetworkReply *reply)
+void TeamCity9::process_final(QNetworkReply *reply)
 {
     ReplyData& data = active_replies[reply];
 
@@ -415,7 +417,7 @@ void TeamCity::process_final(QNetworkReply *reply)
     emit signal_new_data(status.toUtf8());
 }
 
-void TeamCity::slot_get_read()
+void TeamCity9::slot_get_read()
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
     if(reply)
@@ -425,7 +427,7 @@ void TeamCity::slot_get_read()
     }
 }
 
-void TeamCity::populate_report_map(ReportMap& report_map,
+void TeamCity9::populate_report_map(ReportMap& report_map,
                                    const QJsonObject& build,
                                    const QString& builder_id,
                                    const QString& eta_str)
@@ -454,7 +456,7 @@ void TeamCity::populate_report_map(ReportMap& report_map,
         report_map["ETA"] = eta_str;
 }
 
-QString TeamCity::render_report(const ReportMap& report_map)
+QString TeamCity9::render_report(const ReportMap& report_map)
 {
     QString report = report_template.join("<br>\n");
     foreach(const QString& key, report_map.keys())
@@ -466,7 +468,7 @@ QString TeamCity::render_report(const ReportMap& report_map)
     return report;
 }
 
-void TeamCity::slot_get_complete()
+void TeamCity9::slot_get_complete()
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
     if(reply && reply->error() == QNetworkReply::NoError)
@@ -486,7 +488,7 @@ void TeamCity::slot_get_complete()
     }
 }
 
-void TeamCity::slot_get_failed(QNetworkReply::NetworkError code)
+void TeamCity9::slot_get_failed(QNetworkReply::NetworkError code)
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
     if(reply)
@@ -505,7 +507,7 @@ void TeamCity::slot_get_failed(QNetworkReply::NetworkError code)
     emit signal_new_data(error_message.toUtf8());
 }
 
-void TeamCity::slot_poll()
+void TeamCity9::slot_poll()
 {
     QString url_str;
     if(builder_name.isEmpty())
