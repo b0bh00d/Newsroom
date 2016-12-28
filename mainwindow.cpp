@@ -102,6 +102,8 @@ MainWindow::~MainWindow()
 
 bool MainWindow::load_plugin_factories()
 {
+    QMap<QString, bool> id_filter;
+
     plugins_map.clear();
 
     QDir plugins("plugins");
@@ -127,11 +129,13 @@ bool MainWindow::load_plugin_factories()
                 pi_info.tooltip = display[1];
                 pi_info.id = ireporter->PluginID();
 
-                QString pi_class = ireporter->PluginClass();
-
-                if(!plugins_map.contains(pi_class))
-                    plugins_map[pi_class] = PluginsInfoVector();
-                plugins_map[pi_class].push_back(pi_info);
+                if(!id_filter.contains(pi_info.id))
+                {
+                    QString pi_class = ireporter->PluginClass();
+                    if(!plugins_map.contains(pi_class))
+                        plugins_map[pi_class] = PluginsInfoVector();
+                    plugins_map[pi_class].push_back(pi_info);
+                }
             }
         }
     }
