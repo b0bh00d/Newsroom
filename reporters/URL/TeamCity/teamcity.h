@@ -35,7 +35,7 @@ public:
     // IReporter
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
     QStringList DisplayName() const Q_DECL_OVERRIDE;
-    QString PluginClass() const Q_DECL_OVERRIDE { return "URL"; }
+    QString PluginClass() const Q_DECL_OVERRIDE { return "REST"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     bool Supports(const QString& /*file*/) const Q_DECL_OVERRIDE { return false; }
     QStringList Requires() const Q_DECL_OVERRIDE;

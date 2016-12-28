@@ -298,7 +298,7 @@ void MainWindow::dropEvent(QDropEvent* event)
         if(story.isLocalFile())
             story_info->reporter_class = "Local";
         else
-            story_info->reporter_class = "URL";
+            story_info->reporter_class = "REST";
 
         if(plugins_map.contains(story_info->reporter_class))
             reporters_info = &plugins_map[story_info->reporter_class];
