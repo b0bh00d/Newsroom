@@ -4,7 +4,7 @@
 
 #include "teamcity.h"
 
-class TEAMCITYSHARED_EXPORT TeamCityFactory : public IReporterFactory
+class TEAMCITY9SHARED_EXPORT TeamCity9Factory : public IReporterFactory
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginFactory" FILE "")

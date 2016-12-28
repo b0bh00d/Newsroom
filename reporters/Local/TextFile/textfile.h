@@ -6,11 +6,16 @@
 
 #include <ireporter.h>
 
-#include "../../specialize.h"
-
 #include "textfile_global.h"
 
-#define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
+/// @class TextFile
+/// @brief A Reporter for Newsroom that covers local files
+///
+/// TextFile is a Reporter plug-in for Newsroom that knows how to read
+/// and report on a single text file on the local machine.  Such files
+/// are expected to add new content occassionally, appended to the end
+/// of the file (e.g., log files).  TextFile can report on a change in
+/// the file, or it can report the new contents.
 
 class TEXTFILE_SHARED_EXPORT TextFile : public IReporter
 {

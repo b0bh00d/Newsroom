@@ -17,13 +17,20 @@
 
 #include "teamcity_global.h"
 
-#define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
+/// @class TeamCity9
+/// @brief A Reporter for Newsroom that covers Team City buids
+///
+/// TeamCity9 is a Reporter plug-in for Newsroom that knows how to read
+/// and report on one or more builds using Team City's REST API.
+///
+/// This particular Reporter instance converses with Team City using its
+/// v9 REST API calls.
 
-class TEAMCITYSHARED_EXPORT TeamCity : public IReporter
+class TEAMCITY9SHARED_EXPORT TeamCity9 : public IReporter
 {
     Q_OBJECT
 public:
-    TeamCity(QObject* parent = nullptr);
+    TeamCity9(QObject* parent = nullptr);
 
     // IReporter
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }

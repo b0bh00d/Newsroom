@@ -2,12 +2,12 @@ QT += network
 QT -= gui
 
 # qtLibraryTarget() adds the 'd' or '_debug' extension, if doing debug builds
-TARGET = $$qtLibraryTarget(TeamCity)
+TARGET = $$qtLibraryTarget(TeamCity9)
 TEMPLATE = lib
 
 CONFIG += C++11
 
-DEFINES += TEAMCITY_LIBRARY
+DEFINES += TEAMCITY9_LIBRARY
 
 INCLUDEPATH += ../../interfaces
 
