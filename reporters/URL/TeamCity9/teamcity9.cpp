@@ -1,4 +1,4 @@
-#include "teamcity.h"
+#include "teamcity9.h"
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 

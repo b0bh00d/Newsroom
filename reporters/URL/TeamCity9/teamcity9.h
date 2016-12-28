@@ -15,7 +15,7 @@
 
 #include "../../../specialize.h"
 
-#include "teamcity_global.h"
+#include "teamcity9_global.h"
 
 /// @class TeamCity9
 /// @brief A Reporter for Newsroom that covers Team City buids
