@@ -1,4 +1,4 @@
-#include "teamcityfactory.h"
+#include "teamcity9factory.h"
 
 // IPluginFactory
 IReporterPointer TeamCity9Factory::newInstance()

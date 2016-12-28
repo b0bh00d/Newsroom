@@ -2,7 +2,7 @@
 
 #include <ireporter.h>
 
-#include "teamcity.h"
+#include "teamcity9.h"
 
 class TEAMCITY9SHARED_EXPORT TeamCity9Factory : public IReporterFactory
 {
