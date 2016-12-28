@@ -11,5 +11,11 @@
   <file>images/Monitor2.png</file>
   <file>images/Monitor3.png</file>
   <file>images/Monitor4.png</file>
+  <file>images/Reporter.png</file>
+  <file>images/Notifications.png</file>
+  <file>images/Display.png</file>
+  <file>images/Headlines.png</file>
+  <file>images/Animation.png</file>
+  <file>images/Angle.png</file>
 </qresource>
 </RCC>
