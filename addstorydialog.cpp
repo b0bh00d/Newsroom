@@ -122,12 +122,12 @@ void AddStoryDialog::showEvent(QShowEvent *event)
 void AddStoryDialog::save_settings()
 {
     settings->begin_section("/AddStoryDialog");
+
     settings->set_item("current_tab", ui->tabWidget->currentIndex());
     QStringList id_list;
     for(int i = 0;i < ui->combo_DashboardGroupId->count() && i < 10;++i)
         id_list << ui->combo_DashboardGroupId->itemText(i);
     settings->set_item("dashboard_group_id_list", id_list);
-    settings->end_section();
 
     QString story = ui->edit_Source->text();
     if(QFile::exists(story))
@@ -165,6 +165,13 @@ void AddStoryDialog::save_settings()
             }
         }
     }
+
+//    settings->clear_section(story_info->reporter_id);
+    settings->begin_section(story_info->reporter_id);
+    QStringList params = plugin_reporter->Requires();
+    for(int i = 0, j = 0;i < params.length();i += 2, ++j)
+        settings->set_item(params[i], story_info->reporter_parameters[j]);
+    settings->end_section();
 
     if(!ui->edit_TTL->text().isEmpty())
         story_info->ttl = ui->edit_TTL->text().toInt();
@@ -237,6 +244,8 @@ void AddStoryDialog::save_settings()
         story_info->dashboard_group_id = line_edit->placeholderText();
     else
         story_info->dashboard_group_id = line_edit->text();
+
+    settings->end_section();
 }
 
 void AddStoryDialog::load_settings()
@@ -250,8 +259,6 @@ void AddStoryDialog::load_settings()
 
     QStringList id_list = settings->get_item("dashboard_group_id_list", QStringList()).toStringList();
     ui->combo_DashboardGroupId->addItems(id_list);
-
-    settings->end_section();
 
     if(story_info->story.isLocalFile())
     {
@@ -302,6 +309,17 @@ void AddStoryDialog::load_settings()
     }
 
     reporter_configuration = story_info->reporter_parameters;
+
+    settings->begin_section(story_info->reporter_id);
+    QStringList params = plugin_reporter->Requires();
+    for(int i = 0, j = 0;i < params.length();i += 2, ++j)
+    {
+        if(j >= reporter_configuration.length())
+            reporter_configuration.append(settings->get_item(params[i], QString()).toString());
+        else
+            reporter_configuration[j] = settings->get_item(params[i], QString()).toString();
+    }
+    settings->end_section();
 
     slot_configure_reporter_configure();
 
@@ -399,6 +417,8 @@ void AddStoryDialog::load_settings()
 
     if(!ui->edit_Angle->placeholderText().compare(story_info->identity))
         ui->edit_Angle->setText(QString());
+
+    settings->end_section();
 }
 
 void AddStoryDialog::set_display()
