@@ -7,6 +7,8 @@
 TextFile::TextFile(QObject *parent)
     : poll_timer(nullptr),
       trigger(LocalTrigger::NewContent),
+      left_strip(0),
+      right_strip(0),
       IReporter(parent)
 {}
 
@@ -28,20 +30,24 @@ bool TextFile::Supports(const QString& /*file*/) const
 
 QStringList TextFile::Requires() const
 {
-    return QStringList() << "New headlines are triggered by" << "combo:new content,file changes";
+    return QStringList() << "New headlines are triggered by" << "combo:new content,file changes" <<
+                            "Strip characters from left" << "integer:0" <<
+                            "Strip characters from right" << "integer:0";
 }
 
 bool TextFile::SetRequirements(const QStringList& parameters)
 {
     error_message.clear();
 
-    if(parameters.isEmpty())
+    if(parameters.count() < 3)
     {
         error_message = QStringLiteral("TextFile: Not enough parameters provided.");
         return false;
     }
 
     trigger = static_cast<LocalTrigger>(parameters[0].toInt());
+    left_strip = parameters[1].toInt();
+    right_strip = parameters[2].toInt();
 
     return true;
 }
@@ -86,6 +92,34 @@ bool TextFile::FinishStory()
     return true;
 }
 
+void TextFile::preprocess(QByteArray& ba)
+{
+    if(!left_strip && !right_strip)
+        return;     // no modifications
+
+    QString str(ba);
+    QStringList lines = str.split('\n');
+
+    if(left_strip)
+    {
+        for(int i = 0;i < lines.length();++i)
+            lines[i].remove(0, left_strip);
+    }
+
+    if(right_strip)
+    {
+        for(int i = 0;i < lines.length();++i)
+        {
+            if(lines[i].length() > right_strip)
+                lines[i] = lines[i].left(lines[i].length() - right_strip);
+            else
+                lines[i].clear();
+        }
+    }
+
+    ba = lines.join('\n').toUtf8();
+}
+
 void TextFile::slot_poll()
 {
     target.refresh();
@@ -110,6 +144,7 @@ void TextFile::slot_poll()
                 {
                     target_file.seek(seek_offset);
                     QByteArray data = target_file.readAll();
+                    preprocess(data);
                     emit signal_new_data(data);
                 }
             }
