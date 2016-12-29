@@ -9,13 +9,14 @@ class ILabel : public QLabel
     Q_OBJECT
 public:
     explicit ILabel(QWidget *parent = 0)
-        : shrink_text_to_fit(false), QLabel(parent) {}
+        : margin(5), shrink_text_to_fit(false), QLabel(parent) {}
     explicit ILabel(const QString &text, QWidget *parent=0)
-        : shrink_text_to_fit(false), QLabel(text, parent) {}
+        : margin(5), shrink_text_to_fit(false), QLabel(text, parent) {}
 
     virtual void shrink_to_fit(bool shrink = true) = 0;
 
 protected:
+    int     margin;
     bool    shrink_text_to_fit;
 };
 
@@ -64,7 +65,6 @@ protected:      // data members
     QString progress_re;
     bool    progress_on_top;
 
-    int     progress_margin;
     int     progress_x;
     int     progress_y;
     int     progress_w;
