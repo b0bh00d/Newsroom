@@ -45,6 +45,9 @@ private:    // typedefs and enums
         FileChange
     };
 
+private:    // methods
+    void    preprocess(QByteArray& ba);
+
 private:    // data membvers
     QFileInfo       target;
     int             stabilize_count;
@@ -57,4 +60,7 @@ private:    // data membvers
     QString         report;
 
     LocalTrigger    trigger;
+
+    int             left_strip;
+    int             right_strip;
 };
