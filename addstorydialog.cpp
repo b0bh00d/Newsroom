@@ -166,7 +166,7 @@ void AddStoryDialog::save_settings()
         }
     }
 
-//    settings->clear_section(story_info->reporter_id);
+    settings->clear_section(story_info->reporter_id);
     settings->begin_section(story_info->reporter_id);
     QStringList params = plugin_reporter->Requires();
     for(int i = 0, j = 0;i < params.length();i += 2, ++j)
@@ -308,16 +308,14 @@ void AddStoryDialog::load_settings()
         plugin_reporter = ireporterfactory->newInstance();
     }
 
-    reporter_configuration = story_info->reporter_parameters;
+    reporter_configuration.clear();
 
     settings->begin_section(story_info->reporter_id);
     QStringList params = plugin_reporter->Requires();
     for(int i = 0, j = 0;i < params.length();i += 2, ++j)
     {
-        if(j >= reporter_configuration.length())
-            reporter_configuration.append(settings->get_item(params[i], QString()).toString());
-        else
-            reporter_configuration[j] = settings->get_item(params[i], QString()).toString();
+        reporter_configuration.append(QString());
+        reporter_configuration[j] = settings->get_item(params[i], QString()).toString();
     }
     settings->end_section();
 
