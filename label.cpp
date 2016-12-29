@@ -1,5 +1,7 @@
 #include "label.h"
 
+#include <QtCore/QRegExp>
+
 #include <QtGui/QPainter>
 #include <QtGui/QTextDocument>
 #include <QtGui/QAbstractTextDocumentLayout>
@@ -22,14 +24,18 @@ void VLabel::paintEvent(QPaintEvent* /*event*/)
     QRect s = geometry();
 
     QTextDocument td;
-    td.setHtml(text());
+    td.setDocumentMargin(margin);
+
+    QRegExp html_tags("<[^>]*>");
+    if(html_tags.indexIn(text()) != -1)
+        td.setHtml(text());
+    else
+        td.setPlainText(text());
     QSizeF doc_size = td.documentLayout()->documentSize();
 
     if(shrink_text_to_fit)
     {
         QFont f = td.defaultFont();
-//        qreal original_point_size = f.pointSizeF();
-
         for(;;)
         {
             doc_size = td.documentLayout()->documentSize();
@@ -38,9 +44,9 @@ void VLabel::paintEvent(QPaintEvent* /*event*/)
 
             if((f.pointSizeF() - .1) < 6.0f)
             {
-                // let it just clip the text
-//                f.setPointSizeF(original_point_size);
-//                td.setDefaultFont(f);
+                // let it just clip the remaining text
+                //f.setPointSizeF(original_point_size);
+                //td.setDefaultFont(f);
                 break;
             }
 
@@ -74,6 +80,8 @@ void VLabel::paintEvent(QPaintEvent* /*event*/)
         x = (x < 0) ? 0 : x;
     }
 
+    painter.save();
+
     if(configure_for_left)
     {
         painter.translate(y, s.height() - x);
@@ -85,10 +93,14 @@ void VLabel::paintEvent(QPaintEvent* /*event*/)
         painter.rotate(90);
     }
 
+    if(!shrink_text_to_fit)
+        painter.setClipRect(margin, margin, s.width() - margin * 2, s.height() - margin * 2);
+
     QAbstractTextDocumentLayout::PaintContext ctx;
     ctx.palette.setColor(QPalette::Text, painter.pen().color());
-    ctx.clip = QRect(0, 0, s.width(), s.height());
     td.documentLayout()->draw(&painter, ctx);
+
+    painter.restore();
 }
 
 QSize VLabel::minimumSizeHint() const
@@ -131,9 +143,8 @@ void HLabel::set_progress_detection(bool detect, const QString& re, bool on_top)
     progress_re = re;
     progress_on_top = on_top;
 
-    progress_margin = 5;
-    progress_x = 5;
-    progress_y = 5;     // preset for top
+    progress_x = margin;
+    progress_y = margin;     // preset for top
     progress_w = 0;
     progress_h = 5;
 }
@@ -168,7 +179,13 @@ void HLabel::paintEvent(QPaintEvent* /*event*/)
     QRect s = geometry();
 
     QTextDocument td;
-    td.setHtml(text());
+    td.setDocumentMargin(margin);
+
+    QRegExp html_tags("<[^>]*>");
+    if(html_tags.indexIn(text()) != -1)
+        td.setHtml(text());
+    else
+        td.setPlainText(text());
     QSizeF doc_size = td.documentLayout()->documentSize();
 
     if(shrink_text_to_fit)
@@ -179,6 +196,15 @@ void HLabel::paintEvent(QPaintEvent* /*event*/)
             doc_size = td.documentLayout()->documentSize();
             if(doc_size.width() < s.width())
                 break;
+
+            if((f.pointSizeF() - .1) < 6.0f)
+            {
+                // let it just clip the remaining text
+                //f.setPointSizeF(original_point_size);
+                //td.setDefaultFont(f);
+                break;
+            }
+
             f.setPointSizeF(f.pointSizeF() - .1);
             td.setDefaultFont(f);
         }
@@ -211,10 +237,11 @@ void HLabel::paintEvent(QPaintEvent* /*event*/)
 
     painter.save();
     painter.translate(x, y);
+    if(!shrink_text_to_fit)
+        painter.setClipRect(margin, margin, s.width() - margin * 2, s.height() - margin * 2);
 
     QAbstractTextDocumentLayout::PaintContext ctx;
     ctx.palette.setColor(QPalette::Text, painter.pen().color());
-    ctx.clip = QRect(0, 0, s.width(), s.height());
     td.documentLayout()->draw(&painter, ctx);
 
     painter.restore();
@@ -234,9 +261,9 @@ void HLabel::paintEvent(QPaintEvent* /*event*/)
 
             // draw a progress bar along the bottom
             progress_h = 5;
-            progress_x = progress_margin;
-            progress_y = s.height() - progress_h - progress_margin;
-            progress_w = s.width() - progress_margin * 2;
+            progress_x = margin;
+            progress_y = s.height() - progress_h - margin;
+            progress_w = s.width() - margin * 2;
 
             if(progress_on_top)
                 progress_y = 5;
