@@ -73,6 +73,11 @@ void Producer::file_headline(const QString& data)
     emit signal_new_headline(headline);
 }
 
+void Producer::slot_start_covering_story()
+{
+    (void)start_covering_story();
+}
+
 void Producer::slot_new_data(const QByteArray& data)
 {
     if(!story_info->limit_content)

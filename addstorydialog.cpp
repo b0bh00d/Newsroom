@@ -37,13 +37,6 @@ static const QStringList animexittype_str
 #undef X
 };
 
-static const QMap<ReportStacking, QString> reportstacking_map
-{
-#define X(a) { ReportStacking::a, QObject::tr( #a ) },
-#include "reportstacking.def"
-#undef X
-};
-
 AddStoryDialog::AddStoryDialog(PluginsInfoVector *reporters_info,
                                StoryInfoPointer story_info,
                                SettingsPointer settings,

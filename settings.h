@@ -37,6 +37,8 @@ public:
     int         begin_array(const QString& path);
     void        end_array();
 
+    bool        set_array_index(int index);
+
     QVariant    get_item(const QString& item_name, const QVariant& default_value = QVariant());
     QVariant    get_array_item(int index, const QString &element_name, const QVariant& default_value = QVariant());
     QVariant    get_array_item(const QString& array_name, int index, const QString &element_name, const QVariant& default_value = QVariant());
@@ -76,6 +78,8 @@ protected:      // data members
 
     QStringList     default_section;
     QStringList     default_array;
+
+    QList<int>      current_array_index;
 };
 
 SPECIALIZE_SHAREDPTR(Settings, Settings)        // "SettingsPointer"

@@ -19,9 +19,9 @@ struct StoryInfo
     QString         identity;
 
                     // Reporter
-    QString         reporter_class;     // narrows the search criteria
-    QString         reporter_id;        // returned by PluginID()
-    QStringList     reporter_parameters;
+    QString         reporter_beat;      // what special genre knowledge do this Reporter possess?
+    QString         reporter_id;        // unique identity for thie Reporter
+    QStringList     reporter_parameters;// what up-front information does the Reporter need to cover the Story?
 
                     // Notifications
     uint            ttl;
@@ -68,7 +68,6 @@ struct StoryInfo
     QString         dashboard_group_id;
 
                     // Chyron settings (reference only; not saved)
-    ReportStacking  stacking_type;
     int             margin;
 
                     // Producer settings (reference only; not saved)
@@ -96,7 +95,6 @@ struct StoryInfo
           train_age_percent(60),
           dashboard_use_age_effect(false),
           dashboard_age_percent(60),
-          stacking_type(ReportStacking::Stacked),
           margin(5) {}
     StoryInfo(const StoryInfo& source) { *this = source; }
 };

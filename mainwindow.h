@@ -77,12 +77,10 @@ private:    // typedefs and enums
     };
 
     SPECIALIZE_MAP(QString, QByteArray, Window)             // "WindowMap"
-//    SPECIALIZE_MAP(QString, ChyronPointer, Story)           // "StoryMap"
-//    SPECIALIZE_LIST(ProducerPointer, Producer)              // "ProducerList"
     SPECIALIZE_QUEUE(HeadlinePointer, Headline)             // "HeadlineQueue"
     SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)           // "HeadlineMap"
     SPECIALIZE_VECTOR(ChyronPointer, Story)                 // "StoryVector"
-    SPECIALIZE_MAP(QString, PluginsInfoVector, Plugins)     // "PluginsMap"
+    SPECIALIZE_MAP(QString, PluginsInfoVector, Reporters)   // "ReportersMap"
     SPECIALIZE_MAP(StoryInfoPointer, StaffInfo, Staff)      // "StaffMap"
 
 private slots:
@@ -99,11 +97,17 @@ private:    // methods
     void                save_application_settings();
     void                restore_story_defaults(StoryInfoPointer story_info);
     void                save_story_defaults(StoryInfoPointer story_info);
+    void                save_story(SettingsPointer settings, StoryInfoPointer story_info);
+    void                restore_story(SettingsPointer settings, StoryInfoPointer story_info);
+    bool                cover_story(StoryInfoPointer story_info, bool delayed_start = false, const PluginsInfoVector* reporters_info = nullptr);
 
     void                build_tray_menu();
 
 private:    // data members
     Ui::MainWindow*     ui;
+
+    bool                auto_start;
+    bool                continue_coverage;
 
     QSystemTrayIcon*    trayIcon;
     QMenu*              trayIconMenu;
@@ -119,17 +123,18 @@ private:    // data members
     bool                settings_modified;
 
     QFont               headline_font;
-    ReportStacking      chyron_stacking;
 
     QMimeDatabase       mime_db;
 
     StaffMap            staff;
     LaneManagerPointer  lane_manager;
 
-    PluginsMap          plugins_map;
+    ReportersMap        beat_reporters;
 
     SettingsPointer     settings;
     QString             settings_file_name;
 
     StyleListPointer    headline_style_list;
+
+    int                 last_start_offset;
 };

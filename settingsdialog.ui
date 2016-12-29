@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>514</width>
-    <height>709</height>
+    <width>476</width>
+    <height>573</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,6 +21,13 @@
      </property>
      <property name="text">
       <string>Start Newsroom automatically</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="check_ContinueCoverage">
+     <property name="text">
+      <string>Continue coverage of previously active Stories on startup</string>
      </property>
     </widget>
    </item>
@@ -187,47 +194,6 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox">
-     <property name="title">
-      <string>Chyrons</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_7">
-      <item>
-       <widget class="QGroupBox" name="groupBox_2">
-        <property name="title">
-         <string>When sharing screen locations:</string>
-        </property>
-        <property name="flat">
-         <bool>true</bool>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout">
-         <item>
-          <widget class="QRadioButton" name="radio_Stacked">
-           <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Headlines for a story will appear in their own lane, with other headline lanes positioned along side.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="text">
-            <string>Stack headlines in separate lanes</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QRadioButton" name="radio_Intermixed">
-           <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Headlines for stories will be intermixed in a single lane.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="text">
-            <string>Intermix headlines in a single lane</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
     <widget class="QGroupBox" name="group_Stories">
      <property name="title">
       <string>Stories</string>
@@ -287,8 +253,6 @@
   <tabstop>check_StartAutomatically</tabstop>
   <tabstop>combo_FontFamily</tabstop>
   <tabstop>combo_FontSize</tabstop>
-  <tabstop>radio_Stacked</tabstop>
-  <tabstop>radio_Intermixed</tabstop>
   <tabstop>list_Stories</tabstop>
   <tabstop>button_RemoveStory</tabstop>
  </tabstops>
