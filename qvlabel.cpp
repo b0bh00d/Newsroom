@@ -4,18 +4,18 @@
 #include <QtGui/QTextDocument>
 #include <QtGui/QAbstractTextDocumentLayout>
 
-QVLabel::QVLabel(QWidget *parent)
-    : NewsroomLabel(parent)
+VLabel::VLabel(QWidget *parent)
+    : ILabel(parent)
 {
 }
 
-QVLabel::QVLabel(const QString &text, bool configure_for_left, QWidget *parent)
+VLabel::VLabel(const QString &text, bool configure_for_left, QWidget *parent)
     : configure_for_left(configure_for_left),
-      NewsroomLabel(text, parent)
+      ILabel(text, parent)
 {
 }
 
-void QVLabel::paintEvent(QPaintEvent* /*event*/)
+void VLabel::paintEvent(QPaintEvent* /*event*/)
 {
     QPainter painter(this);
 
@@ -91,41 +91,41 @@ void QVLabel::paintEvent(QPaintEvent* /*event*/)
     td.documentLayout()->draw(&painter, ctx);
 }
 
-QSize QVLabel::minimumSizeHint() const
+QSize VLabel::minimumSizeHint() const
 {
     QSize s = QLabel::minimumSizeHint();
     return QSize(s.width(), s.height());
 }
 
-QSize QVLabel::sizeHint() const
+QSize VLabel::sizeHint() const
 {
     QSize s = QLabel::sizeHint();
     return QSize(s.width(), s.height());
 }
 
 
-QHLabel::QHLabel(QWidget *parent)
+HLabel::HLabel(QWidget *parent)
     : detect_progress(false),
-      NewsroomLabel(parent)
+      ILabel(parent)
 {
     init();
 }
 
-QHLabel::QHLabel(const QString &text, QWidget *parent)
+HLabel::HLabel(const QString &text, QWidget *parent)
     : detect_progress(false),
-      NewsroomLabel(text, parent)
+      ILabel(text, parent)
 {
     init();
 }
 
-void QHLabel::init()
+void HLabel::init()
 {
     QPalette p = palette();
     progress_color = p.color(QPalette::Active, QPalette::Mid).lighter(75);
     progress_highlight = progress_color.lighter(135);
 }
 
-void QHLabel::set_progress_detection(bool detect, const QString& re, bool on_top)
+void HLabel::set_progress_detection(bool detect, const QString& re, bool on_top)
 {
     detect_progress = detect;
     progress_re = re;
@@ -138,7 +138,7 @@ void QHLabel::set_progress_detection(bool detect, const QString& re, bool on_top
     progress_h = 5;
 }
 
-void QHLabel::changeEvent(QEvent* event)
+void HLabel::changeEvent(QEvent* event)
 {
     if(event->type() == QEvent::StyleChange)
     {
@@ -161,7 +161,7 @@ void QHLabel::changeEvent(QEvent* event)
     }
 }
 
-void QHLabel::paintEvent(QPaintEvent* /*event*/)
+void HLabel::paintEvent(QPaintEvent* /*event*/)
 {
     QPainter painter(this);
 
@@ -254,13 +254,13 @@ void QHLabel::paintEvent(QPaintEvent* /*event*/)
     }
 }
 
-QSize QHLabel::minimumSizeHint() const
+QSize HLabel::minimumSizeHint() const
 {
     QSize s = QLabel::minimumSizeHint();
     return QSize(s.width(), s.height());
 }
 
-QSize QHLabel::sizeHint() const
+QSize HLabel::sizeHint() const
 {
     QSize s = QLabel::sizeHint();
     return QSize(s.width(), s.height());

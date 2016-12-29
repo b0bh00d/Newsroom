@@ -114,15 +114,15 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
 
     if(width < height)
     {
-        label = new QVLabel(this);
-        static_cast<QVLabel*>(label)->set_for_left(entry_type != AnimEntryType::DashboardInRightTop && entry_type != AnimEntryType::DashboardInRightBottom);
+        label = new VLabel(this);
+        static_cast<VLabel*>(label)->set_for_left(entry_type != AnimEntryType::DashboardInRightTop && entry_type != AnimEntryType::DashboardInRightBottom);
     }
     else
     {
-        label = new QHLabel(this);
-        static_cast<QHLabel*>(label)->set_progress_detection(include_progress_bar, progress_text_re, progress_on_top);
+        label = new HLabel(this);
+        static_cast<HLabel*>(label)->set_progress_detection(include_progress_bar, progress_text_re, progress_on_top);
     }
-    static_cast<NewsroomLabel*>(label)->shrink_to_fit(fixed_text == FixedText::ScaleToFit);
+    static_cast<ILabel*>(label)->shrink_to_fit(fixed_text == FixedText::ScaleToFit);
     label->setAlignment(alignment);
     label->setContentsMargins(0, 0, 0, 0);
     label->setTextFormat(Qt::AutoText);
