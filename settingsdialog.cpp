@@ -38,6 +38,11 @@ void SettingsDialog::set_autostart(bool autostart)
     ui->check_StartAutomatically->setChecked(autostart);
 }
 
+void SettingsDialog::set_continue_coverage(bool continue_coverage)
+{
+    ui->check_ContinueCoverage->setChecked(continue_coverage);
+}
+
 void SettingsDialog::set_font(const QFont& font)
 {
     ui->combo_FontFamily->setCurrentFont(font);
@@ -70,12 +75,6 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     ui->tree_Styles->topLevelItem(0)->setSelected(true);
 }
 
-void SettingsDialog::set_stacking(ReportStacking stack_type)
-{
-    ui->radio_Stacked->setChecked(stack_type == ReportStacking::Stacked);
-    ui->radio_Intermixed->setChecked(stack_type == ReportStacking::Intermixed);
-}
-
 void SettingsDialog::set_stories(const QList<QString>& stories)
 {
     while(ui->list_Stories->count())
@@ -93,6 +92,11 @@ void SettingsDialog::set_stories(const QList<QString>& stories)
 bool SettingsDialog::get_autostart()
 {
     return ui->check_StartAutomatically->isChecked();
+}
+
+bool SettingsDialog::get_continue_coverage()
+{
+    return ui->check_ContinueCoverage->isChecked();
 }
 
 QFont SettingsDialog::get_font()
@@ -117,11 +121,6 @@ void SettingsDialog::get_styles(HeadlineStyleList& style_list)
 
         style_list.append(hs);
     }
-}
-
-ReportStacking SettingsDialog::get_stacking()
-{
-    return ui->radio_Stacked->isChecked() ? ReportStacking::Stacked : ReportStacking::Intermixed;
 }
 
 QList<QString> SettingsDialog::get_stories()

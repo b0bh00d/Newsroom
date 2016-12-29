@@ -20,15 +20,15 @@ public:
     ~SettingsDialog();
 
     void            set_autostart(bool autostart);
+    void            set_continue_coverage(bool continue_coverage);
     void            set_font(const QFont& font);
     void            set_styles(const HeadlineStyleList& style_list);
-    void            set_stacking(ReportStacking stack_type);
     void            set_stories(const QList<QString>& stories);
 
     bool            get_autostart();
+    bool            get_continue_coverage();
     QFont           get_font();
     void            get_styles(HeadlineStyleList& style_list);
-    ReportStacking  get_stacking();
     QList<QString>  get_stories();
 
 protected slots:

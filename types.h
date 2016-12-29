@@ -24,13 +24,6 @@ enum class AnimExitType
 #   undef X
 };
 
-enum class ReportStacking
-{
-#   define X(a) a,
-#   include "reportstacking.def"
-#   undef X
-};
-
 enum class AgeEffects
 {
     None,

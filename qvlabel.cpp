@@ -28,11 +28,22 @@ void QVLabel::paintEvent(QPaintEvent* /*event*/)
     if(shrink_text_to_fit)
     {
         QFont f = td.defaultFont();
+//        qreal original_point_size = f.pointSizeF();
+
         for(;;)
         {
             doc_size = td.documentLayout()->documentSize();
             if(doc_size.width() < s.height())
                 break;
+
+            if((f.pointSizeF() - .1) < 6.0f)
+            {
+                // let it just clip the text
+//                f.setPointSizeF(original_point_size);
+//                td.setDefaultFont(f);
+                break;
+            }
+
             f.setPointSizeF(f.pointSizeF() - .1);
             td.setDefaultFont(f);
         }
@@ -77,7 +88,7 @@ void QVLabel::paintEvent(QPaintEvent* /*event*/)
     QAbstractTextDocumentLayout::PaintContext ctx;
     ctx.palette.setColor(QPalette::Text, painter.pen().color());
     ctx.clip = QRect(0, 0, s.width(), s.height());
-    td.documentLayout()->draw( &painter, ctx );
+    td.documentLayout()->draw(&painter, ctx);
 }
 
 QSize QVLabel::minimumSizeHint() const

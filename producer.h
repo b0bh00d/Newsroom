@@ -39,6 +39,9 @@ public:
 signals:
     void    signal_new_headline(HeadlinePointer headline);
 
+public slots:
+    void    slot_start_covering_story();        // used for delayed starts
+
 protected slots:
     void    slot_new_data(const QByteArray& data);
 //    void    slot_poll();

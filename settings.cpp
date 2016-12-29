@@ -529,6 +529,8 @@ void Settings::end_section()
 int Settings::begin_array(const QString& path)
 {
     default_array.append(path);
+    current_array_index.append(-1);
+
     QStringList locator = construct_path();
     QString section_path = locator.join("/");
     section_path.replace("//", "/");
@@ -546,10 +548,23 @@ int Settings::begin_array(const QString& path)
 void Settings::end_array()
 {
     default_array.pop_back();
+    current_array_index.pop_back();
+}
+
+bool Settings::set_array_index(int index)
+{
+    if(default_array.isEmpty())
+        return false;
+
+    current_array_index.back() = index;
+    return true;
 }
 
 QVariant Settings::get_item(const QString& item_name, const QVariant& default_value)
 {
+    if(!default_array.isEmpty() && (current_array_index.back() != -1))
+        return get_array_item(current_array_index.back(), item_name, default_value);
+
     QStringList locator = construct_path(item_name);
 
     Item* section = nullptr;
@@ -634,6 +649,12 @@ QVariant Settings::get_array_item(const QString& array_name, int index, const QS
 
 void Settings::set_item(const QString& item_name, const QVariant& value)
 {
+    if(!default_array.isEmpty() && (current_array_index.back() != -1))
+    {
+        set_array_item(current_array_index.back(), item_name, value);
+        return;
+    }
+
     QStringList locator = construct_path(item_name);
 
     Item* section = nullptr;
