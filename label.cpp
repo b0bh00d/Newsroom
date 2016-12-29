@@ -1,4 +1,4 @@
-#include "qvlabel.h"
+#include "label.h"
 
 #include <QtGui/QPainter>
 #include <QtGui/QTextDocument>

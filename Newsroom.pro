@@ -51,9 +51,9 @@ SOURCES += main.cpp \
            lanemanager.cpp \
            producer.cpp \
            addstorydialog.cpp \
-           qvlabel.cpp \
            editheadlinedialog.cpp \
-           settings.cpp
+           settings.cpp \
+    label.cpp
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -66,11 +66,11 @@ HEADERS  += mainwindow.h \
             animexittype.def \
             producer.h \
             addstorydialog.h \
-            qvlabel.h \
             storyinfo.h \
             reporters/interfaces/ireporter.h \
             editheadlinedialog.h \
-            settings.h
+            settings.h \
+    label.h
 
 # Plug-in interface
 HEADERS += \

@@ -12,7 +12,7 @@
 #include <QtCore/QUrl>
 
 #include "headline.h"
-#include "qvlabel.h"
+#include "label.h"
 
 Headline::Headline(const QUrl& story,
                  const QString& headline,
