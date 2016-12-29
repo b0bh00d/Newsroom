@@ -4,13 +4,13 @@
 
 #include <QtGui/QPaintEvent>
 
-class NewsroomLabel : public QLabel
+class ILabel : public QLabel
 {
     Q_OBJECT
 public:
-    explicit NewsroomLabel(QWidget *parent = 0)
+    explicit ILabel(QWidget *parent = 0)
         : shrink_text_to_fit(false), QLabel(parent) {}
-    explicit NewsroomLabel(const QString &text, QWidget *parent=0)
+    explicit ILabel(const QString &text, QWidget *parent=0)
         : shrink_text_to_fit(false), QLabel(text, parent) {}
 
     virtual void shrink_to_fit(bool shrink = true) = 0;
@@ -20,12 +20,12 @@ protected:
 };
 
 // https://stackoverflow.com/questions/9183050/vertical-qlabel-or-the-equivalent
-class QVLabel : public NewsroomLabel
+class VLabel : public ILabel
 {
     Q_OBJECT
 public:
-    explicit QVLabel(QWidget *parent=0);
-    explicit QVLabel(const QString &text, bool configure_for_left = true, QWidget *parent=0);
+    explicit VLabel(QWidget *parent=0);
+    explicit VLabel(const QString &text, bool configure_for_left = true, QWidget *parent=0);
 
     void    shrink_to_fit(bool shrink = true) Q_DECL_OVERRIDE { shrink_text_to_fit = shrink; }
 
@@ -40,12 +40,12 @@ protected:      // data members
     bool    configure_for_left;
 };
 
-class QHLabel : public NewsroomLabel
+class HLabel : public ILabel
 {
     Q_OBJECT
 public:
-    explicit QHLabel(QWidget *parent=0);
-    explicit QHLabel(const QString &text, QWidget *parent=0);
+    explicit HLabel(QWidget *parent=0);
+    explicit HLabel(const QString &text, QWidget *parent=0);
 
     void    shrink_to_fit(bool shrink = true) Q_DECL_OVERRIDE { shrink_text_to_fit = shrink; }
 
