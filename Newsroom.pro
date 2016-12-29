@@ -64,7 +64,6 @@ HEADERS  += mainwindow.h \
             lanemanager.h \
             animentrytype.def \
             animexittype.def \
-            reportstacking.def \
             producer.h \
             addstorydialog.h \
             qvlabel.h \
