@@ -688,8 +688,18 @@ void MainWindow::load_application_settings()
 
             StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
             restore_story(settings, story_info);
+
+            CoverageStart coverage_start = CoverageStart::None;
             if(continue_coverage)
-                cover_story(story_info, CoverageStart::Delayed);
+            {
+                if(story_info->reporter_beat.compare("Local"))
+                    coverage_start = CoverageStart::Immediate;
+                else
+                    // prevent non-local Reporters from potentially hammering servers all at once
+                    coverage_start = CoverageStart::Delayed;
+            }
+
+            cover_story(story_info, coverage_start);
         }
     }
     settings->end_array();
