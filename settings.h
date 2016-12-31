@@ -57,7 +57,7 @@ protected:      // methods
     QStringList construct_path(const QString& path = QString());
     Item*       create_path(const QString& path);
 
-    // format-specific I/O functions
+    // format-specific I/O functions (XML, JSON, etc.)
     Item*       read_section(QDomNode* node, Item* parent, QStringList& current_path);
     Item*       read_array(QDomNode* node, Item* parent, QStringList &current_path);
     Item*       read_element(QDomNode *node, Item* parent);
