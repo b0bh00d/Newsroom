@@ -20,7 +20,7 @@ unix:!mac {
 }
 
 win32 {
-	DLLDESTDIR = ../../../deploy/bin/reporters
+    DLLDESTDIR = ../../../deploy/bin/reporters
     DEFINES += QT_WIN
 }
 
