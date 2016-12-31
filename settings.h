@@ -12,21 +12,28 @@ class QDomNode;
 /// @class Settings
 /// @brief Handle application settings in a sane fashion
 ///
-/// For some reason, QSettings in the INI format was not handling my
-/// application data in a predictiable way.  Array names were becoming
-/// section names, and settings were becoming obscured and inaccessible.
+/// Settings is a base class, not intended to be instantiated directly.  It
+/// contains only "generic" Qt code, and should be subclassed to implement
+/// persistent storage using the backend of your choice (XML, JSON, sqlite,
+/// etc.).
 ///
-/// I wrote this class to provide a wrapper around a more structured backend
-/// (e.g., XML) and to have a "living document" that can be updated and changed
-/// on the fly while the application runs.
+/// <aside>
+/// Why not just use QSettings?  For some reason, QSettings in the INI
+/// format was not handling my application data in a predictiable way.
+/// Array names were becoming section names, and settings were becoming
+/// obscured and inaccessible.  I wrote this class to provide a wrapper
+/// around a more structured backend (e.g., XML) for more predictable
+/// results, and to have a "living document" that can be updated and
+/// changed on the fly while the application runs.
+/// </aside>
 
 class Settings
 {
 public:
     Settings(const QString& application, const QString& filename);
 
-    bool        cache();
-    bool        flush();
+    virtual bool cache()    { return false; }
+    virtual bool flush()    { return false; }
 
     QString     get_error_string()  const { return error_string; }
 
@@ -57,15 +64,16 @@ protected:      // methods
     QStringList construct_path(const QString& path = QString());
     Item*       create_path(const QString& path);
 
-    // format-specific I/O functions (XML, JSON, etc.)
-    Item*       read_section(QDomNode* node, Item* parent, QStringList& current_path);
-    Item*       read_array(QDomNode* node, Item* parent, QStringList &current_path);
-    Item*       read_element(QDomNode *node, Item* parent);
-    Item*       read_item(QDomNode* node, Item* parent);
-    void        write_section(Item* section, QDomNode* parent, QDomDocument* doc);
-    void        write_array(Item* array, QDomNode* parent, QDomDocument* doc);
-    void        write_element(Item* element, QDomNode* parent, QDomDocument* doc);
-    void        write_item(Item* item, QDomNode* parent, QDomDocument* doc);
+    // overridable, format-specific I/O functions (XML, JSON, etc.)
+    // the base class does nothing
+    virtual     Item*       read_section(void*, Item*, QStringList&) { return nullptr; }
+    virtual     Item*       read_array(void*, Item*, QStringList &)  { return nullptr; }
+    virtual     Item*       read_element(void*, Item*)               { return nullptr; }
+    virtual     Item*       read_item(void*, Item*)                  { return nullptr; }
+    virtual     void        write_section(Item*, void*, void*)       {}
+    virtual     void        write_array(Item*, void*, void*)         {}
+    virtual     void        write_element(Item*, void*, void*)       {}
+    virtual     void        write_item(Item*, void*, void*)          {}
 
 protected:      // data members
     ItemPointer     tree_root;
@@ -83,3 +91,29 @@ protected:      // data members
 };
 
 SPECIALIZE_SHAREDPTR(Settings, Settings)        // "SettingsPointer"
+
+/// @class SettingsXML
+/// @brief Specialization of Settings for XML backend
+///
+/// This subclass of Settings implements persistent storage using XML
+/// as the backend.
+
+class SettingsXML : public Settings
+{
+public:
+    SettingsXML(const QString& application, const QString& filename);
+
+    bool        cache();
+    bool        flush();
+
+protected:      // methods
+    // format-specific I/O functions (XML, JSON, etc.)
+    Item*       read_section(QDomNode* node, Item* parent, QStringList& current_path);
+    Item*       read_array(QDomNode* node, Item* parent, QStringList &current_path);
+    Item*       read_element(QDomNode *node, Item* parent);
+    Item*       read_item(QDomNode* node, Item* parent);
+    void        write_section(Item* section, QDomNode* parent, QDomDocument* doc);
+    void        write_array(Item* array, QDomNode* parent, QDomDocument* doc);
+    void        write_element(Item* element, QDomNode* parent, QDomDocument* doc);
+    void        write_item(Item* item, QDomNode* parent, QDomDocument* doc);
+};

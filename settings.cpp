@@ -11,6 +11,9 @@
 
 const int ItemType = 0;
 
+//----------------------------------------------------------------
+// Settings implementation
+
 Settings::Settings(const QString& application, const QString &filename)
     : application(application),
       filename(filename)
@@ -99,364 +102,6 @@ Settings::Item* Settings::create_path(const QString& path)
     }
 
     return section;
-}
-
-bool Settings::cache()
-{
-    if(!tree_root.isNull())
-    {
-        error_string = QObject::tr("Settings has already been initialized.");
-        return false;
-    }
-
-    tree_root = ItemPointer(new Item(ItemType));
-
-    if(!QFile::exists(filename))
-    {
-        // create the default section
-//        Item* general = new Item(tree_root.data(), QStringList() << "Section");
-//        general->setText(0, "General");
-//        section_path_map["/General"] = general;
-
-        return true;
-    }
-
-    QDomDocument note_database(application);
-    QDomElement root = note_database.createElement(application);
-    root.setAttribute("version", "1.0");
-
-    note_database.appendChild(root);
-
-    QDomNode node(note_database.createProcessingInstruction("xml", "version=\"1.0\" encoding=\"UTF8\""));
-    note_database.insertBefore(node, note_database.firstChild());
-
-    QFile file(filename);
-    if(!file.open(QFile::ReadOnly | QFile::Text))
-    {
-        error_string = QObject::tr("The specified Settings file \"%1\" could not be opened.").arg(filename);
-        return false;
-    }
-
-    QString errorStr, versionStr = "1.0";
-    int errorLine;
-    int errorColumn;
-
-    if(!note_database.setContent(&file, true, &errorStr, &errorLine, &errorColumn))
-    {
-        error_string = QObject::tr("The contents of the Settings file \"%1\" could not be read:\n%2:%3:%2").arg(filename).arg(errorLine).arg(errorColumn).arg(errorStr);
-        return false;
-    }
-
-    root = note_database.documentElement();
-    if(root.tagName().compare(application))
-    {
-        error_string = QObject::tr("The Settings file \"%1\" is not for this application (\"%2\").").arg(filename).arg(application);
-        return false;
-    }
-    else if(root.hasAttribute("version"))
-        versionStr = root.attribute("version");
-
-    QStringList current_path;
-    current_path << "/";
-
-    QDomNodeList children = root.childNodes();
-    for(int i = 0;i < children.length();i++)
-    {
-        QDomNode node = children.at(i);
-        if(!node.nodeName().compare("Section"))
-            // top-level items should always and only be Sections
-            (void)read_section(&node, tree_root.data(), current_path);
-    }
-
-    return true;
-}
-
-Settings::Item* Settings::read_section(QDomNode* node, Settings::Item* parent, QStringList &current_path)
-{
-    QDomElement element = node->toElement();
-    QString name = element.attribute("name");
-    Item* section = new Item(parent, QStringList() << "Section" << name);
-
-    current_path.append(name);
-    section_path_map[get_current_path(current_path)] = section;
-
-    QDomNodeList children = node->childNodes();
-    for(int i = 0;i < children.length();i++)
-    {
-        QDomNode child_node = children.at(i);
-        if(!child_node.nodeName().compare("Section"))
-            (void)read_section(&child_node, section, current_path);
-        else if(!child_node.nodeName().compare("Array"))
-            (void)read_array(&child_node, section, current_path);
-        else if(!child_node.nodeName().compare("Item"))
-            (void)read_item(&child_node, section);
-        else
-        {
-            // any other type is an error!
-        }
-    }
-
-    current_path.pop_back();
-
-    return section;
-}
-
-Settings::Item* Settings::read_array(QDomNode *node, Settings::Item* parent, QStringList &current_path)
-{
-    QDomElement element = node->toElement();
-    QString name = element.attribute("name");
-    Item* array = new Item(parent, QStringList() << "Array" << name);
-
-    current_path.append(name);
-    section_path_map[get_current_path(current_path)] = array;
-
-    QDomNodeList children = node->childNodes();
-    for(int i = 0;i < children.length();i++)
-    {
-        QDomNode child_node = children.at(i);
-        if(!child_node.nodeName().compare("Array"))
-            (void)read_array(&child_node, array, current_path);
-        else if(!child_node.nodeName().compare("Element"))
-            (void)read_element(&child_node, array);
-        else
-        {
-            // any other type is an error!
-        }
-    }
-
-    current_path.pop_back();
-
-    return array;
-}
-
-Settings::Item* Settings::read_element(QDomNode *node, Settings::Item* parent)
-{
-    QDomElement element_node = node->toElement();
-    Item* element = new Item(parent, QStringList() << "Element" << element_node.attribute("name"));
-
-    QDomNodeList children = node->childNodes();
-    for(int i = 0;i < children.length();i++)
-    {
-        QDomNode child_node = children.at(i);
-        if(!child_node.nodeName().compare("Item"))
-            (void)read_item(&child_node, element);
-        else
-        {
-            // any other type is an error!
-        }
-    }
-
-    return element;
-}
-
-Settings::Item* Settings::read_item(QDomNode *node, Settings::Item* parent)
-{
-    QDomElement element = node->toElement();
-    Item* item = new Item(parent, QStringList() << "Item" << element.attribute("name"));
-
-    QString type = element.attribute("type");
-    if(!type.compare("stringlist"))
-    {
-        QStringList sl;
-        QDomNodeList children = node->childNodes();
-        for(int i = 0;i < children.length();++i)
-        {
-            QDomNode child_node = children.at(i);
-            QDomNodeList sub_children = child_node.childNodes();
-            for(int j = 0;j < sub_children.length();++j)
-            {
-                QDomNode sub_child_node = sub_children.at(j);
-                QDomCDATASection cdata_node = sub_child_node.toCDATASection();
-                if(!cdata_node.isNull())
-                    sl << cdata_node.data();
-            }
-        }
-
-        QVariant v(sl);
-        item->setData(0, Qt::UserRole, v);
-    }
-    else
-    {
-        QString data;
-
-        QDomNodeList children = node->childNodes();
-        for(int i = 0;i < children.length() && data.isEmpty();++i)
-        {
-            QDomNode child_node = children.at(i);
-            QDomCDATASection cdata_node = child_node.toCDATASection();
-            if(!cdata_node.isNull())
-                data = cdata_node.data();
-            else
-            {
-                QDomText text_node = child_node.toText();
-                if(!text_node.isNull())
-                    data = text_node.data();
-            }
-
-            if(!data.isEmpty())
-            {
-                if(!type.compare("bytearray"))
-                {
-                    QByteArray ba = QByteArray::fromHex(data.toUtf8());
-                    QVariant v(ba);
-                    item->setData(0, Qt::UserRole, v);
-                }
-                else
-                {
-                    QVariant v(data);
-                    item->setData(0, Qt::UserRole, v);
-                }
-
-                break;
-            }
-        }
-    }
-
-    return item;
-}
-
-const int IndentSize = 2;
-
-bool Settings::flush()
-{
-    if(tree_root.isNull())
-    {
-        error_string = QObject::tr("Settings has not been initialized.");
-        return false;
-    }
-
-    QDomDocument settings(application);
-    QDomElement root = settings.createElement(application);
-    root.setAttribute("version", "1.0");
-
-    settings.appendChild(root);
-
-    QDomNode node(settings.createProcessingInstruction("xml", "version=\"1.0\" encoding=\"UTF8\""));
-    settings.insertBefore(node, settings.firstChild());
-
-    for(int i = 0;i < tree_root->childCount();++i)
-        write_section(tree_root->child(i), &root, &settings);
-
-    QFile file(filename);
-    if(!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
-        return false;
-
-    QTextStream out;
-    out.setDevice(&file);
-    out.setCodec("UTF-8");
-
-    settings.save(out, IndentSize);
-
-    bool result = (file.error() != QFileDevice::NoError);
-    file.close();
-    return result;
-}
-
-void Settings::write_section(Item* section, QDomNode* parent, QDomDocument* doc)
-{
-    QDomElement child = doc->createElement("Section");
-    child.setAttribute("name", section->text(1));
-    parent->appendChild(child);
-
-    QDomComment comment = doc->createComment(QString("End: %1").arg(section->text(1)));
-    parent->appendChild(comment);
-
-    for(int i = 0;i < section->childCount();++i)
-    {
-        Item* item = section->child(i);
-        if(!item->text(0).compare("Section"))
-            write_section(item, &child, doc);
-        else if(!item->text(0).compare("Array"))
-            write_array(item, &child, doc);
-        else if(!item->text(0).compare("Item"))
-            write_item(section->child(i), &child, doc);
-        else
-        {
-            // any other type is an error!
-        }
-    }
-}
-
-void Settings::write_array(Item* array, QDomNode* parent, QDomDocument* doc)
-{
-    QDomElement child_array = doc->createElement("Array");
-    child_array.setAttribute("name", array->text(1));
-    parent->appendChild(child_array);
-
-    QDomComment comment = doc->createComment(QString("End: %1").arg(array->text(1)));
-    parent->appendChild(comment);
-
-    for(int i = 0;i < array->childCount();++i)
-    {
-        Item* item = array->child(i);
-        if(!item->text(0).compare("Array"))
-            write_array(item, &child_array, doc);
-        else if(!item->text(0).compare("Element"))
-            write_element(item, &child_array, doc);
-        else
-        {
-            // any other type is an error!
-        }
-    }
-}
-
-void Settings::write_element(Item* element, QDomNode* parent, QDomDocument* doc)
-{
-    QDomElement child = doc->createElement("Element");
-    child.setAttribute("name", element->text(1));
-    parent->appendChild(child);
-
-    for(int i = 0;i < element->childCount();++i)
-    {
-        Item* item = element->child(i);
-        if(!item->text(0).compare("Item"))
-            write_item(item, &child, doc);
-        else
-        {
-            // any other type is an error!
-        }
-    }
-}
-
-void Settings::write_item(Item* item, QDomNode* parent, QDomDocument* doc)
-{
-    QDomElement child = doc->createElement("Item");
-    child.setAttribute("name", item->text(1));
-    QString type = item->text(2);
-    child.setAttribute("type", type);
-
-    if(!type.compare("stringlist"))
-    {
-        // create an array-like list where each element is a string
-        // in the list.  that way, we don't have to guard against
-        // strings containing the separate character.
-
-        QStringList data = item->data(0, Qt::UserRole).toStringList();
-        foreach(const QString& str, data)
-        {
-            QDomElement element = doc->createElement("Element");
-            QDomCDATASection element_text = doc->createCDATASection(str);
-            element.appendChild(element_text);
-            child.appendChild(element);
-        }
-
-        parent->appendChild(child);
-
-        QDomComment comment = doc->createComment(QString("End: %1").arg(item->text(1)));
-        parent->appendChild(comment);
-    }
-    else
-    {
-        QString data;
-        if(!type.compare("bytearray"))
-            data = item->data(0, Qt::UserRole).toByteArray().toHex();
-        else
-            data = item->data(0, Qt::UserRole).toString();
-
-        QDomCDATASection child_text = doc->createCDATASection(data);
-        child.appendChild(child_text);
-        parent->appendChild(child);
-    }
 }
 
 void Settings::begin_section(const QString& path)
@@ -769,4 +414,372 @@ void Settings::set_array_item(const QString& array_name, int index, const QStrin
         sub_element = new Item(element, QStringList() << "Item" << element_name << "");
     sub_element->setData(0, Qt::UserRole, element_value);
     sub_element->setText(2, fix_type_name(QString(element_value.typeName())));
+}
+
+//----------------------------------------------------------------
+// SettingsXML implementation
+
+SettingsXML::SettingsXML(const QString& application, const QString& filename)
+    : Settings(application, filename)
+{
+    if(!this->filename.toLower().endsWith(".xml"))
+        this->filename += ".xml";
+}
+
+bool SettingsXML::cache()
+{
+    if(!tree_root.isNull())
+    {
+        error_string = QObject::tr("Settings has already been initialized.");
+        return false;
+    }
+
+    tree_root = ItemPointer(new Item(ItemType));
+
+    if(!QFile::exists(filename))
+    {
+        // create the default section
+//        Item* general = new Item(tree_root.data(), QStringList() << "Section");
+//        general->setText(0, "General");
+//        section_path_map["/General"] = general;
+
+        return true;
+    }
+
+    QDomDocument note_database(application);
+    QDomElement root = note_database.createElement(application);
+    root.setAttribute("version", "1.0");
+
+    note_database.appendChild(root);
+
+    QDomNode node(note_database.createProcessingInstruction("xml", "version=\"1.0\" encoding=\"UTF8\""));
+    note_database.insertBefore(node, note_database.firstChild());
+
+    QFile file(filename);
+    if(!file.open(QFile::ReadOnly | QFile::Text))
+    {
+        error_string = QObject::tr("The specified Settings file \"%1\" could not be opened.").arg(filename);
+        return false;
+    }
+
+    QString errorStr, versionStr = "1.0";
+    int errorLine;
+    int errorColumn;
+
+    if(!note_database.setContent(&file, true, &errorStr, &errorLine, &errorColumn))
+    {
+        error_string = QObject::tr("The contents of the Settings file \"%1\" could not be read:\n%2:%3:%2").arg(filename).arg(errorLine).arg(errorColumn).arg(errorStr);
+        return false;
+    }
+
+    root = note_database.documentElement();
+    if(root.tagName().compare(application))
+    {
+        error_string = QObject::tr("The Settings file \"%1\" is not for this application (\"%2\").").arg(filename).arg(application);
+        return false;
+    }
+    else if(root.hasAttribute("version"))
+        versionStr = root.attribute("version");
+
+    QStringList current_path;
+    current_path << "/";
+
+    QDomNodeList children = root.childNodes();
+    for(int i = 0;i < children.length();i++)
+    {
+        QDomNode node = children.at(i);
+        if(!node.nodeName().compare("Section"))
+            // top-level items should always and only be Sections
+            (void)read_section(&node, tree_root.data(), current_path);
+    }
+
+    return true;
+}
+
+Settings::Item* SettingsXML::read_section(QDomNode* node, Settings::Item* parent, QStringList &current_path)
+{
+    QDomElement element = node->toElement();
+    QString name = element.attribute("name");
+    Item* section = new Item(parent, QStringList() << "Section" << name);
+
+    current_path.append(name);
+    section_path_map[get_current_path(current_path)] = section;
+
+    QDomNodeList children = node->childNodes();
+    for(int i = 0;i < children.length();i++)
+    {
+        QDomNode child_node = children.at(i);
+        if(!child_node.nodeName().compare("Section"))
+            (void)read_section(&child_node, section, current_path);
+        else if(!child_node.nodeName().compare("Array"))
+            (void)read_array(&child_node, section, current_path);
+        else if(!child_node.nodeName().compare("Item"))
+            (void)read_item(&child_node, section);
+        else
+        {
+            // any other type is an error!
+        }
+    }
+
+    current_path.pop_back();
+
+    return section;
+}
+
+Settings::Item* SettingsXML::read_array(QDomNode *node, Settings::Item* parent, QStringList &current_path)
+{
+    QDomElement element = node->toElement();
+    QString name = element.attribute("name");
+    Item* array = new Item(parent, QStringList() << "Array" << name);
+
+    current_path.append(name);
+    section_path_map[get_current_path(current_path)] = array;
+
+    QDomNodeList children = node->childNodes();
+    for(int i = 0;i < children.length();i++)
+    {
+        QDomNode child_node = children.at(i);
+        if(!child_node.nodeName().compare("Array"))
+            (void)read_array(&child_node, array, current_path);
+        else if(!child_node.nodeName().compare("Element"))
+            (void)read_element(&child_node, array);
+        else
+        {
+            // any other type is an error!
+        }
+    }
+
+    current_path.pop_back();
+
+    return array;
+}
+
+Settings::Item* SettingsXML::read_element(QDomNode *node, Settings::Item* parent)
+{
+    QDomElement element_node = node->toElement();
+    Item* element = new Item(parent, QStringList() << "Element" << element_node.attribute("name"));
+
+    QDomNodeList children = node->childNodes();
+    for(int i = 0;i < children.length();i++)
+    {
+        QDomNode child_node = children.at(i);
+        if(!child_node.nodeName().compare("Item"))
+            (void)read_item(&child_node, element);
+        else
+        {
+            // any other type is an error!
+        }
+    }
+
+    return element;
+}
+
+Settings::Item* SettingsXML::read_item(QDomNode *node, Settings::Item* parent)
+{
+    QDomElement element = node->toElement();
+    Item* item = new Item(parent, QStringList() << "Item" << element.attribute("name"));
+
+    QString type = element.attribute("type");
+    if(!type.compare("stringlist"))
+    {
+        QStringList sl;
+        QDomNodeList children = node->childNodes();
+        for(int i = 0;i < children.length();++i)
+        {
+            QDomNode child_node = children.at(i);
+            QDomNodeList sub_children = child_node.childNodes();
+            for(int j = 0;j < sub_children.length();++j)
+            {
+                QDomNode sub_child_node = sub_children.at(j);
+                QDomCDATASection cdata_node = sub_child_node.toCDATASection();
+                if(!cdata_node.isNull())
+                    sl << cdata_node.data();
+            }
+        }
+
+        QVariant v(sl);
+        item->setData(0, Qt::UserRole, v);
+    }
+    else
+    {
+        QString data;
+
+        QDomNodeList children = node->childNodes();
+        for(int i = 0;i < children.length() && data.isEmpty();++i)
+        {
+            QDomNode child_node = children.at(i);
+            QDomCDATASection cdata_node = child_node.toCDATASection();
+            if(!cdata_node.isNull())
+                data = cdata_node.data();
+            else
+            {
+                QDomText text_node = child_node.toText();
+                if(!text_node.isNull())
+                    data = text_node.data();
+            }
+
+            if(!data.isEmpty())
+            {
+                if(!type.compare("bytearray"))
+                {
+                    QByteArray ba = QByteArray::fromHex(data.toUtf8());
+                    QVariant v(ba);
+                    item->setData(0, Qt::UserRole, v);
+                }
+                else
+                {
+                    QVariant v(data);
+                    item->setData(0, Qt::UserRole, v);
+                }
+
+                break;
+            }
+        }
+    }
+
+    return item;
+}
+
+const int IndentSize = 2;
+
+bool SettingsXML::flush()
+{
+    if(tree_root.isNull())
+    {
+        error_string = QObject::tr("Settings has not been initialized.");
+        return false;
+    }
+
+    QDomDocument settings(application);
+    QDomElement root = settings.createElement(application);
+    root.setAttribute("version", "1.0");
+
+    settings.appendChild(root);
+
+    QDomNode node(settings.createProcessingInstruction("xml", "version=\"1.0\" encoding=\"UTF8\""));
+    settings.insertBefore(node, settings.firstChild());
+
+    for(int i = 0;i < tree_root->childCount();++i)
+        write_section(tree_root->child(i), &root, &settings);
+
+    QFile file(filename);
+    if(!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+        return false;
+
+    QTextStream out;
+    out.setDevice(&file);
+    out.setCodec("UTF-8");
+
+    settings.save(out, IndentSize);
+
+    bool result = (file.error() != QFileDevice::NoError);
+    file.close();
+    return result;
+}
+
+void SettingsXML::write_section(Item* section, QDomNode* parent, QDomDocument* doc)
+{
+    QDomElement child = doc->createElement("Section");
+    child.setAttribute("name", section->text(1));
+    parent->appendChild(child);
+
+    QDomComment comment = doc->createComment(QString("End: %1").arg(section->text(1)));
+    parent->appendChild(comment);
+
+    for(int i = 0;i < section->childCount();++i)
+    {
+        Item* item = section->child(i);
+        if(!item->text(0).compare("Section"))
+            write_section(item, &child, doc);
+        else if(!item->text(0).compare("Array"))
+            write_array(item, &child, doc);
+        else if(!item->text(0).compare("Item"))
+            write_item(section->child(i), &child, doc);
+        else
+        {
+            // any other type is an error!
+        }
+    }
+}
+
+void SettingsXML::write_array(Item* array, QDomNode* parent, QDomDocument* doc)
+{
+    QDomElement child_array = doc->createElement("Array");
+    child_array.setAttribute("name", array->text(1));
+    parent->appendChild(child_array);
+
+    QDomComment comment = doc->createComment(QString("End: %1").arg(array->text(1)));
+    parent->appendChild(comment);
+
+    for(int i = 0;i < array->childCount();++i)
+    {
+        Item* item = array->child(i);
+        if(!item->text(0).compare("Array"))
+            write_array(item, &child_array, doc);
+        else if(!item->text(0).compare("Element"))
+            write_element(item, &child_array, doc);
+        else
+        {
+            // any other type is an error!
+        }
+    }
+}
+
+void SettingsXML::write_element(Item* element, QDomNode* parent, QDomDocument* doc)
+{
+    QDomElement child = doc->createElement("Element");
+    child.setAttribute("name", element->text(1));
+    parent->appendChild(child);
+
+    for(int i = 0;i < element->childCount();++i)
+    {
+        Item* item = element->child(i);
+        if(!item->text(0).compare("Item"))
+            write_item(item, &child, doc);
+        else
+        {
+            // any other type is an error!
+        }
+    }
+}
+
+void SettingsXML::write_item(Item* item, QDomNode* parent, QDomDocument* doc)
+{
+    QDomElement child = doc->createElement("Item");
+    child.setAttribute("name", item->text(1));
+    QString type = item->text(2);
+    child.setAttribute("type", type);
+
+    if(!type.compare("stringlist"))
+    {
+        // create an array-like list where each element is a string
+        // in the list.  that way, we don't have to guard against
+        // strings containing the separate character.
+
+        QStringList data = item->data(0, Qt::UserRole).toStringList();
+        foreach(const QString& str, data)
+        {
+            QDomElement element = doc->createElement("Element");
+            QDomCDATASection element_text = doc->createCDATASection(str);
+            element.appendChild(element_text);
+            child.appendChild(element);
+        }
+
+        parent->appendChild(child);
+
+        QDomComment comment = doc->createComment(QString("End: %1").arg(item->text(1)));
+        parent->appendChild(comment);
+    }
+    else
+    {
+        QString data;
+        if(!type.compare("bytearray"))
+            data = item->data(0, Qt::UserRole).toByteArray().toHex();
+        else
+            data = item->data(0, Qt::UserRole).toString();
+
+        QDomCDATASection child_text = doc->createCDATASection(data);
+        child.appendChild(child_text);
+        parent->appendChild(child);
+    }
 }
