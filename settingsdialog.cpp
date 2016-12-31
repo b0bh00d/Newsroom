@@ -26,7 +26,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     connect(ui->button_RemoveStory, &QPushButton::clicked, this, &SettingsDialog::slot_remove_story);
     connect(ui->tree_Styles, &QTreeWidget::itemSelectionChanged, this, &SettingsDialog::slot_apply_stylesheet);
 
-    ui->button_EditStyle->setEnabled(false);
+    ui->button_EditStory->setEnabled(false);
 
     setWindowTitle(tr("Newsroom: Settings"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
@@ -253,7 +253,7 @@ void SettingsDialog::slot_story_selection_changed()
 
     if(selections.count())
     {
-        ui->button_EditStyle->setEnabled(true);
+        ui->button_EditStory->setEnabled(true);
 
         ProducerPointer producer = selections[0]->data(Qt::UserRole).value<ProducerPointer>();
         ui->button_StartCoverage->setEnabled(!producer->is_covering_story());
