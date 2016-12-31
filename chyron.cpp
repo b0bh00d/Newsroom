@@ -825,6 +825,53 @@ void Chyron::slot_train_expire_headlines()
         expired->hide();
         expired.clear();
     }
+
+    if(story_info->train_age_effect == AgeEffects::ReduceOpacityByAge)
+    {
+        // those that have aged will have their opacities reduced
+
+        foreach(HeadlinePointer headline, headline_list)
+        {
+            QGraphicsEffect* eff = headline->graphicsEffect();
+            if(!eff)
+            {
+                // add one
+                eff = new QGraphicsOpacityEffect(this);
+                QGraphicsOpacityEffect* opacity_eff = qobject_cast<QGraphicsOpacityEffect*>(eff);
+                opacity_eff->setOpacity(1.0);
+                headline->setGraphicsEffect(eff);
+            }
+
+            qreal target_opacity = 1.0;
+
+            QRect r = headline->geometry();
+
+            switch(story_info->entry_type)
+            {
+                case AnimEntryType::TrainInLeftTop:
+                case AnimEntryType::TrainInLeftBottom:
+                    target_opacity = 1.0 - (r.left() / (r_desktop.width() * 1.0));
+                    break;
+                case AnimEntryType::TrainInRightTop:
+                case AnimEntryType::TrainInRightBottom:
+                    target_opacity = r.left() / (r_desktop.width() * 1.0);
+                    break;
+                case AnimEntryType::TrainUpLeftBottom:
+                case AnimEntryType::TrainUpRightBottom:
+                case AnimEntryType::TrainUpCenterBottom:
+                    target_opacity = 1.0 - (r.top() / (r_desktop.height() * 1.0));
+                    break;
+                case AnimEntryType::TrainDownLeftTop:
+                case AnimEntryType::TrainDownCenterTop:
+                case AnimEntryType::TrainDownRightTop:
+                    target_opacity = r.top() / (r_desktop.height() * 1.0);
+                    break;
+            }
+
+            QGraphicsOpacityEffect* opacity_eff = qobject_cast<QGraphicsOpacityEffect*>(eff);
+            opacity_eff->setOpacity(target_opacity);
+        }
+    }
 }
 
 void Chyron::slot_headline_mouse_enter()
