@@ -323,53 +323,57 @@ bool MainWindow::cover_story(StoryInfoPointer story_info, CoverageStart coverage
 {
     bool result = false;
 
-    StaffInfo staff_info;
-
-    if(!reporters_info)
+    if(!staff.contains(story_info))
     {
-        if(beat_reporters.contains(story_info->reporter_beat))
-            reporters_info = &beat_reporters[story_info->reporter_beat];
+        StaffInfo staff_info;
 
         if(!reporters_info)
         {
-            QMessageBox::critical(0,
-                                  tr("Newsroom: Error"),
-                                  tr("No Reporters are available to cover the \"%1\" beat!").arg(story_info->reporter_beat));
-            return result;
+            if(beat_reporters.contains(story_info->reporter_beat))
+                reporters_info = &beat_reporters[story_info->reporter_beat];
+
+            if(!reporters_info)
+            {
+                QMessageBox::critical(0,
+                                      tr("Newsroom: Error"),
+                                      tr("No Reporters are available to cover the \"%1\" beat!").arg(story_info->reporter_beat));
+                return result;
+            }
         }
-    }
 
-    // create a Chyron to display the Headlines for this story
+        // create a Chyron to display the Headlines for this story
 
-    staff_info.chyron = ChyronPointer(new Chyron(story_info, lane_manager));
+        staff_info.chyron = ChyronPointer(new Chyron(story_info, lane_manager));
 
-    // assign a staff Reporter from the selected department to cover the story
+        // assign a staff Reporter from the selected department to cover the story
 
-    foreach(const PluginInfo& pi_info, (*reporters_info))
-    {
-        QObject* instance = pi_info.factory->instance();
-        IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
-        Q_ASSERT(ireporterfactory);
-        IReporterPointer plugin_reporter = ireporterfactory->newInstance();
-        if(!story_info->reporter_id.compare(plugin_reporter->PluginID()))
+        foreach(const PluginInfo& pi_info, (*reporters_info))
         {
-            staff_info.reporter = plugin_reporter;
-            staff_info.reporter->SetRequirements(story_info->reporter_parameters);
-            break;
+            QObject* instance = pi_info.factory->instance();
+            IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+            Q_ASSERT(ireporterfactory);
+            IReporterPointer plugin_reporter = ireporterfactory->newInstance();
+            if(!story_info->reporter_id.compare(plugin_reporter->PluginID()))
+            {
+                staff_info.reporter = plugin_reporter;
+                staff_info.reporter->SetRequirements(story_info->reporter_parameters);
+                break;
+            }
         }
+
+        // assign a staff Producer to receive Reporter filings and create headlines
+
+        staff_info.producer = ProducerPointer(new Producer(staff_info.reporter, story_info, headline_style_list, this));
+
+        connect(staff_info.producer.data(), &Producer::signal_new_headline, staff_info.chyron.data(), &Chyron::slot_file_headline);
+
+        staff[story_info] = staff_info;
     }
 
-    // assign a staff Producer to receive Reporter filings and create headlines
-
-    staff_info.producer = ProducerPointer(new Producer(staff_info.reporter, story_info, headline_style_list, this));
-
-    staff[story_info] = staff_info;
+    StaffInfo& staff_info = staff[story_info];
 
     if(coverage_start == CoverageStart::Delayed)
     {
-        connect(staff_info.producer.data(), &Producer::signal_new_headline,
-                staff_info.chyron.data(), &Chyron::slot_file_headline);
-
         std::random_device rd;
         std::mt19937 mt(rd());
         std::uniform_int_distribution<int> dist(2, std::nextafter(6, INT_MAX));
@@ -852,12 +856,12 @@ void MainWindow::slot_edit_story(const QString& story_id)
 
     restore_window_data(&addstory_dlg);
 
-    if(edit_story_first_time)
+    if(edit_story_first_time && coverage_start == CoverageStart::Immediate)
     {
         QMessageBox::warning(&addstory_dlg,
                              tr("Newsroom: Edit Story"),
-                             tr("Be aware that editing a story takes place outside of the this\n"
-                                "dialog, and any changes made to an active story will have\n"
+                             tr("Be aware that editing a Story takes place outside of the this\n"
+                                "dialog, and any changes made to an active Story will have\n"
                                 "immediate effect if you press \"Ok\" to accept changes."));
         edit_story_first_time = false;
     }
