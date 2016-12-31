@@ -1,4 +1,6 @@
+#ifdef QT_WIN
 #include <windows.h>
+#endif
 
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
@@ -40,6 +42,7 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
 
     if(!stay_visible)
     {
+#ifdef QT_WIN
         if(!QString(eventType).compare("windows_generic_MSG"))
         {
             MSG* msg = (MSG*)message;
@@ -72,6 +75,7 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
                 // fall through to the return
             }
         }
+#endif
     }
 
     return false;
@@ -115,14 +119,16 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
     if(width < height)
     {
         label = new VLabel(this);
-        static_cast<VLabel*>(label)->set_for_left(entry_type != AnimEntryType::DashboardInRightTop && entry_type != AnimEntryType::DashboardInRightBottom);
+        dynamic_cast<VLabel*>(label)->set_for_left(entry_type != AnimEntryType::DashboardInRightTop && entry_type != AnimEntryType::DashboardInRightBottom);
     }
     else
     {
         label = new HLabel(this);
-        static_cast<HLabel*>(label)->set_progress_detection(include_progress_bar, progress_text_re, progress_on_top);
+        dynamic_cast<HLabel*>(label)->set_progress_detection(include_progress_bar, progress_text_re, progress_on_top);
     }
-    static_cast<ILabel*>(label)->shrink_to_fit(fixed_text == FixedText::ScaleToFit);
+
+    dynamic_cast<ILabel*>(label)->shrink_to_fit(fixed_text == FixedText::ScaleToFit);
+
     label->setAlignment(alignment);
     label->setContentsMargins(0, 0, 0, 0);
     label->setTextFormat(Qt::AutoText);
