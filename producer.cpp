@@ -36,7 +36,7 @@ bool Producer::stop_covering_story()
 
     disconnect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
     covering_story = !reporter_plugin->FinishStory();
-    return covering_story;
+    return !covering_story;
 }
 
 void Producer::file_headline(const QString& data)
