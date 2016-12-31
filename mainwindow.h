@@ -100,7 +100,7 @@ private slots:
     void                slot_edit_story(const QString& story_id);
 
 private:    // methods
-    bool                load_plugin_factories();
+    bool                load_reporters();
     void                load_application_settings();
     void                save_application_settings();
     void                restore_story_defaults(StoryInfoPointer story_info);

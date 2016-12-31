@@ -58,13 +58,13 @@ MainWindow::MainWindow(QWidget *parent)
     settings->cache();
 
     // Load all the available Reporter plug-ins
-    if(!load_plugin_factories())
+    if(!load_reporters())
     {
         QMessageBox::critical(0,
                               tr("Newsroom: Error"),
                               tr("No Reporter plug-ins were found!\n"
-                                 "The Newsroom cannot function without Reporters."));
-        qApp->quit();
+                                 "Newsroom cannot function without Reporters."));
+        QTimer::singleShot(100,  qApp, &QApplication::quit);
         return;
     }
 
@@ -96,13 +96,13 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-bool MainWindow::load_plugin_factories()
+bool MainWindow::load_reporters()
 {
     QMap<QString, bool> id_filter;
 
     beat_reporters.clear();
 
-    QDir plugins("plugins");
+    QDir plugins("reporters");
     QStringList plugins_list = plugins.entryList(QStringList() << "*.dll" << "*.so", QDir::Files);
     foreach(const QString& filename, plugins_list)
     {
@@ -147,8 +147,7 @@ void MainWindow::restore_story_defaults(StoryInfoPointer story_info)
     story_info->identity                 = settings->get_item("identity", QString()).toString();
     story_info->reporter_beat            = settings->get_item("reporter_class", QString()).toString();
     story_info->reporter_id              = settings->get_item("reporter_id", QString()).toString();
-    // Reporter parameter defaults are managed by the AddStoryDialog class
-    //story_info->reporter_parameters      = settings->get_item("reporter_parameters", QStringList()).toStringList();
+    // Note: Reporter parameter defaults are managed by the AddStoryDialog class
     story_info->ttl                      = settings->get_item("ttl", story_info->ttl).toInt();
     story_info->primary_screen           = settings->get_item("primary_screen", 0).toInt();
     story_info->headlines_always_visible = settings->get_item("headlines_always_visible", true).toBool();
@@ -190,8 +189,7 @@ void MainWindow::save_story_defaults(StoryInfoPointer story_info)
     settings->set_item("identity", story_info->identity);
     settings->set_item("reporter_class", story_info->reporter_beat);
     settings->set_item("reporter_id", story_info->reporter_id);
-    // Reporter parameter defaults are managed by the AddStoryDialog class
-    //settings->set_item("reporter_parameters", story_info->reporter_parameters);
+    // Note: Reporter parameter defaults are managed by the AddStoryDialog class
     settings->set_item("ttl", story_info->ttl);
     settings->set_item("primary_screen", story_info->primary_screen);
     settings->set_item("headlines_always_visible", story_info->headlines_always_visible);
@@ -681,22 +679,21 @@ void MainWindow::load_application_settings()
 
     lane_manager = LaneManagerPointer(new LaneManager(headline_font, (*headline_style_list.data())[0].stylesheet, this));
 
-    if(continue_coverage)
+    int story_count = settings->begin_array("Stories");
+    if(story_count)
     {
-        int story_count = settings->begin_array("Stories");
-        if(story_count)
+        for(int i = 0; i < story_count; ++i)
         {
-            for(int i = 0; i < story_count; ++i)
-            {
-                settings->set_array_index(i);
+            settings->set_array_index(i);
 
-                StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
-                restore_story(settings, story_info);
+            StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
+            restore_story(settings, story_info);
+            if(continue_coverage)
                 cover_story(story_info, CoverageStart::Delayed);
-            }
         }
-        settings->end_array();
     }
+    settings->end_array();
+
     settings->end_section();
 
     settings_modified = !QFile::exists(settings_file_name);
