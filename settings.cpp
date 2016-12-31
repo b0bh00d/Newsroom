@@ -358,6 +358,9 @@ void Settings::write_section(Item* section, QDomNode* parent, QDomDocument* doc)
     child.setAttribute("name", section->text(1));
     parent->appendChild(child);
 
+    QDomComment comment = doc->createComment(QString("End: %1").arg(section->text(1)));
+    parent->appendChild(comment);
+
     for(int i = 0;i < section->childCount();++i)
     {
         Item* item = section->child(i);
@@ -379,6 +382,9 @@ void Settings::write_array(Item* array, QDomNode* parent, QDomDocument* doc)
     QDomElement child_array = doc->createElement("Array");
     child_array.setAttribute("name", array->text(1));
     parent->appendChild(child_array);
+
+    QDomComment comment = doc->createComment(QString("End: %1").arg(array->text(1)));
+    parent->appendChild(comment);
 
     for(int i = 0;i < array->childCount();++i)
     {
@@ -435,6 +441,9 @@ void Settings::write_item(Item* item, QDomNode* parent, QDomDocument* doc)
         }
 
         parent->appendChild(child);
+
+        QDomComment comment = doc->createComment(QString("End: %1").arg(item->text(1)));
+        parent->appendChild(comment);
     }
     else
     {

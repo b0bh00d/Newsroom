@@ -67,6 +67,13 @@ protected:  // methods
     void                dropEvent(QDropEvent *event);
 
 private:    // typedefs and enums
+    enum class CoverageStart
+    {
+        None,
+        Immediate,
+        Delayed
+    };
+
     struct StaffInfo
     {
         // this is the staff and equipment assigned to
@@ -90,6 +97,7 @@ private slots:
     void                slot_menu_action(QAction* action);
     void                slot_restore();
     void                slot_edit_settings(bool checked);
+    void                slot_edit_story(const QString& story_id);
 
 private:    // methods
     bool                load_plugin_factories();
@@ -99,7 +107,7 @@ private:    // methods
     void                save_story_defaults(StoryInfoPointer story_info);
     void                save_story(SettingsPointer settings, StoryInfoPointer story_info);
     void                restore_story(SettingsPointer settings, StoryInfoPointer story_info);
-    bool                cover_story(StoryInfoPointer story_info, bool delayed_start = false, const PluginsInfoVector* reporters_info = nullptr);
+    bool                cover_story(StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector* reporters_info = nullptr);
 
     void                build_tray_menu();
 
@@ -108,6 +116,7 @@ private:    // data members
 
     bool                auto_start;
     bool                continue_coverage;
+    bool                edit_story_first_time;
 
     QSystemTrayIcon*    trayIcon;
     QMenu*              trayIconMenu;

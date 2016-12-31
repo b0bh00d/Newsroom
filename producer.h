@@ -31,8 +31,8 @@ public:
                       StyleListPointer style_list,
                       QObject *parent = 0);
 
-    QUrl    get_story() const { return story_info->story; }
-
+    QUrl    get_story()             const { return story_info->story; }
+    bool    is_covering_story()     const { return covering_story; }
     bool    start_covering_story();
     bool    stop_covering_story();
 
@@ -50,9 +50,12 @@ private:        // methods
     void    file_headline(const QString& data);
 
 private:        // data members
+    bool                covering_story;
+
     IReporterPointer    reporter_plugin;
     StoryInfoPointer    story_info;
     StyleListPointer    style_list;
 };
 
 SPECIALIZE_SHAREDPTR(Producer, Producer)    // "ProducerPointer"
+Q_DECLARE_METATYPE(ProducerPointer)

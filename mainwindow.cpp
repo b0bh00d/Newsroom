@@ -26,6 +26,7 @@ MainWindow* mainwindow;
 MainWindow::MainWindow(QWidget *parent)
     : auto_start(false),
       continue_coverage(false),
+      edit_story_first_time(true),
       trayIconMenu(0),
       window_geometry_save_enabled(true),
       start_automatically(false),
@@ -320,7 +321,7 @@ void MainWindow::closeEvent(QCloseEvent* event)
     }
 }
 
-bool MainWindow::cover_story(StoryInfoPointer story_info, bool delayed_start, const PluginsInfoVector *reporters_info)
+bool MainWindow::cover_story(StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector *reporters_info)
 {
     bool result = false;
 
@@ -363,7 +364,10 @@ bool MainWindow::cover_story(StoryInfoPointer story_info, bool delayed_start, co
     // assign a staff Producer to receive Reporter filings and create headlines
 
     staff_info.producer = ProducerPointer(new Producer(staff_info.reporter, story_info, headline_style_list, this));
-    if(delayed_start)
+
+    staff[story_info] = staff_info;
+
+    if(coverage_start == CoverageStart::Delayed)
     {
         connect(staff_info.producer.data(), &Producer::signal_new_headline,
                 staff_info.chyron.data(), &Chyron::slot_file_headline);
@@ -377,18 +381,14 @@ bool MainWindow::cover_story(StoryInfoPointer story_info, bool delayed_start, co
 
         QTimer::singleShot(offset * 1000, staff_info.producer.data(), &Producer::slot_start_covering_story);
 
-        staff[story_info] = staff_info;
-
         result = true;
     }
-    else
+    else if(coverage_start == CoverageStart::Immediate)
     {
         if(staff_info.producer->start_covering_story())
         {
             connect(staff_info.producer.data(), &Producer::signal_new_headline,
                     staff_info.chyron.data(), &Chyron::slot_file_headline);
-
-            staff[story_info] = staff_info;
 
             result = true;
         }
@@ -397,8 +397,11 @@ bool MainWindow::cover_story(StoryInfoPointer story_info, bool delayed_start, co
             QMessageBox::critical(0,
                                   tr("Newsroom: Error"),
                                   tr("The Reporter \"%1\" could not cover the Story!").arg(staff_info.reporter->DisplayName()[0]));
+            staff.remove(story_info);
         }
     }
+    else if(coverage_start == CoverageStart::None)
+        result = true;
 
     return result;
 }
@@ -478,7 +481,7 @@ void MainWindow::dropEvent(QDropEvent* event)
         {
             // AddStoryDialog has automatically updated 'story_info' with all settings
             save_story_defaults(story_info);
-            accept = cover_story(story_info, false, reporters_info);
+            accept = cover_story(story_info, CoverageStart::Immediate, reporters_info);
         }
 
         save_window_data(&addstory_dlg);
@@ -689,7 +692,7 @@ void MainWindow::load_application_settings()
 
                 StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
                 restore_story(settings, story_info);
-                cover_story(story_info, true);
+                cover_story(story_info, CoverageStart::Delayed);
             }
         }
         settings->end_array();
@@ -750,19 +753,25 @@ void MainWindow::slot_restore()
 
 void MainWindow::slot_edit_settings(bool /*checked*/)
 {
-    SettingsDialog dlg;
+    SettingsDialog dlg(this);
 
     QList<QString> story_identities;
+    QList<ProducerPointer> producer_identities;
     foreach(StoryInfoPointer story_info, staff.keys())
+    {
         story_identities.append(story_info->identity);
+        producer_identities.append(staff[story_info].producer);
+    }
 
     dlg.set_autostart(auto_start);
     dlg.set_continue_coverage(continue_coverage);
     dlg.set_font(headline_font);
     dlg.set_styles(*(headline_style_list.data()));
-    dlg.set_stories(story_identities);
+    dlg.set_stories(story_identities, producer_identities);
 
     restore_window_data(&dlg);
+
+    connect(&dlg, &SettingsDialog::signal_edit_story, this, &MainWindow::slot_edit_story);
 
     if(dlg.exec() == QDialog::Accepted)
     {
@@ -798,4 +807,61 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     }
 
     save_window_data(&dlg);
+}
+
+void MainWindow::slot_edit_story(const QString& story_id)
+{
+    StoryInfoPointer story_info;
+
+    QList<StoryInfoPointer> keys = staff.keys();
+    foreach(StoryInfoPointer key, keys)
+    {
+        if(!key->identity.compare(story_id))
+        {
+            story_info = key;
+            break;
+        }
+    }
+
+    Q_ASSERT(!story_info.isNull());      // this really shouldn't happen
+
+    if(edit_story_first_time)
+    {
+        QMessageBox::warning(this,
+                             tr("Newsroom: Edit Story"),
+                             tr("Be aware that editing a story takes place outside of the this\n"
+                                "dialog, and any changes made to an active story will have\n"
+                                "immediate effect if you press \"Ok\" to accept changes."));
+        edit_story_first_time = false;
+    }
+
+    PluginsInfoVector* reporters_info = nullptr;
+
+    if(beat_reporters.contains(story_info->reporter_beat))
+        reporters_info = &beat_reporters[story_info->reporter_beat];
+
+    if(!reporters_info)
+    {
+        QMessageBox::critical(0,
+                              tr("Newsroom: Error"),
+                              tr("No Reporters are available to cover the \"%1\" beat!")
+                                    .arg(story_info->reporter_beat));
+        return;
+    }
+
+    CoverageStart coverage_start = staff[story_info].producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
+
+    AddStoryDialog addstory_dlg(reporters_info, story_info, settings, this);
+
+    restore_window_data(&addstory_dlg);
+
+    if(addstory_dlg.exec() == QDialog::Accepted)
+    {
+        staff.remove(story_info);
+
+        // AddStoryDialog has automatically updated 'story_info' with all settings
+        (void)cover_story(story_info, coverage_start, reporters_info);
+    }
+
+    save_window_data(&addstory_dlg);
 }

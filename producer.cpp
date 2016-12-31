@@ -4,7 +4,8 @@ Producer::Producer(IReporterPointer reporter,
                    StoryInfoPointer story_info,
                    StyleListPointer style_list,
                    QObject *parent)
-    : reporter_plugin(reporter),
+    : covering_story(false),
+      reporter_plugin(reporter),
       story_info(story_info),
       style_list(style_list),
       QObject(parent)
@@ -24,7 +25,8 @@ bool Producer::start_covering_story()
         return false;
     }
 
-    return true;
+    covering_story = true;
+    return covering_story;
 }
 
 bool Producer::stop_covering_story()
@@ -33,7 +35,8 @@ bool Producer::stop_covering_story()
         return false;
 
     disconnect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
-    return reporter_plugin->FinishStory();
+    covering_story = !reporter_plugin->FinishStory();
+    return covering_story;
 }
 
 void Producer::file_headline(const QString& data)
