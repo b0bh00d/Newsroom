@@ -1,3 +1,5 @@
+#include <QtWidgets/QMessageBox>
+
 #include "mainwindow.h"
 #include "editheadlinedialog.h"
 #include "addstorydialog.h"
@@ -273,9 +275,14 @@ void SettingsDialog::slot_start_coverage()
     if(selections.count())
     {
         ProducerPointer producer = selections[0]->data(Qt::UserRole).value<ProducerPointer>();
-        producer->start_covering_story();
-
-        slot_story_selection_changed();
+        if(!producer->start_covering_story())
+        {
+            QMessageBox::critical(this,
+                                  "Newsroom: Error",
+                                  "The Producer reports this Story cannot be covered!");
+        }
+        else
+            slot_story_selection_changed();
     }
 }
 

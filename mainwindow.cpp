@@ -832,16 +832,6 @@ void MainWindow::slot_edit_story(const QString& story_id)
 
     Q_ASSERT(!story_info.isNull());      // this really shouldn't happen
 
-    if(edit_story_first_time)
-    {
-        QMessageBox::warning(this,
-                             tr("Newsroom: Edit Story"),
-                             tr("Be aware that editing a story takes place outside of the this\n"
-                                "dialog, and any changes made to an active story will have\n"
-                                "immediate effect if you press \"Ok\" to accept changes."));
-        edit_story_first_time = false;
-    }
-
     PluginsInfoVector* reporters_info = nullptr;
 
     if(beat_reporters.contains(story_info->reporter_beat))
@@ -861,6 +851,16 @@ void MainWindow::slot_edit_story(const QString& story_id)
     AddStoryDialog addstory_dlg(reporters_info, story_info, settings, this);
 
     restore_window_data(&addstory_dlg);
+
+    if(edit_story_first_time)
+    {
+        QMessageBox::warning(&addstory_dlg,
+                             tr("Newsroom: Edit Story"),
+                             tr("Be aware that editing a story takes place outside of the this\n"
+                                "dialog, and any changes made to an active story will have\n"
+                                "immediate effect if you press \"Ok\" to accept changes."));
+        edit_story_first_time = false;
+    }
 
     if(addstory_dlg.exec() == QDialog::Accepted)
     {
