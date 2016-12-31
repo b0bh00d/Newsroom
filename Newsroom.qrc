@@ -17,5 +17,7 @@
   <file>images/Headlines.png</file>
   <file>images/Animation.png</file>
   <file>images/Angle.png</file>
+  <file>images/Covering.png</file>
+  <file>images/NotCovering.png</file>
 </qresource>
 </RCC>

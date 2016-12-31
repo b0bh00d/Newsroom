@@ -97,7 +97,9 @@ void SettingsDialog::set_stories(const QList<QString>& stories, const QList<Prod
         tree_item->setData(0, Qt::UserRole, v);
 
         if(producers[i]->is_covering_story())
-            tree_item->setIcon(0, QIcon(":/images/Newsroom16x16.png"));
+            tree_item->setIcon(0, QIcon(":/images/Covering.png"));
+        else
+            tree_item->setIcon(0, QIcon(":/images/NotCovering.png"));
     }
 
     for(int i = 0;i < ui->tree_Stories->columnCount();++i)
@@ -288,7 +290,7 @@ void SettingsDialog::slot_start_coverage()
         }
         else
         {
-            selections[0]->setIcon(0, QIcon(":/images/Newsroom16x16.png"));
+            selections[0]->setIcon(0, QIcon(":/images/Covering.png"));
 
             for(int i = 0;i < ui->tree_Stories->columnCount();++i)
                 ui->tree_Stories->resizeColumnToContents(i);
@@ -306,7 +308,7 @@ void SettingsDialog::slot_stop_coverage()
         ProducerPointer producer = selections[0]->data(0, Qt::UserRole).value<ProducerPointer>();
         if(producer->stop_covering_story())
         {
-            selections[0]->setIcon(0, QIcon(""));
+            selections[0]->setIcon(0, QIcon(":/images/NotCovering.png"));
 
             for(int i = 0;i < ui->tree_Stories->columnCount();++i)
                 ui->tree_Stories->resizeColumnToContents(i);
@@ -323,6 +325,7 @@ void SettingsDialog::slot_remove_story()
         delete ui->tree_Stories->takeTopLevelItem(ui->tree_Stories->indexOfTopLevelItem(item));
 }
 
+// this is from an early iteration of the application; I keep it for the gradient stylesheet refrence
 //void SettingsDialog::slot_apply_predefined_style(int index)
 //{
 //    if(index == 0)
