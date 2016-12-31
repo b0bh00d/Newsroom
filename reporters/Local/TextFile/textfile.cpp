@@ -85,9 +85,12 @@ bool TextFile::CoverStory()
 
 bool TextFile::FinishStory()
 {
-    poll_timer->stop();
-    poll_timer->deleteLater();
-    poll_timer = nullptr;
+    if(poll_timer)
+    {
+        poll_timer->stop();
+        poll_timer->deleteLater();
+        poll_timer = nullptr;
+    }
 
     return true;
 }
