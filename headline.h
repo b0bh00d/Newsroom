@@ -1,7 +1,5 @@
 #pragma once
 
-//#include <windows.h>
-
 #include <QWidget>
 
 #include <QtGui/QFont>
@@ -46,8 +44,6 @@ signals:
     void    signal_mouse_exit();
 
 protected:  // methods
-//    void    showEvent(QShowEvent *event);
-//    bool winEvent(MSG* message, long* result);
     bool    nativeEvent(const QByteArray &eventType, void *message, long *result);
     void    enterEvent(QEvent *event);
     void    leaveEvent(QEvent *event);
