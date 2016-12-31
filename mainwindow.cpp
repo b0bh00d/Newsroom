@@ -53,8 +53,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     headline_style_list = StyleListPointer(new HeadlineStyleList());
 
-    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom.xml").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-    settings = SettingsPointer(new Settings("Newsroom", settings_file_name));
+    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    settings = SettingsPointer(new SettingsXML("Newsroom", settings_file_name));
     settings->cache();
 
     // Load all the available Reporter plug-ins
