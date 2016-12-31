@@ -25,14 +25,17 @@ DEFINES += QT_DLL QT_NETWORK_LIB
 
 mac {
     DEFINES += QT_OSX
+	DESTDIR = deploy
 }
 
 unix:!mac {
     DEFINES += QT_LINUX
+	DESTDIR = deploy/bin
 }
 
 win32 {
     DEFINES += QT_WIN
+	DESTDIR = deploy/bin
 }
 
 win32:RC_FILE = Newsroom.rc
@@ -53,7 +56,7 @@ SOURCES += main.cpp \
            addstorydialog.cpp \
            editheadlinedialog.cpp \
            settings.cpp \
-    label.cpp
+           label.cpp
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -70,7 +73,7 @@ HEADERS  += mainwindow.h \
             reporters/interfaces/ireporter.h \
             editheadlinedialog.h \
             settings.h \
-    label.h
+            label.h
 
 # Plug-in interface
 HEADERS += \
