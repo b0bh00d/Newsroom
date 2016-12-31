@@ -237,7 +237,7 @@ void HLabel::paintEvent(QPaintEvent* /*event*/)
 
     painter.save();
     painter.translate(x, y);
-    if(!shrink_text_to_fit)
+//    if(!shrink_text_to_fit)
         painter.setClipRect(margin, margin, s.width() - margin * 2, s.height() - margin * 2);
 
     QAbstractTextDocumentLayout::PaintContext ctx;
