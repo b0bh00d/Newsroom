@@ -21,7 +21,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     connect(ui->button_AddStyle, &QPushButton::clicked, this, &SettingsDialog::slot_add_style);
     connect(ui->button_DeleteStyle, &QPushButton::clicked, this, &SettingsDialog::slot_delete_style);
     connect(ui->button_EditStyle, &QPushButton::clicked, this, &SettingsDialog::slot_edit_style);
-    connect(ui->list_Stories, &QListWidget::itemSelectionChanged, this, &SettingsDialog::slot_story_selection_changed);
+    connect(ui->tree_Stories, &QTreeWidget::itemSelectionChanged, this, &SettingsDialog::slot_story_selection_changed);
     connect(ui->button_EditStory, &QPushButton::clicked, this, &SettingsDialog::slot_edit_story);
     connect(ui->button_StartCoverage, &QPushButton::clicked, this, &SettingsDialog::slot_start_coverage);
     connect(ui->button_StopCoverage, &QPushButton::clicked, this, &SettingsDialog::slot_stop_coverage);
@@ -85,18 +85,23 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
 
 void SettingsDialog::set_stories(const QList<QString>& stories, const QList<ProducerPointer> producers)
 {
-    while(ui->list_Stories->count())
-        delete ui->list_Stories->takeItem(0);
+    while(ui->tree_Stories->topLevelItemCount())
+        delete ui->tree_Stories->takeTopLevelItem(0);
 
     for(int i = 0;i < stories.length();++i)
     {
-        QListWidgetItem* item = new QListWidgetItem(stories[i], ui->list_Stories);
-
         QVariant v;
         v.setValue(producers[i]);
 
-        item->setData(Qt::UserRole, v);
+        QTreeWidgetItem* tree_item = new QTreeWidgetItem(ui->tree_Stories, QStringList() << "" << stories[i]);
+        tree_item->setData(0, Qt::UserRole, v);
+
+        if(producers[i]->is_covering_story())
+            tree_item->setIcon(0, QIcon(":/images/Newsroom16x16.png"));
     }
+
+    for(int i = 0;i < ui->tree_Stories->columnCount();++i)
+        ui->tree_Stories->resizeColumnToContents(i);
 
     slot_story_selection_changed();
 }
@@ -138,10 +143,10 @@ void SettingsDialog::get_styles(HeadlineStyleList& style_list)
 QList<QString> SettingsDialog::get_stories()
 {
     QList<QString> remaining_stories;
-    for(int i = 0;i < ui->list_Stories->count();++i)
+    for(int i = 0;i < ui->tree_Stories->topLevelItemCount();++i)
     {
-        QListWidgetItem* item = ui->list_Stories->item(i);
-        remaining_stories.append(item->text());
+        QTreeWidgetItem* item = ui->tree_Stories->topLevelItem(i);
+        remaining_stories.append(item->text(1));
     }
 
     return remaining_stories;
@@ -246,8 +251,8 @@ void SettingsDialog::slot_apply_stylesheet()
 
 void SettingsDialog::slot_story_selection_changed()
 {
-    ui->group_Stories->setEnabled(ui->list_Stories->count() != 0);
-    QList<QListWidgetItem *> selections = ui->list_Stories->selectedItems();
+    ui->group_Stories->setEnabled(ui->tree_Stories->topLevelItemCount() != 0);
+    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
     ui->button_RemoveStory->setEnabled(selections.length() != 0);
 
     ui->button_StartCoverage->setEnabled(false);
@@ -257,7 +262,7 @@ void SettingsDialog::slot_story_selection_changed()
     {
         ui->button_EditStory->setEnabled(true);
 
-        ProducerPointer producer = selections[0]->data(Qt::UserRole).value<ProducerPointer>();
+        ProducerPointer producer = selections[0]->data(0, Qt::UserRole).value<ProducerPointer>();
         ui->button_StartCoverage->setEnabled(!producer->is_covering_story());
         ui->button_StopCoverage->setEnabled(producer->is_covering_story());
     }
@@ -265,16 +270,16 @@ void SettingsDialog::slot_story_selection_changed()
 
 void SettingsDialog::slot_edit_story()
 {
-    QList<QListWidgetItem *> selections = ui->list_Stories->selectedItems();
-    emit signal_edit_story(selections[0]->text());
+    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
+    emit signal_edit_story(selections[0]->text(1));
 }
 
 void SettingsDialog::slot_start_coverage()
 {
-    QList<QListWidgetItem *> selections = ui->list_Stories->selectedItems();
+    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
     if(selections.count())
     {
-        ProducerPointer producer = selections[0]->data(Qt::UserRole).value<ProducerPointer>();
+        ProducerPointer producer = selections[0]->data(0, Qt::UserRole).value<ProducerPointer>();
         if(!producer->start_covering_story())
         {
             QMessageBox::critical(this,
@@ -282,33 +287,41 @@ void SettingsDialog::slot_start_coverage()
                                   "The Producer reports this Story cannot be covered!");
         }
         else
+        {
+            selections[0]->setIcon(0, QIcon(":/images/Newsroom16x16.png"));
+
+            for(int i = 0;i < ui->tree_Stories->columnCount();++i)
+                ui->tree_Stories->resizeColumnToContents(i);
+
             slot_story_selection_changed();
+        }
     }
 }
 
 void SettingsDialog::slot_stop_coverage()
 {
-    QList<QListWidgetItem *> selections = ui->list_Stories->selectedItems();
+    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
     if(selections.count())
     {
-        ProducerPointer producer = selections[0]->data(Qt::UserRole).value<ProducerPointer>();
-        producer->stop_covering_story();
+        ProducerPointer producer = selections[0]->data(0, Qt::UserRole).value<ProducerPointer>();
+        if(producer->stop_covering_story())
+        {
+            selections[0]->setIcon(0, QIcon(""));
 
-        slot_story_selection_changed();
+            for(int i = 0;i < ui->tree_Stories->columnCount();++i)
+                ui->tree_Stories->resizeColumnToContents(i);
+
+            slot_story_selection_changed();
+        }
     }
 }
 
 void SettingsDialog::slot_remove_story()
 {
-    QList<QListWidgetItem *> selections = ui->list_Stories->selectedItems();
-    foreach(QListWidgetItem* item, selections)
-        delete ui->list_Stories->takeItem(ui->list_Stories->row(item));
+    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
+    foreach(QTreeWidgetItem* item, selections)
+        delete ui->tree_Stories->takeTopLevelItem(ui->tree_Stories->indexOfTopLevelItem(item));
 }
-
-//void SettingsDialog::slot_apply_alert_stylesheet()
-//{
-//    ui->label_HeadlineAlert->setStyleSheet(ui->edit_HeadlineStylesheetAlert->text());
-//}
 
 //void SettingsDialog::slot_apply_predefined_style(int index)
 //{
