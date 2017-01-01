@@ -135,7 +135,7 @@ bool TeamCity9::FinishStory()
         QNAM = nullptr;
     }
 
-    return false;
+    return true;
 }
 
 void TeamCity9::create_request(const QString& url_str, States state)
