@@ -61,6 +61,7 @@ public:     // data members;
     QString             default_stylesheet;
 
 protected:  // methods
+    void                paintEvent(QPaintEvent*);
     void                closeEvent(QCloseEvent *event);
     void                dragEnterEvent(QDragEnterEvent *event);
     void                dragMoveEvent(QDragMoveEvent *event);
@@ -89,6 +90,7 @@ private:    // typedefs and enums
     SPECIALIZE_VECTOR(ChyronPointer, Story)                 // "StoryVector"
     SPECIALIZE_MAP(QString, PluginsInfoVector, Reporters)   // "ReportersMap"
     SPECIALIZE_MAP(StoryInfoPointer, StaffInfo, Staff)      // "StaffMap"
+    SPECIALIZE_SHAREDPTR(QPixmap, Pixmap)                   // "PixmapPointer"
 
 private slots:
     void                slot_quit();
@@ -146,4 +148,6 @@ private:    // data members
     StyleListPointer    headline_style_list;
 
     int                 last_start_offset;
+
+    PixmapPointer       background_image;
 };
