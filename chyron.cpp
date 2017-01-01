@@ -77,8 +77,8 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     if(IS_DASHBOARD(story_info->entry_type) && story_info->dashboard_compact_mode)
     {
         headline->set_compact_mode(story_info->dashboard_compact_mode, width, height);
-        width *= story_info->dashboard_compression;
-        height *= story_info->dashboard_compression;
+        width *= (story_info->dashboard_compression / 100.0);
+        height *= (story_info->dashboard_compression / 100.0);
     }
 
     switch(story_info->entry_type)

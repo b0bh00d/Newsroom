@@ -32,6 +32,10 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
 
     ui->button_EditStory->setEnabled(false);
 
+    connect(ui->check_CompactMode, &QCheckBox::clicked, this, &SettingsDialog::slot_compact_mode_clicked);
+    ui->edit_ZoomOutPercent->setValidator(new QIntValidator(5, 30));
+    slot_compact_mode_clicked(true);
+
     setWindowTitle(tr("Newsroom: Settings"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
 
@@ -53,9 +57,16 @@ void SettingsDialog::set_continue_coverage(bool continue_coverage)
     ui->check_ContinueCoverage->setChecked(continue_coverage);
 }
 
-void SettingsDialog::set_compact_mode(bool compact_mode)
+void SettingsDialog::set_compact_mode(bool compact_mode, int zoom_percent)
 {
     ui->check_CompactMode->setChecked(compact_mode);
+    if(zoom_percent != ui->edit_ZoomOutPercent->placeholderText().toInt())
+    {
+        if(zoom_percent >= 5 && zoom_percent <= 30)
+            ui->edit_ZoomOutPercent->setText(QString::number(zoom_percent));
+    }
+
+    slot_compact_mode_clicked(compact_mode);
 }
 
 void SettingsDialog::set_font(const QFont& font)
@@ -125,8 +136,11 @@ bool SettingsDialog::get_continue_coverage()
     return ui->check_ContinueCoverage->isChecked();
 }
 
-bool SettingsDialog::get_compact_mode()
+bool SettingsDialog::get_compact_mode(int &zoom_percent)
 {
+    zoom_percent = ui->edit_ZoomOutPercent->placeholderText().toInt();
+    if(ui->check_CompactMode->isChecked() && !ui->edit_ZoomOutPercent->text().isEmpty())
+        zoom_percent = ui->edit_ZoomOutPercent->text().toInt();
     return ui->check_CompactMode->isChecked();
 }
 
@@ -388,6 +402,13 @@ void SettingsDialog::slot_remove_story()
     QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
     foreach(QTreeWidgetItem* item, selections)
         delete ui->tree_Stories->takeTopLevelItem(ui->tree_Stories->indexOfTopLevelItem(item));
+}
+
+void SettingsDialog::slot_compact_mode_clicked(bool /*checked*/)
+{
+    ui->label_ZoomOut1->setEnabled(ui->check_CompactMode->isChecked());
+    ui->edit_ZoomOutPercent->setEnabled(ui->check_CompactMode->isChecked());
+    ui->label_ZoomOut2->setEnabled(ui->check_CompactMode->isChecked());
 }
 
 // this is from an early iteration of the application; I keep it for the gradient stylesheet refrence

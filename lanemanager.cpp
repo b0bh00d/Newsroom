@@ -92,8 +92,8 @@ void LaneManager::subscribe(Chyron* chyron)
             if(story_info->dashboard_compact_mode)
             {
                 dashboard_group->lane_header->set_compact_mode(true, w, h);
-                w *= story_info->dashboard_compression;
-                h *= story_info->dashboard_compression;
+                w *= (story_info->dashboard_compression / 100.0);
+                h *= (story_info->dashboard_compression / 100.0);
             }
 
             dashboard_group->lane_header->setGeometry(QRect(0, 0, w, h));
@@ -718,8 +718,8 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
 
         if(story_info->dashboard_compact_mode)
         {
-            headline_w *= story_info->dashboard_compression;
-            headline_h *= story_info->dashboard_compression;
+            headline_w *= (story_info->dashboard_compression / 100.0);
+            headline_h *= (story_info->dashboard_compression / 100.0);
         }
 
         int left = r_header_x;
