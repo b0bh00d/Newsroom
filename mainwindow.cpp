@@ -4,6 +4,7 @@
 #include <QtWidgets/QMessageBox>
 
 #include <QtGui/QFontMetrics>
+#include <QtGui/QPainter>
 
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
@@ -42,14 +43,11 @@ MainWindow::MainWindow(QWidget *parent)
     headline_font = ui->label->font();
     default_stylesheet = "color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;";
 
-//    QPixmap bkgnd(":/images/Add.png");
-//    bkgnd = bkgnd.scaled(this->size(), Qt::IgnoreAspectRatio);
-//    QPalette palette;
-//    palette.setBrush(QPalette::Background, bkgnd);
-//    this->setPalette(palette);
-
     setWindowTitle(tr("Newsroom by Bob Hood"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
+    setFixedSize(256, 256);
+
+    background_image = PixmapPointer(new QPixmap(":/images/Newsroom256.png"));
 
     headline_style_list = StyleListPointer(new HeadlineStyleList());
 
@@ -64,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
                               tr("Newsroom: Error"),
                               tr("No Reporter plug-ins were found!\n"
                                  "Newsroom cannot function without Reporters."));
-        QTimer::singleShot(100,  qApp, &QApplication::quit);
+        QTimer::singleShot(100, qApp, &QApplication::quit);
         return;
     }
 
@@ -83,7 +81,7 @@ MainWindow::MainWindow(QWidget *parent)
     connected = connect(ui->action_Settings, &QAction::triggered, this, &MainWindow::slot_edit_settings);
     ASSERT_UNUSED(connected);
 
-    trayIcon->setIcon(QIcon(":/images/Newsroom16x16.png"));
+    trayIcon->setIcon(QIcon(":/images/Newsroom16.png"));
     trayIcon->setToolTip(tr("Newsroom"));
 
     build_tray_menu();
@@ -307,6 +305,28 @@ void MainWindow::set_visible(bool visible)
         restore_window_data(this);
 
     QWidget::setVisible(visible);
+}
+
+void MainWindow::paintEvent(QPaintEvent* /*event*/)
+{
+    QPainter painter(this);
+
+    auto winSize = size();
+    auto pixmapRatio = (float)background_image->width() / background_image->height();
+    auto windowRatio = (float)winSize.width() / winSize.height();
+
+    if(pixmapRatio > windowRatio)
+    {
+        auto newWidth = (int)(winSize.height() * pixmapRatio);
+        auto offset = (newWidth - winSize.width()) / -2;
+        painter.drawPixmap(offset, 0, newWidth, winSize.height(), *(background_image.data()));
+    }
+    else
+    {
+        auto newHeight = (int)(winSize.width() / pixmapRatio);
+        auto offset = (newHeight - winSize.height()) / -2;
+        painter.drawPixmap(0, offset, winSize.width(), newHeight, *(background_image.data()));
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)
