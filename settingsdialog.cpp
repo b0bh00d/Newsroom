@@ -318,14 +318,17 @@ void SettingsDialog::slot_stop_coverage()
     if(selections.count())
     {
         ProducerPointer producer = selections[0]->data(0, Qt::UserRole).value<ProducerPointer>();
-        if(producer->stop_covering_story())
+        if(producer->is_covering_story())
         {
-            selections[0]->setIcon(0, QIcon(":/images/NotCovering.png"));
+            if(producer->stop_covering_story())
+            {
+                selections[0]->setIcon(0, QIcon(":/images/NotCovering.png"));
 
-            for(int i = 0;i < ui->tree_Stories->columnCount();++i)
-                ui->tree_Stories->resizeColumnToContents(i);
+                for(int i = 0;i < ui->tree_Stories->columnCount();++i)
+                    ui->tree_Stories->resizeColumnToContents(i);
 
-            slot_story_selection_changed();
+                slot_story_selection_changed();
+            }
         }
     }
 }
