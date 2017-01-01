@@ -406,7 +406,8 @@ void AddStoryDialog::load_settings()
     }
 
     QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
-    line_edit->setText(story_info->dashboard_group_id);
+    if(story_info->dashboard_group_id.compare(line_edit->placeholderText()))
+        line_edit->setText(story_info->dashboard_group_id);
 
     ui->group_Train->setHidden(!IS_TRAIN(story_info->entry_type));
     ui->group_Dashboard->setHidden(!IS_DASHBOARD(story_info->entry_type));
@@ -687,7 +688,7 @@ void AddStoryDialog::slot_configure_reporter_configure()
 
         if(!type.compare("multiline"))
         {
-            if(reporter_configuration.count() > j)
+            if(reporter_configuration.count() > j && !reporter_configuration[j].isEmpty())
                 multiline->insertPlainText(reporter_configuration[j]);
             else
                 multiline->insertPlainText(def_value);
@@ -704,11 +705,13 @@ void AddStoryDialog::slot_configure_reporter_configure()
         {
             foreach(const QString& item, def_value.split(","))
                 combo->addItem(item.trimmed());
-            if(reporter_configuration.count() > j)
+            if(reporter_configuration.count() > j && !reporter_configuration[j].isEmpty())
             {
                 if(reporter_configuration[j].toInt() < combo->count())
                     combo->setCurrentIndex(reporter_configuration[j].toInt());
             }
+            else if(!def_value.isEmpty())
+                combo->setCurrentIndex(def_value.toInt());
 
             QHBoxLayout* hbox = new QHBoxLayout();
             hbox->addWidget(label);
@@ -728,8 +731,15 @@ void AddStoryDialog::slot_configure_reporter_configure()
             if(!def_value.isEmpty())
                 edit->setPlaceholderText(def_value);
 
-            if(reporter_configuration.count() > j)
-                edit->setText(reporter_configuration[j]);
+            if(reporter_configuration.count() > j && !reporter_configuration[j].isEmpty())
+            {
+                if(!reporter_configuration[j].compare(def_value))
+                    edit->setPlaceholderText(def_value);
+                else
+                    edit->setText(reporter_configuration[j]);
+            }
+            else
+                edit->setPlaceholderText(def_value);
 
             edit_fields.push_back(edit);
 

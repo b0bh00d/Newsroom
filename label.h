@@ -9,15 +9,17 @@ class ILabel : public QLabel
     Q_OBJECT
 public:
     explicit ILabel(QWidget *parent = 0)
-        : margin(5), shrink_text_to_fit(false), QLabel(parent) {}
+        : margin(5), shrink_text_to_fit(false), compact_mode(false), QLabel(parent) {}
     explicit ILabel(const QString &text, QWidget *parent=0)
-        : margin(5), shrink_text_to_fit(false), QLabel(text, parent) {}
+        : margin(5), shrink_text_to_fit(false), compact_mode(false), QLabel(text, parent) {}
 
-    virtual void shrink_to_fit(bool shrink = true) = 0;
+    void    set_shrink_to_fit(bool shrink = true) { shrink_text_to_fit = shrink; }
+    void    set_compact_mode(bool compact = true) { compact_mode = compact; }
 
 protected:
     int     margin;
     bool    shrink_text_to_fit;
+    bool    compact_mode;
 };
 
 // https://stackoverflow.com/questions/9183050/vertical-qlabel-or-the-equivalent
@@ -27,8 +29,6 @@ class VLabel : public ILabel
 public:
     explicit VLabel(QWidget *parent=0);
     explicit VLabel(const QString &text, bool configure_for_left = true, QWidget *parent=0);
-
-    void    shrink_to_fit(bool shrink = true) Q_DECL_OVERRIDE { shrink_text_to_fit = shrink; }
 
     void    set_for_left(bool for_left = true) { configure_for_left = for_left; }
 
@@ -47,8 +47,6 @@ class HLabel : public ILabel
 public:
     explicit HLabel(QWidget *parent=0);
     explicit HLabel(const QString &text, QWidget *parent=0);
-
-    void    shrink_to_fit(bool shrink = true) Q_DECL_OVERRIDE { shrink_text_to_fit = shrink; }
 
     void    set_progress_detection(bool detect, const QString& re, bool on_top);
 

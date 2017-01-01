@@ -69,6 +69,8 @@ struct StoryInfo
 
                     // Chyron settings (reference only; not saved)
     int             margin;
+    bool            dashboard_compact_mode;
+    qreal           dashboard_compression;
 
                     // Producer settings (reference only; not saved)
     QFont           font;
@@ -95,7 +97,9 @@ struct StoryInfo
           train_age_percent(60),
           dashboard_use_age_effect(false),
           dashboard_age_percent(60),
-          margin(5) {}
+          margin(5),
+          dashboard_compact_mode(false),
+          dashboard_compression(.25) {}
     StoryInfo(const StoryInfo& source) { *this = source; }
 };
 

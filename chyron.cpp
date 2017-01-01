@@ -58,9 +58,6 @@ void Chyron::initialize_headline(HeadlinePointer headline)
 
     const QRect& lane_position = lane_manager->get_base_lane_position(this);
 
-//    if(!settings.headline_fixed_width && !settings.headline_fixed_height)
-//        headline->initialize(settings.always_visible);
-
     int x = 0;
     int y = 0;
     int width = 0;
@@ -75,6 +72,13 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     {
         width = (story_info->headlines_percent_width / 100.0) * r_desktop.width();
         height = (story_info->headlines_percent_height / 100.0) * r_desktop.height();
+    }
+
+    if(IS_DASHBOARD(story_info->entry_type) && story_info->dashboard_compact_mode)
+    {
+        headline->set_compact_mode(story_info->dashboard_compact_mode, width, height);
+        width *= story_info->dashboard_compression;
+        height *= story_info->dashboard_compression;
     }
 
     switch(story_info->entry_type)
@@ -184,9 +188,7 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     }
 
     headline->setGeometry(x, y, width, height);
-
-//    if(settings.headline_fixed_width || settings.headline_fixed_height)
-        headline->initialize(story_info->headlines_always_visible, story_info->headlines_fixed_type, width, height);
+    headline->initialize(story_info->headlines_always_visible, story_info->headlines_fixed_type, width, height);
 
     // update lane's boundaries (this updates the data in the
     // Lane Manager for lower-priority lanes to reference)
@@ -716,7 +718,13 @@ void Chyron::dashboard_expire_headlines()
 void Chyron::slot_file_headline(HeadlinePointer headline)
 {
     Q_ASSERT(headline->story.toString().compare(story_info->story.toString()) == 0);
-    incoming_headlines.enqueue(headline);
+
+    // for some reason, the Producer signal 'signal_new_headline' is
+    // coming in here twice on the same call to QMetaObject::activate(),
+    // so we have to guard against it...
+
+    if(!incoming_headlines.contains(headline))
+        incoming_headlines.enqueue(headline);
 }
 
 void Chyron::slot_headline_posted()

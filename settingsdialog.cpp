@@ -25,6 +25,8 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     connect(ui->button_EditStory, &QPushButton::clicked, this, &SettingsDialog::slot_edit_story);
     connect(ui->button_StartCoverage, &QPushButton::clicked, this, &SettingsDialog::slot_start_coverage);
     connect(ui->button_StopCoverage, &QPushButton::clicked, this, &SettingsDialog::slot_stop_coverage);
+    connect(ui->button_StartCoverageAll, &QPushButton::clicked, this, &SettingsDialog::slot_start_coverage_all);
+    connect(ui->button_StopCoverageAll, &QPushButton::clicked, this, &SettingsDialog::slot_stop_coverage_all);
     connect(ui->button_RemoveStory, &QPushButton::clicked, this, &SettingsDialog::slot_remove_story);
     connect(ui->tree_Styles, &QTreeWidget::itemSelectionChanged, this, &SettingsDialog::slot_apply_stylesheet);
 
@@ -49,6 +51,11 @@ void SettingsDialog::set_autostart(bool autostart)
 void SettingsDialog::set_continue_coverage(bool continue_coverage)
 {
     ui->check_ContinueCoverage->setChecked(continue_coverage);
+}
+
+void SettingsDialog::set_compact_mode(bool compact_mode)
+{
+    ui->check_CompactMode->setChecked(compact_mode);
 }
 
 void SettingsDialog::set_font(const QFont& font)
@@ -116,6 +123,11 @@ bool SettingsDialog::get_autostart()
 bool SettingsDialog::get_continue_coverage()
 {
     return ui->check_ContinueCoverage->isChecked();
+}
+
+bool SettingsDialog::get_compact_mode()
+{
+    return ui->check_CompactMode->isChecked();
 }
 
 QFont SettingsDialog::get_font()
@@ -253,7 +265,7 @@ void SettingsDialog::slot_apply_stylesheet()
 
 void SettingsDialog::slot_story_selection_changed()
 {
-    ui->group_Stories->setEnabled(ui->tree_Stories->topLevelItemCount() != 0);
+    ui->tab_Stories->setEnabled(ui->tree_Stories->topLevelItemCount() != 0);
     QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
     ui->button_RemoveStory->setEnabled(selections.length() != 0);
 
@@ -315,6 +327,56 @@ void SettingsDialog::slot_stop_coverage()
 
             slot_story_selection_changed();
         }
+    }
+}
+
+void SettingsDialog::slot_start_coverage_all()
+{
+    bool changed = false;
+
+    for(int i = 0;i < ui->tree_Stories->topLevelItemCount();++i)
+    {
+        QTreeWidgetItem* item = ui->tree_Stories->topLevelItem(i);
+        ProducerPointer producer = item->data(0, Qt::UserRole).value<ProducerPointer>();
+        if(!producer->is_covering_story())
+        {
+            if(producer->start_covering_story())
+                item->setIcon(0, QIcon(":/images/Covering.png"));
+            changed = true;
+        }
+    }
+
+    if(changed)
+    {
+        for(int i = 0;i < ui->tree_Stories->columnCount();++i)
+            ui->tree_Stories->resizeColumnToContents(i);
+
+        slot_story_selection_changed();
+    }
+}
+
+void SettingsDialog::slot_stop_coverage_all()
+{
+    bool changed = false;
+
+    for(int i = 0;i < ui->tree_Stories->topLevelItemCount();++i)
+    {
+        QTreeWidgetItem* item = ui->tree_Stories->topLevelItem(i);
+        ProducerPointer producer = item->data(0, Qt::UserRole).value<ProducerPointer>();
+        if(producer->is_covering_story())
+        {
+            if(producer->stop_covering_story())
+                item->setIcon(0, QIcon(":/images/NotCovering.png"));
+            changed = true;
+        }
+    }
+
+    if(changed)
+    {
+        for(int i = 0;i < ui->tree_Stories->columnCount();++i)
+            ui->tree_Stories->resizeColumnToContents(i);
+
+        slot_story_selection_changed();
     }
 }
 
