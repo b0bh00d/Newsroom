@@ -99,7 +99,7 @@ struct StoryInfo
           dashboard_age_percent(60),
           margin(5),
           dashboard_compact_mode(false),
-          dashboard_compression(.25) {}
+          dashboard_compression(25) {}
     StoryInfo(const StoryInfo& source) { *this = source; }
 };
 

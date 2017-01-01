@@ -22,14 +22,14 @@ public:
 
     void            set_autostart(bool autostart);
     void            set_continue_coverage(bool continue_coverage);
-    void            set_compact_mode(bool compact_mode);
+    void            set_compact_mode(bool compact_mode, int zoom_percent = 25);
     void            set_font(const QFont& font);
     void            set_styles(const HeadlineStyleList& style_list);
     void            set_stories(const QList<QString>& stories, const QList<ProducerPointer> producers);
 
     bool            get_autostart();
     bool            get_continue_coverage();
-    bool            get_compact_mode();
+    bool            get_compact_mode(int& zoom_percent);
     QFont           get_font();
     void            get_styles(HeadlineStyleList& style_list);
     QList<QString>  get_stories();
@@ -51,6 +51,7 @@ protected slots:
     void            slot_start_coverage_all();
     void            slot_stop_coverage_all();
     void            slot_remove_story();
+    void            slot_compact_mode_clicked(bool);
 
 private:
     Ui::SettingsDialog *ui;

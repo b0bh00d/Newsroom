@@ -119,6 +119,7 @@ private:    // data members
     bool                auto_start;
     bool                continue_coverage;
     bool                compact_mode;
+    int                 compact_compression;
     bool                edit_story_first_time;
 
     QSystemTrayIcon*    trayIcon;

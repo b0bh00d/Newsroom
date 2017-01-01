@@ -27,6 +27,8 @@ MainWindow* mainwindow;
 MainWindow::MainWindow(QWidget *parent)
     : auto_start(false),
       continue_coverage(false),
+      compact_mode(false),
+      compact_compression(25),
       edit_story_first_time(true),
       trayIconMenu(0),
       window_geometry_save_enabled(true),
@@ -481,6 +483,7 @@ void MainWindow::dropEvent(QDropEvent* event)
         story_info->story = story;
         story_info->identity.clear();
         story_info->dashboard_compact_mode = compact_mode;
+        story_info->dashboard_compression = compact_compression;
 
         if(story.isLocalFile())
             story_info->reporter_beat = "Local";
@@ -585,6 +588,7 @@ void MainWindow::save_application_settings()
     settings->set_item("auto_start", auto_start);
     settings->set_item("continue_coverage", continue_coverage);
     settings->set_item("dashboard.compact_mode", compact_mode);
+    settings->set_item("dashboard.compact_compression", compact_compression);
     settings->set_item("chyron.font", headline_font.toString());
 
     settings->begin_array("HeadlineStyles");
@@ -660,6 +664,7 @@ void MainWindow::load_application_settings()
     auto_start = settings->get_item("auto_start", false).toBool();
     continue_coverage = settings->get_item("continue_coverage", false).toBool();
     compact_mode = settings->get_item("dashboard.compact_mode", false).toBool();
+    compact_compression = settings->get_item("dashboard.compact_compression", 25).toInt();
     QFont f = ui->label->font();
     QString font_str = settings->get_item("chyron.font", f.toString()).toString();
     if(!font_str.isEmpty())
@@ -722,6 +727,7 @@ void MainWindow::load_application_settings()
             restore_story(settings, story_info);
 
             story_info->dashboard_compact_mode = compact_mode;
+            story_info->dashboard_compression = compact_compression;
 
             CoverageStart coverage_start = CoverageStart::None;
             if(continue_coverage)
@@ -806,7 +812,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     dlg.set_autostart(auto_start);
     dlg.set_continue_coverage(continue_coverage);
-    dlg.set_compact_mode(compact_mode);
+    dlg.set_compact_mode(compact_mode, compact_compression);
     dlg.set_font(headline_font);
     dlg.set_styles(*(headline_style_list.data()));
     dlg.set_stories(story_identities, producer_identities);
@@ -819,7 +825,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     {
         auto_start                       = dlg.get_autostart();
         continue_coverage                = dlg.get_continue_coverage();
-        compact_mode                     = dlg.get_compact_mode();
+        compact_mode                     = dlg.get_compact_mode(compact_compression);
         headline_font                    = dlg.get_font();
         QList<QString> remaining_stories = dlg.get_stories();
 
