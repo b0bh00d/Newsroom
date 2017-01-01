@@ -22,6 +22,7 @@ Headline::Headline(const QUrl& story,
                  Qt::Alignment alignment,
                  QWidget* parent)
     : stay_visible(false),
+      compact_mode(false),
       margin(5),
       ignore(false),
       story(story),
@@ -100,6 +101,13 @@ void Headline::set_progress(bool include, const QString& re, bool on_top)
     progress_on_top = on_top;
 }
 
+void Headline::set_compact_mode(bool compact, int original_width, int original_height)
+{
+    compact_mode = compact;
+    original_w = original_width;
+    original_h = original_height;
+}
+
 void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, int height)
 {
     this->stay_visible = stay_visible;
@@ -127,7 +135,8 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
         dynamic_cast<HLabel*>(label)->set_progress_detection(include_progress_bar, progress_text_re, progress_on_top);
     }
 
-    dynamic_cast<ILabel*>(label)->shrink_to_fit(fixed_text == FixedText::ScaleToFit);
+    dynamic_cast<ILabel*>(label)->set_shrink_to_fit(fixed_text == FixedText::ScaleToFit);
+    dynamic_cast<ILabel*>(label)->set_compact_mode(compact_mode);
 
     label->setAlignment(alignment);
     label->setContentsMargins(0, 0, 0, 0);

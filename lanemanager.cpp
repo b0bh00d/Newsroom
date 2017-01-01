@@ -89,6 +89,13 @@ void LaneManager::subscribe(Chyron* chyron)
                     break;
             }
 
+            if(story_info->dashboard_compact_mode)
+            {
+                dashboard_group->lane_header->set_compact_mode(true, w, h);
+                w *= story_info->dashboard_compression;
+                h *= story_info->dashboard_compression;
+            }
+
             dashboard_group->lane_header->setGeometry(QRect(0, 0, w, h));
             dashboard_group->lane_header->initialize(story_info->headlines_always_visible, story_info->headlines_fixed_type, w, h);
             dashboard_map[story_info->entry_type].push_back(dashboard_group);
@@ -707,6 +714,12 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
         {
             headline_w = (story_info->headlines_percent_width / 100.0) * r_desktop.width();
             headline_h = (story_info->headlines_percent_height / 100.0) * r_desktop.height();
+        }
+
+        if(story_info->dashboard_compact_mode)
+        {
+            headline_w *= story_info->dashboard_compression;
+            headline_h *= story_info->dashboard_compression;
         }
 
         int left = r_header_x;

@@ -87,7 +87,7 @@ private:    // typedefs and enums
     SPECIALIZE_MAP(QString, QByteArray, Window)             // "WindowMap"
     SPECIALIZE_QUEUE(HeadlinePointer, Headline)             // "HeadlineQueue"
     SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)           // "HeadlineMap"
-    SPECIALIZE_VECTOR(ChyronPointer, Story)                 // "StoryVector"
+    SPECIALIZE_LIST(StoryInfoPointer, Story)                // "StoryList"
     SPECIALIZE_MAP(QString, PluginsInfoVector, Reporters)   // "ReportersMap"
     SPECIALIZE_MAP(StoryInfoPointer, StaffInfo, Staff)      // "StaffMap"
     SPECIALIZE_SHAREDPTR(QPixmap, Pixmap)                   // "PixmapPointer"
@@ -118,6 +118,7 @@ private:    // data members
 
     bool                auto_start;
     bool                continue_coverage;
+    bool                compact_mode;
     bool                edit_story_first_time;
 
     QSystemTrayIcon*    trayIcon;
@@ -137,6 +138,7 @@ private:    // data members
 
     QMimeDatabase       mime_db;
 
+    StoryList           stories;
     StaffMap            staff;
     LaneManagerPointer  lane_manager;
 

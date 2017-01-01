@@ -38,6 +38,7 @@ public:
     void    set_font(const QFont& font)                         { this->font = font; }
     void    set_stylesheet(const QString& stylesheet)           { this->stylesheet = stylesheet; }
     void    set_progress(bool include_progress, const QString& re, bool on_top);
+    void    set_compact_mode(bool compact, int original_width, int original_height);
 
 signals:
     void    signal_mouse_enter();
@@ -67,6 +68,10 @@ protected:  // data members
     QString         headline;
     QFont           font;
     QString         stylesheet;
+
+    bool            compact_mode;
+    int             original_w;
+    int             original_h;
 
     bool                ignore;     // Chyron
     uint                viewed;     // Chyron

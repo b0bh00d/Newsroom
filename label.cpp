@@ -19,6 +19,9 @@ VLabel::VLabel(const QString &text, bool configure_for_left, QWidget *parent)
 
 void VLabel::paintEvent(QPaintEvent* /*event*/)
 {
+    if(compact_mode)
+        return;
+
     QPainter painter(this);
 
     QRect s = geometry();
@@ -175,7 +178,6 @@ void HLabel::changeEvent(QEvent* event)
 void HLabel::paintEvent(QPaintEvent* /*event*/)
 {
     QPainter painter(this);
-
     QRect s = geometry();
 
     QTextDocument td;
@@ -186,65 +188,68 @@ void HLabel::paintEvent(QPaintEvent* /*event*/)
         td.setHtml(text());
     else
         td.setPlainText(text());
-    QSizeF doc_size = td.documentLayout()->documentSize();
 
-    if(shrink_text_to_fit)
+    if(!compact_mode)
     {
-        QFont f = td.defaultFont();
-        for(;;)
+        QSizeF doc_size = td.documentLayout()->documentSize();
+
+        if(shrink_text_to_fit)
         {
-            doc_size = td.documentLayout()->documentSize();
-            if(doc_size.width() < s.width())
-                break;
-
-            if((f.pointSizeF() - .1) < 6.0f)
+            QFont f = td.defaultFont();
+            for(;;)
             {
-                // let it just clip the remaining text
-                //f.setPointSizeF(original_point_size);
-                //td.setDefaultFont(f);
-                break;
+                doc_size = td.documentLayout()->documentSize();
+                if(doc_size.width() < s.width())
+                    break;
+
+                if((f.pointSizeF() - .1) < 6.0f)
+                {
+                    // let it just clip the remaining text
+                    //f.setPointSizeF(original_point_size);
+                    //td.setDefaultFont(f);
+                    break;
+                }
+
+                f.setPointSizeF(f.pointSizeF() - .1);
+                td.setDefaultFont(f);
             }
-
-            f.setPointSizeF(f.pointSizeF() - .1);
-            td.setDefaultFont(f);
         }
-    }
 
-    int y = 0;
-    int x = 0;
+        int y = 0;
+        int x = 0;
 
-    if(alignment() & Qt::AlignVCenter)
-    {
-        y = (s.height() - doc_size.height()) / 2;
-        y = (y < 0) ? 0 : y;
-    }
-    else if(alignment() & Qt::AlignBottom)
-    {
-        y = s.height() - doc_size.height();
-        y = (y < 0) ? 0 : y;
-    }
+        if(alignment() & Qt::AlignVCenter)
+        {
+            y = (s.height() - doc_size.height()) / 2;
+            y = (y < 0) ? 0 : y;
+        }
+        else if(alignment() & Qt::AlignBottom)
+        {
+            y = s.height() - doc_size.height();
+            y = (y < 0) ? 0 : y;
+        }
 
-    if(alignment() & Qt::AlignHCenter)
-    {
-        x = (s.width() - doc_size.width()) / 2;
-        x = (x < 0) ? 0 : x;
-    }
-    else if(alignment() & Qt::AlignRight)
-    {
-        x = s.width() - doc_size.width();
-        x = (x < 0) ? 0 : x;
-    }
+        if(alignment() & Qt::AlignHCenter)
+        {
+            x = (s.width() - doc_size.width()) / 2;
+            x = (x < 0) ? 0 : x;
+        }
+        else if(alignment() & Qt::AlignRight)
+        {
+            x = s.width() - doc_size.width();
+            x = (x < 0) ? 0 : x;
+        }
 
-    painter.save();
-    painter.translate(x, y);
-//    if(!shrink_text_to_fit)
+        painter.save();
+        painter.translate(x, y);
         painter.setClipRect(margin, margin, s.width() - margin * 2, s.height() - margin * 2);
 
-    QAbstractTextDocumentLayout::PaintContext ctx;
-    ctx.palette.setColor(QPalette::Text, painter.pen().color());
-    td.documentLayout()->draw(&painter, ctx);
+        QAbstractTextDocumentLayout::PaintContext ctx;
+        ctx.palette.setColor(QPalette::Text, painter.pen().color());
+        td.documentLayout()->draw(&painter, ctx);
 
-    painter.restore();
+        painter.restore();
+    }
 
     if(detect_progress)
     {
@@ -260,13 +265,24 @@ void HLabel::paintEvent(QPaintEvent* /*event*/)
             float percent = re.cap(1).toFloat() / 100.0f;
 
             // draw a progress bar along the bottom
-            progress_h = 5;
-            progress_x = margin;
-            progress_y = s.height() - progress_h - margin;
-            progress_w = s.width() - margin * 2;
+            if(compact_mode)
+            {
+                // progress bar consumes the whole window
+                progress_h = s.height() - margin * 2;
+                progress_x = margin;
+                progress_y = margin;
+                progress_w = s.width() - margin * 2;
+            }
+            else
+            {
+                progress_h = 5;
+                progress_x = margin;
+                progress_y = s.height() - progress_h - margin;
+                progress_w = s.width() - margin * 2;
 
-            if(progress_on_top)
-                progress_y = 5;
+                if(progress_on_top)
+                    progress_y = 5;
+            }
 
             painter.setPen(QPen(progress_color));
             painter.setBrush(QBrush(progress_color));

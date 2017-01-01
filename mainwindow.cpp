@@ -425,6 +425,9 @@ bool MainWindow::cover_story(StoryInfoPointer story_info, CoverageStart coverage
     else if(coverage_start == CoverageStart::None)
         result = true;
 
+    if(result)
+        stories.append(story_info);
+
     return result;
 }
 
@@ -477,6 +480,7 @@ void MainWindow::dropEvent(QDropEvent* event)
         restore_story_defaults(story_info);
         story_info->story = story;
         story_info->identity.clear();
+        story_info->dashboard_compact_mode = compact_mode;
 
         if(story.isLocalFile())
             story_info->reporter_beat = "Local";
@@ -580,6 +584,7 @@ void MainWindow::save_application_settings()
 
     settings->set_item("auto_start", auto_start);
     settings->set_item("continue_coverage", continue_coverage);
+    settings->set_item("dashboard.compact_mode", compact_mode);
     settings->set_item("chyron.font", headline_font.toString());
 
     settings->begin_array("HeadlineStyles");
@@ -617,16 +622,16 @@ void MainWindow::save_application_settings()
         settings->begin_array("Stories");
 
         index = 0;
-        QList<StoryInfoPointer> keys = staff.keys();
-        foreach(StoryInfoPointer key, keys)
+        foreach(StoryInfoPointer key, stories)
         {
             settings->set_array_index(index++);
-
             save_story(settings, key);
         }
 
         settings->end_array();
     }
+    else
+        settings->clear_section("Stories");
 
     settings->end_section();
 
@@ -640,6 +645,8 @@ void MainWindow::load_application_settings()
     window_data.clear();
     if(lane_manager)
         lane_manager.clear();
+    stories.clear();
+    staff.clear();
 
     headline_style_list->clear();
     // add a Default stylesheet entry on first runs
@@ -652,6 +659,7 @@ void MainWindow::load_application_settings()
 
     auto_start = settings->get_item("auto_start", false).toBool();
     continue_coverage = settings->get_item("continue_coverage", false).toBool();
+    compact_mode = settings->get_item("dashboard.compact_mode", false).toBool();
     QFont f = ui->label->font();
     QString font_str = settings->get_item("chyron.font", f.toString()).toString();
     if(!font_str.isEmpty())
@@ -712,6 +720,8 @@ void MainWindow::load_application_settings()
 
             StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
             restore_story(settings, story_info);
+
+            story_info->dashboard_compact_mode = compact_mode;
 
             CoverageStart coverage_start = CoverageStart::None;
             if(continue_coverage)
@@ -788,7 +798,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     QList<QString> story_identities;
     QList<ProducerPointer> producer_identities;
-    foreach(StoryInfoPointer story_info, staff.keys())
+    foreach(StoryInfoPointer story_info, stories)
     {
         story_identities.append(story_info->identity);
         producer_identities.append(staff[story_info].producer);
@@ -796,6 +806,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     dlg.set_autostart(auto_start);
     dlg.set_continue_coverage(continue_coverage);
+    dlg.set_compact_mode(compact_mode);
     dlg.set_font(headline_font);
     dlg.set_styles(*(headline_style_list.data()));
     dlg.set_stories(story_identities, producer_identities);
@@ -808,12 +819,13 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     {
         auto_start                       = dlg.get_autostart();
         continue_coverage                = dlg.get_continue_coverage();
+        compact_mode                     = dlg.get_compact_mode();
         headline_font                    = dlg.get_font();
         QList<QString> remaining_stories = dlg.get_stories();
 
         dlg.get_styles(*(headline_style_list.data()));
 
-        if(remaining_stories.count() != staff.count())
+        if(remaining_stories.count() != stories.count())
         {
             // stories have been deleted
 
@@ -822,7 +834,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
             {
                 if(!remaining_stories.contains(story_id))
                 {
-                    foreach(StoryInfoPointer story_info, staff.keys())
+                    foreach(StoryInfoPointer story_info, stories)
                     {
                         if(!story_info->identity.compare(story_id))
                            deleted_stories.append(story_info);
@@ -831,7 +843,10 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
             }
 
             foreach(StoryInfoPointer story_info, deleted_stories)
+            {
+                stories.removeAll(story_info);
                 staff.remove(story_info);
+            }
         }
 
         save_application_settings();
@@ -844,8 +859,7 @@ void MainWindow::slot_edit_story(const QString& story_id)
 {
     StoryInfoPointer story_info;
 
-    QList<StoryInfoPointer> keys = staff.keys();
-    foreach(StoryInfoPointer key, keys)
+    foreach(StoryInfoPointer key, stories)
     {
         if(!key->identity.compare(story_id))
         {
