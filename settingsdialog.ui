@@ -62,10 +62,10 @@
           <item>
            <widget class="QCheckBox" name="check_CompactMode">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dashboard types will display thumbnail views of each member Chyron headline, only displaying their styleSheet unless you mouse-over them. This mode provides a &amp;quot;1000-foot view&amp;quot; of monitored activities, saving on screen space.&lt;/p&gt;&lt;p&gt;Changes made to this setting will activate the next time you start Newsroom.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dashboard types will display thumbnail views of each member Chyron headline, only displaying their styleSheet unless you mouse-over them. This mode provides a &amp;quot;1000-foot view&amp;quot; of monitored activities, saving on screen space.&lt;/p&gt;&lt;p&gt;Depending upon when they are made, changes to this setting will activate the next time you start Newsroom.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
-             <string>Enable compact mode (requires restart)</string>
+             <string>Enable compact mode (may require restart)</string>
             </property>
            </widget>
           </item>
@@ -178,6 +178,9 @@
            <layout class="QHBoxLayout" name="horizontalLayout_2">
             <item>
              <widget class="QTreeWidget" name="tree_Styles">
+              <property name="autoScroll">
+               <bool>false</bool>
+              </property>
               <property name="rootIsDecorated">
                <bool>false</bool>
               </property>
@@ -208,16 +211,23 @@
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="button_DeleteStyle">
+               <widget class="QPushButton" name="button_EditStyle">
                 <property name="text">
-                 <string>Delete Style</string>
+                 <string>Edit Style</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="button_EditStyle">
+               <widget class="Line" name="line_4">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="button_DeleteStyle">
                 <property name="text">
-                 <string>Edit Style</string>
+                 <string>Delete Style</string>
                 </property>
                </widget>
               </item>
@@ -252,6 +262,9 @@
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
           <widget class="QTreeWidget" name="tree_Stories">
+           <property name="autoScroll">
+            <bool>false</bool>
+           </property>
            <property name="rootIsDecorated">
             <bool>false</bool>
            </property>

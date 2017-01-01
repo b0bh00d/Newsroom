@@ -3,8 +3,10 @@
 #include <QWidget>
 
 #include <QtGui/QFont>
+#include <QtGui/QMoveEvent>
 
 #include <QtCore/QUrl>
+#include <QtCore/QTimer>
 
 #include "types.h"
 #include "specialize.h"
@@ -34,6 +36,7 @@ public:
         headline = source.headline;
         entry_type = source.entry_type;
     }
+    ~Headline();
 
     void    set_font(const QFont& font)                         { this->font = font; }
     void    set_stylesheet(const QString& stylesheet)           { this->stylesheet = stylesheet; }
@@ -44,9 +47,15 @@ signals:
     void    signal_mouse_enter();
     void    signal_mouse_exit();
 
+protected slots:
+    void    slot_zoom_in();
+    void    slot_turn_off_compact_mode();
+    void    slot_turn_on_compact_mode();
+
 protected:  // methods
     bool    nativeEvent(const QByteArray &eventType, void *message, long *result);
     void    enterEvent(QEvent *event);
+    void    moveEvent(QMoveEvent *event);
     void    leaveEvent(QEvent *event);
 
     /*!
@@ -61,8 +70,13 @@ protected:  // methods
      */
     void    initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron
 
+    void    zoom_out();
+
 protected:  // data members
     bool            stay_visible;
+    bool            was_stay_visible;
+    bool            mouse_in_widget;
+    bool            is_zoomed;
     int             margin;
     QUrl            story;
     QString         headline;
@@ -88,6 +102,9 @@ protected:  // data members
     bool            include_progress_bar;
     QString         progress_text_re;
     bool            progress_on_top;
+
+    QTimer*         hover_timer;
+    QRect           georect;
 
     friend class Chyron;        // the Chyron manages the headlines on the screen
     friend class LaneManager;   // needs to initialize() it's Dashboard headline banner

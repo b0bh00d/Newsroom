@@ -268,17 +268,17 @@ void HLabel::paintEvent(QPaintEvent* /*event*/)
             if(compact_mode)
             {
                 // progress bar consumes the whole window
-                progress_h = s.height() - margin * 2;
+                progress_h = s.height() - margin * 2 - 1;
                 progress_x = margin;
                 progress_y = margin;
-                progress_w = s.width() - margin * 2;
+                progress_w = s.width() - margin * 2 - 1;
             }
             else
             {
                 progress_h = 5;
                 progress_x = margin;
                 progress_y = s.height() - progress_h - margin;
-                progress_w = s.width() - margin * 2;
+                progress_w = s.width() - margin * 2 - 1;
 
                 if(progress_on_top)
                     progress_y = 5;

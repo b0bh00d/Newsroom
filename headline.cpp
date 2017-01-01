@@ -12,6 +12,7 @@
 #include <QtGui/QTextDocument>
 
 #include <QtCore/QUrl>
+#include <QtCore/QPropertyAnimation>
 
 #include "headline.h"
 #include "label.h"
@@ -22,6 +23,8 @@ Headline::Headline(const QUrl& story,
                  Qt::Alignment alignment,
                  QWidget* parent)
     : stay_visible(false),
+      mouse_in_widget(false),
+      is_zoomed(false),
       compact_mode(false),
       margin(5),
       ignore(false),
@@ -33,8 +36,22 @@ Headline::Headline(const QUrl& story,
       alignment(alignment),
       include_progress_bar(false),
       progress_on_top(false),
+      hover_timer(nullptr),
       QWidget(parent)
 {
+    hover_timer = new QTimer(this);
+    if(hover_timer)
+        connect(hover_timer, &QTimer::timeout, this, &Headline::slot_zoom_in);
+}
+
+Headline::~Headline()
+{
+    if(hover_timer)
+    {
+        hover_timer->stop();
+        hover_timer->deleteLater();
+        hover_timer = nullptr;
+    }
 }
 
 bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *result)
@@ -84,13 +101,34 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
 
 void Headline::enterEvent(QEvent *event)
 {
-    emit signal_mouse_enter();
+    mouse_in_widget = true;
+    if(!compact_mode)
+        emit signal_mouse_enter();
+    else
+    {
+        hover_timer->setInterval(1000);
+        hover_timer->start();
+    }
     event->accept();
+}
+
+void Headline::moveEvent(QMoveEvent* /*event*/)
+{
+    if(!compact_mode)
+        return;
 }
 
 void Headline::leaveEvent(QEvent *event)
 {
-    emit signal_mouse_exit();
+    mouse_in_widget = false;
+    if(!compact_mode)
+        emit signal_mouse_exit();
+    else
+    {
+        if(hover_timer)
+            hover_timer->stop();
+        zoom_out();
+    }
     event->accept();
 }
 
@@ -149,4 +187,63 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
     QRect r = geometry();
     setGeometry(r.x(), r.y(), width, height);
     label->setGeometry(0, 0, width, height);
+}
+
+void Headline::zoom_out()
+{
+    if(mouse_in_widget || !is_zoomed)
+        return;
+
+    dynamic_cast<ILabel*>(label)->set_compact_mode(compact_mode);
+
+    QPropertyAnimation* animation = new QPropertyAnimation(label, "geometry", this);
+    animation->setDuration(200);
+    animation->setStartValue(QRect(0, 0, original_w, original_h));
+    animation->setEndValue(QRect(0, 0, georect.width(), georect.height()));
+    animation->setEasingCurve(QEasingCurve::InCubic);
+    connect(animation, &QPropertyAnimation::finished, this, &Headline::slot_turn_on_compact_mode);
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
+
+    is_zoomed = false;
+}
+
+void Headline::slot_turn_on_compact_mode()
+{
+    stay_visible = was_stay_visible;
+    if(!stay_visible)
+        lower();
+
+    setGeometry(QRect(georect.x(), georect.y(), georect.width(), georect.height()));
+    label->repaint();
+}
+
+void Headline::slot_zoom_in()
+{
+    hover_timer->stop();
+
+    if(!mouse_in_widget || is_zoomed)
+        return;
+
+    georect = geometry();
+    setGeometry(QRect(georect.x(), georect.y(), original_w, original_h));
+
+    QPropertyAnimation* animation = new QPropertyAnimation(label, "geometry");
+    animation->setDuration(200);
+    animation->setStartValue(QRect(0, 0, georect.width(), georect.height()));
+    animation->setEndValue(QRect(0, 0, original_w, original_h));
+    animation->setEasingCurve(QEasingCurve::InCubic);
+    connect(animation, &QPropertyAnimation::finished, this, &Headline::slot_turn_off_compact_mode);
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
+
+    is_zoomed = true;
+}
+
+void Headline::slot_turn_off_compact_mode()
+{
+    was_stay_visible = stay_visible;
+    stay_visible = true;
+    raise();
+
+    dynamic_cast<ILabel*>(label)->set_compact_mode(false);
+    label->repaint();
 }
