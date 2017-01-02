@@ -32,10 +32,12 @@ UI_DIR = $$INTERMEDIATE_NAME/ui
 
 SOURCES += \
     teamcity9.cpp \
-    teamcity9factory.cpp
+    teamcity9factory.cpp \
+    teamcity9poller.cpp
 
 HEADERS += \
         ../../interfaces/ireporter.h \
     teamcity9.h \
     teamcity9_global.h \
-    teamcity9factory.h
+    teamcity9factory.h \
+    teamcity9poller.h
