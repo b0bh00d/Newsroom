@@ -185,6 +185,9 @@
              <height>16777215</height>
             </size>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
            <property name="placeholderText">
             <string>5</string>
            </property>
@@ -423,6 +426,9 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
              </widget>
             </item>
             <item>
@@ -445,6 +451,9 @@
                 <width>40</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
@@ -540,6 +549,9 @@
                    </property>
                    <property name="toolTip">
                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You may wish to limit the amount of content each Headline displays (i.e., the number of lines of text). If enabled, you may enter the maximum number of lines that each will display.&lt;/p&gt;&lt;p&gt;Additional Headlines may be required to fully display all text submitted by a Reporter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                    </property>
                   </widget>
                  </item>
@@ -891,6 +903,9 @@
              <height>16777215</height>
             </size>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
            <property name="placeholderText">
             <string>500</string>
            </property>
@@ -940,6 +955,9 @@
              <width>30</width>
              <height>16777215</height>
             </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
            </property>
            <property name="placeholderText">
             <string>500</string>
@@ -1002,6 +1020,12 @@
                 <width>30</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+              <property name="placeholderText">
+               <string>60</string>
               </property>
              </widget>
             </item>
@@ -1115,6 +1139,12 @@
                    <width>30</width>
                    <height>16777215</height>
                   </size>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                 </property>
+                 <property name="placeholderText">
+                  <string>60</string>
                  </property>
                 </widget>
                </item>
