@@ -12,6 +12,12 @@ Producer::Producer(IReporterPointer reporter,
 {
 }
 
+Producer::~Producer()
+{
+    if(covering_story)
+        stop_covering_story();
+}
+
 bool Producer::start_covering_story()
 {
     if(reporter_plugin.isNull())
