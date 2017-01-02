@@ -7,10 +7,10 @@
 class TEXTFILE_SHARED_EXPORT TextFileFactory : public IReporterFactory
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IPluginFactory" FILE "")
+    Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IReporterFactory" FILE "")
     Q_INTERFACES(IReporterFactory)
 
 public:
-    // IPluginFactory
+    // IReporterFactory
     IReporterPointer newInstance() Q_DECL_OVERRIDE;
 };
