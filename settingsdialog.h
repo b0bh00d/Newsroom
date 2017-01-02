@@ -51,6 +51,7 @@ protected slots:
     void            slot_start_coverage_all();
     void            slot_stop_coverage_all();
     void            slot_remove_story();
+    void            slot_remove_story_all();
     void            slot_compact_mode_clicked(bool);
 
 private:

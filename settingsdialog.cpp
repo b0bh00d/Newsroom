@@ -28,6 +28,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     connect(ui->button_StartCoverageAll, &QPushButton::clicked, this, &SettingsDialog::slot_start_coverage_all);
     connect(ui->button_StopCoverageAll, &QPushButton::clicked, this, &SettingsDialog::slot_stop_coverage_all);
     connect(ui->button_RemoveStory, &QPushButton::clicked, this, &SettingsDialog::slot_remove_story);
+    connect(ui->button_RemoveStoryAll, &QPushButton::clicked, this, &SettingsDialog::slot_remove_story_all);
     connect(ui->tree_Styles, &QTreeWidget::itemSelectionChanged, this, &SettingsDialog::slot_apply_stylesheet);
 
     ui->button_EditStory->setEnabled(false);
@@ -299,6 +300,8 @@ void SettingsDialog::slot_story_selection_changed()
 void SettingsDialog::slot_edit_story()
 {
     QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
+    // BUG: The story ID might change here, leaving the old
+    // entry in the tree
     emit signal_edit_story(selections[0]->text(1));
 }
 
@@ -402,6 +405,12 @@ void SettingsDialog::slot_remove_story()
     QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
     foreach(QTreeWidgetItem* item, selections)
         delete ui->tree_Stories->takeTopLevelItem(ui->tree_Stories->indexOfTopLevelItem(item));
+}
+
+void SettingsDialog::slot_remove_story_all()
+{
+    while(ui->tree_Stories->topLevelItemCount())
+        delete ui->tree_Stories->takeTopLevelItem(0);
 }
 
 void SettingsDialog::slot_compact_mode_clicked(bool /*checked*/)

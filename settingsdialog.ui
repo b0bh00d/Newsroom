@@ -424,6 +424,13 @@
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="button_RemoveStoryAll">
+             <property name="text">
+              <string>Remove All</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
