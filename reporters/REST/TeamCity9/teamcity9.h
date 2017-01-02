@@ -1,8 +1,5 @@
 #pragma once
 
-#include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QNetworkAccessManager>
-
 #include <QtCore/QTimer>
 #include <QtCore/QDateTime>
 
@@ -16,9 +13,10 @@
 #include "../../../specialize.h"
 
 #include "teamcity9_global.h"
+#include "teamcity9poller.h"
 
 /// @class TeamCity9
-/// @brief A Reporter for Newsroom that covers Team City buids
+/// @brief A Reporter for Newsroom that covers Team City builds
 ///
 /// TeamCity9 is a Reporter plug-in for Newsroom that knows how to read
 /// and report on one or more builds using Team City's REST API.
@@ -32,6 +30,13 @@ class TEAMCITY9SHARED_EXPORT TeamCity9 : public IReporter
 public:
     TeamCity9(QObject* parent = nullptr);
 
+    // these methods are directly invoked by TeamCity9Poller since we cannot
+    // create dynamic run-time signals and slots in a canonical fashion
+    void    build_started(const QJsonObject& status);
+    void    build_progress(const QJsonObject& status);
+    void    build_final(const QJsonObject& status);
+    void    error(const QString& message);
+
     // IReporter
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
     QStringList DisplayName() const Q_DECL_OVERRIDE;
@@ -44,28 +49,7 @@ public:
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
 
-private slots:
-    void    slot_get_read();
-    void    slot_get_complete();
-    void    slot_get_failed(QNetworkReply::NetworkError code);
-    void    slot_poll();
-
-private:    // typedefs and enums
-    enum class States {
-        None,
-        GettingProjects,
-        GettingBuilders,
-        GettingStatus,
-        GettingFinal,
-    };
-
 private:    // classes
-    struct ReplyData
-    {
-        States      state;
-        QByteArray  buffer;
-    };
-
     struct ETAData
     {
         int         initial_completed;
@@ -77,17 +61,11 @@ private:    // classes
     };
 
 private:    // typedefs and enums
-    SPECIALIZE_MAP(QString, QJsonObject, JsonObject)    // "JsonObjectMap"
-    SPECIALIZE_MAP(int, QJsonObject, Status)            // "StatusMap"
-    SPECIALIZE_MAP(QNetworkReply*, ReplyData, Reply)    // "ReplyMap"
     SPECIALIZE_MAP(int, ETAData, ETA)                   // "ETAMap"
     SPECIALIZE_MAP(QString, QString, Report)            // "ReportMap"
+    SPECIALIZE_MAP(int, QJsonObject, Status)            // "StatusMap"
 
 private:    // methods
-    void            process_reply(QNetworkReply *reply);
-    void            process_status(const QJsonObject& status);
-    void            process_final(QNetworkReply *reply);
-    void            create_request(const QString& url_str, States state);
     void            populate_report_map(ReportMap& report_map,
                                         const QJsonObject& build,
                                         const QString& builder_id = QString(),
@@ -100,18 +78,27 @@ private:    // data members
     QString     project_name;
     QString     builder_name;
 
-    QNetworkAccessManager*  QNAM;
-    ReplyMap    active_replies;
-
-    JsonObjectMap json_projects, json_builders;
-    StatusMap   build_status;
-
-    QTimer*     poll_timer;
     int         poll_timeout;
 
+    StatusMap   build_status;
     ETAMap      eta;
 
-    bool        first_update;   // first update should report something if there are no active builds
-
     QStringList report_template;
+
+    PollerPointer poller;
+
+private:    // class-static data
+    struct PollerData
+    {
+        int             reference_count;
+        PollerPointer   poller;
+
+        PollerData() : reference_count(0) {}
+    };
+
+    SPECIALIZE_MAP(QUrl, PollerData, Poller)            // "PollerMap"
+
+    static  PollerMap       poller_map;
+    static  PollerPointer   acquire_poller(const QUrl& target, const QString &username, const QString &password, int timeout);
+    static  void            release_poller(const QUrl& target);
 };
