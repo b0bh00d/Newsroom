@@ -30,6 +30,7 @@ public:
                       StoryInfoPointer story_info,
                       StyleListPointer style_list,
                       QObject *parent = 0);
+    ~Producer();
 
     QUrl    get_story()             const { return story_info->story; }
     bool    is_covering_story()     const { return covering_story; }

@@ -216,28 +216,32 @@ void AddStoryDialog::save_settings()
     story_info->headlines_fixed_type = ui->radio_HeadlinesSizeTextScale->isChecked() ? FixedText::ScaleToFit : FixedText::ClipToFit;
 
     story_info->include_progress_bar = ui->check_ProgressText->isChecked();
-    if(!ui->edit_ProgressText->text().isEmpty())
-        story_info->progress_text_re = ui->edit_ProgressText->text();
-    else
+    if(ui->edit_ProgressText->text().isEmpty())
         story_info->progress_text_re = ui->edit_ProgressText->placeholderText();
+    else
+        story_info->progress_text_re = ui->edit_ProgressText->text();
     story_info->progress_on_top = ui->radio_ProgressOnTop->isChecked();
 
     story_info->entry_type = static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());
     story_info->exit_type = static_cast<AnimExitType>(ui->combo_ExitType->currentIndex());
-    if(!ui->edit_AnimMotionMilliseconds->text().isEmpty())
-        story_info->anim_motion_duration = ui->edit_AnimMotionMilliseconds->text().toInt();
-    else
+    if(ui->edit_AnimMotionMilliseconds->text().isEmpty())
         story_info->anim_motion_duration = ui->edit_AnimMotionMilliseconds->placeholderText().toInt();
-    if(!ui->edit_FadeTargetMilliseconds->text().isEmpty())
-        story_info->fade_target_duration = ui->edit_FadeTargetMilliseconds->text().toInt();
     else
+        story_info->anim_motion_duration = ui->edit_AnimMotionMilliseconds->text().toInt();
+    if(ui->edit_FadeTargetMilliseconds->text().isEmpty())
         story_info->fade_target_duration = ui->edit_FadeTargetMilliseconds->placeholderText().toInt();
+    else
+        story_info->fade_target_duration = ui->edit_FadeTargetMilliseconds->text().toInt();
     story_info->train_use_age_effect = ui->group_TrainAgeEffects->isChecked();
     story_info->train_age_effect = static_cast<AgeEffects>(ui->radio_TrainReduceOpacityFixed->isChecked() ? 1 : 2);
-    if(!ui->edit_TrainReduceOpacity->text().isEmpty())
+    if(ui->edit_TrainReduceOpacity->text().isEmpty())
+        story_info->train_age_percent = ui->edit_TrainReduceOpacity->placeholderText().toInt();
+    else
         story_info->train_age_percent = ui->edit_TrainReduceOpacity->text().toInt();
     story_info->dashboard_use_age_effect = ui->check_DashboardReduceOpacityFixed->isChecked();
-    if(!ui->edit_DashboardReduceOpacity->text().isEmpty())
+    if(ui->edit_DashboardReduceOpacity->text().isEmpty())
+        story_info->dashboard_age_percent = ui->edit_DashboardReduceOpacity->placeholderText().toInt();
+    else
         story_info->dashboard_age_percent = ui->edit_DashboardReduceOpacity->text().toInt();
     QLineEdit* line_edit = ui->combo_DashboardGroupId->lineEdit();
     if(line_edit->text().isEmpty())
