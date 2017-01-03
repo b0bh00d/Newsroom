@@ -71,7 +71,7 @@
      <item>
       <widget class="QLineEdit" name="edit_Angle">
        <property name="toolTip">
-        <string>This is a unique Angle of the Source.  This value should uniquely identify this Story from other Stories that might use the same Source.</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is a unique Angle of the Story's Source.  This value should uniquely identify this Story from any other Stories within Newsroom that might use the same Source.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Once the Story is created, this value will never be modified, even if you subsequently alter the various settings from which it may have been constructed.  To generate a new Angle, you must create a new Story.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
       </widget>
      </item>
