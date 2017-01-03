@@ -300,8 +300,6 @@ void SettingsDialog::slot_story_selection_changed()
 void SettingsDialog::slot_edit_story()
 {
     QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
-    // BUG: The story ID might change here, leaving the old
-    // entry in the tree
     emit signal_edit_story(selections[0]->text(1));
 }
 
