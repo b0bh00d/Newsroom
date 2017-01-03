@@ -593,7 +593,10 @@ Settings::Item* SettingsXML::read_item(QDomNode *node, Settings::Item* parent)
                 QDomNode sub_child_node = sub_children.at(j);
                 QDomCDATASection cdata_node = sub_child_node.toCDATASection();
                 if(!cdata_node.isNull())
+                {
                     sl << cdata_node.data();
+                    sl.back().replace("\r\n", "\n");
+                }
             }
         }
 
@@ -628,6 +631,7 @@ Settings::Item* SettingsXML::read_item(QDomNode *node, Settings::Item* parent)
                 }
                 else
                 {
+                    data.replace("\r\n", "\n");
                     QVariant v(data);
                     item->setData(0, Qt::UserRole, v);
                 }
