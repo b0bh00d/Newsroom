@@ -70,6 +70,7 @@ bool TeamCity9::SetRequirements(const QStringList& parameters)
     if(parameters.count() > 5 && !parameters[5].isEmpty())
     {
         QString report_template_str = parameters[5];
+        report_template_str.remove('\r');
         report_template_str.remove('\n');
         report_template = report_template_str.split("<br>");
     }
