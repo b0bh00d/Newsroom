@@ -120,12 +120,6 @@ void Headline::enterEvent(QEvent *event)
     event->accept();
 }
 
-void Headline::moveEvent(QMoveEvent* /*event*/)
-{
-    if(!compact_mode)
-        return;
-}
-
 void Headline::leaveEvent(QEvent *event)
 {
     mouse_in_widget = false;
