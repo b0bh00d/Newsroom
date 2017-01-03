@@ -106,6 +106,17 @@ protected:  // data members
     QTimer*         hover_timer;
     QRect           georect;
 
+    // in the '!stay_visible' case, because of the way the nativeEvent()
+    // function works, a new window will end up displaying BENEATH the
+    // topmost window.  this can cause visual artifacting in Dashboard
+    // types if opacity is not 100% due to Headling stacking.  the Chyron
+    // will set this 'bottom_window' value directly to be the topmost
+    // window if it is configured for Dashboard, so the nativeEvent()
+    // function will use it to place the new window precisely at the top
+    // of the Dashboard Z-order.
+
+    QWidget*        bottom_window;
+
     friend class Chyron;        // the Chyron manages the headlines on the screen
     friend class LaneManager;   // needs to initialize() it's Dashboard headline banner
 };
