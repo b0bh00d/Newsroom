@@ -37,6 +37,7 @@ Headline::Headline(const QUrl& story,
       include_progress_bar(false),
       progress_on_top(false),
       hover_timer(nullptr),
+      bottom_window(nullptr),
       QWidget(parent)
 {
     hover_timer = new QTimer(this);
@@ -79,11 +80,18 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
                 HWND w = GetTopWindow(NULL);
                 while(w)
                 {
-                    GetWindowRect(w, &r);
-                    if((r.right - r.left) == desktop_width && (r.bottom - r.top) == desktop_height)
+                    if(!bottom_window)
+                    {
+                        GetWindowRect(w, &r);
+                        if((r.right - r.left) == desktop_width && (r.bottom - r.top) == desktop_height)
+                            break;
+                    }
+                    else if((HWND)bottom_window->winId() == w)
                         break;
+
                     if(IsWindowVisible(w))
                         bottom = w;
+
                     w = GetNextWindow(w, GW_HWNDNEXT);
                 }
 

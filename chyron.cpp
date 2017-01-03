@@ -189,6 +189,8 @@ void Chyron::initialize_headline(HeadlinePointer headline)
 
     headline->setGeometry(x, y, width, height);
     headline->initialize(story_info->headlines_always_visible, story_info->headlines_fixed_type, width, height);
+    if(IS_DASHBOARD(story_info->entry_type) && headline_list.count())
+        headline->bottom_window = headline_list.back().data();
 
     // update lane's boundaries (this updates the data in the
     // Lane Manager for lower-priority lanes to reference)
@@ -713,6 +715,9 @@ void Chyron::dashboard_expire_headlines()
         expired->hide();
         expired.clear();
     }
+
+    if(headline_list.count() == 1)
+        headline_list[0]->bottom_window = nullptr;
 }
 
 void Chyron::slot_file_headline(HeadlinePointer headline)
