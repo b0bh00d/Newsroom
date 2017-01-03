@@ -57,6 +57,12 @@ void TeamCity9Poller::add_filter(const QString& project_name, const QString& bui
     if(!interested_parties.contains(key))
         interested_parties[key] = InterestedList();
     interested_parties[key].append(me);
+
+    if(poll_timer->isActive())
+    {
+        poll_timer->start();    // reset it
+        slot_poll();            // get an update now
+    }
 }
 
 void TeamCity9Poller::remove_filter(const QString& project_name, const QString& builder_name, QObject* me)
@@ -500,6 +506,8 @@ void TeamCity9Poller::slot_request_pump()
 void TeamCity9Poller::slot_poll()
 {
     // we only request updates for those builders that are actively being watched
+    if(interested_parties.isEmpty())
+        return;
 
     foreach(const QString& key, projects.keys())
     {
@@ -507,12 +515,18 @@ void TeamCity9Poller::slot_poll()
         BuildersList::iterator builder_data;
         for(builder_data = pd.builders.begin();builder_data != pd.builders.end();++builder_data)
         {
-            QString builder_id = builder_data->builder_data["id"].toString();
+            QString project_key = QString("%1::").arg(pd.project_data["name"].toString());
+            QString builder_key = QString("%1::%2").arg(pd.project_data["name"].toString()).arg(builder_data->builder_data["name"].toString());
 
-            QString url = QString("%1/httpAuth/app/rest/builds?locator=buildType:(id:%2),running:true,defaultFilter:false")
-                                    .arg(target.toString())
-                                    .arg(builder_id);
-            enqueue_request_unique(url, ReplyStates::GettingStatus, QStringList() << key << builder_id);
+            if(interested_parties.contains(project_key.toLower()) || interested_parties.contains(builder_key.toLower()))
+            {
+                QString builder_id = builder_data->builder_data["id"].toString();
+
+                QString url = QString("%1/httpAuth/app/rest/builds?locator=buildType:(id:%2),running:true,defaultFilter:false")
+                                        .arg(target.toString())
+                                        .arg(builder_id);
+                enqueue_request_unique(url, ReplyStates::GettingStatus, QStringList() << key << builder_id);
+            }
         }
     }
 
