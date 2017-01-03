@@ -44,6 +44,7 @@ AddStoryDialog::AddStoryDialog(PluginsInfoVector *reporters_info,
     : plugin_factories(reporters_info),
       story_info(story_info),
       settings(settings),
+      angle_is_locked(false),
       QDialog(parent),
       ui(new Ui::AddStoryDialog)
 {
@@ -117,6 +118,12 @@ void AddStoryDialog::showEvent(QShowEvent *event)
     QDialog::showEvent(event);
     activateWindow();
     raise();
+}
+
+void AddStoryDialog::lock_angle()
+{
+    angle_is_locked = true;
+    ui->edit_Angle->setEnabled(false);
 }
 
 void AddStoryDialog::save_settings()
@@ -455,7 +462,7 @@ void AddStoryDialog::set_display()
 
 void AddStoryDialog::set_angle()
 {
-    if(!ui->edit_Angle->text().isEmpty())
+    if(angle_is_locked || !ui->edit_Angle->text().isEmpty())
         return;
 
     AnimEntryType entry_type = static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());

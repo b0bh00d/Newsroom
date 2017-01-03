@@ -3,7 +3,6 @@
 #include <QWidget>
 
 #include <QtGui/QFont>
-#include <QtGui/QMoveEvent>
 
 #include <QtCore/QUrl>
 #include <QtCore/QTimer>
@@ -53,10 +52,27 @@ protected slots:
     void    slot_turn_on_compact_mode();
 
 protected:  // methods
+    /*!
+      The Qt nativeEvent() is used to "glue" headlines onto the desktop when the
+      'stay_visible' flag is false.
+
+      This is currently only implemented under Windows.  It has no effect under
+      other platforms.
+     */
     bool    nativeEvent(const QByteArray &eventType, void *message, long *result);
+
+    /*!
+      The mouse is tracked in Headlines for various effects.  If "compact mode"
+      is enabled (Dashboard), then the Headline will be "zoomed in" to full size
+      so it may be read.  If not, a Headline may be brought back to full opacity
+      if it has been "dimmed".
+      @{
+     */
     void    enterEvent(QEvent *event);
-    void    moveEvent(QMoveEvent *event);
     void    leaveEvent(QEvent *event);
+    /*!
+      @}
+     */
 
     /*!
       This method is employed by the Chyron class to perform configuration of
@@ -68,8 +84,12 @@ protected:  // methods
       \param width The fixed width the Headline will use.
       \param height The fixed height the Headline will use.
      */
-    void    initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron
+    void    initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron, LaneManager
 
+    /*!
+      In "compact mode", this method is called to restore the Headline to its
+      compacted size.
+     */
     void    zoom_out();
 
 protected:  // data members
@@ -111,14 +131,14 @@ protected:  // data members
     // topmost window.  this can cause visual artifacting in Dashboard
     // types if opacity is not 100% due to Headling stacking.  the Chyron
     // will set this 'bottom_window' value directly to be the topmost
-    // window if it is configured for Dashboard, so the nativeEvent()
+    // Headline if it is configured for Dashboard, so the nativeEvent()
     // function will use it to place the new window precisely at the top
     // of the Dashboard Z-order.
 
-    QWidget*        bottom_window;
+    QWidget*        bottom_window;  // Chyron
 
-    friend class Chyron;        // the Chyron manages the headlines on the screen
-    friend class LaneManager;   // needs to initialize() it's Dashboard headline banner
+    friend class Chyron;        // the Chyron manages the Headlines on the screen
+    friend class LaneManager;   // needs to initialize() it's Dashboard Headline banner
 };
 
 SPECIALIZE_SHAREDPTR(Headline, Headline)    // "HeadlinePointer"

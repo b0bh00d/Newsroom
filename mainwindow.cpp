@@ -383,7 +383,7 @@ bool MainWindow::cover_story(StoryInfoPointer story_info, CoverageStart coverage
             }
         }
 
-        // assign a staff Producer to receive Reporter filings and create headlines
+        // assign a staff Producer to receive Reporter filings and create Headlines
 
         staff_info.producer = ProducerPointer(new Producer(staff_info.reporter, story_info, headline_style_list, this));
 
@@ -656,7 +656,7 @@ void MainWindow::load_application_settings()
     // add a Default stylesheet entry on first runs
     HeadlineStyle hs;
     hs.name = "Default";
-    hs.stylesheet = default_stylesheet;//"color: rgb(255, 255, 255); background-color: rgb(75, 75, 75); border: 1px solid black;";
+    hs.stylesheet = default_stylesheet;
     headline_style_list->append(hs);
 
     settings->begin_section("/Application");
@@ -775,19 +775,11 @@ void MainWindow::slot_message_clicked()
 
 void MainWindow::slot_menu_action(QAction* action)
 {
-//    if(action == options_action)
-//    {
-//        slot_edit_options();
-//    }
-//    else
     if(action == about_action)
-    {
-//        slot_about();
-    }
+//        slot_about()
+    {}
     else if(action == quit_action)
-    {
         slot_quit();
-    }
 }
 
 void MainWindow::slot_restore()
@@ -893,6 +885,8 @@ void MainWindow::slot_edit_story(const QString& story_id)
     CoverageStart coverage_start = staff[story_info].producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
 
     AddStoryDialog addstory_dlg(reporters_info, story_info, settings, this);
+
+    addstory_dlg.lock_angle();
 
     restore_window_data(&addstory_dlg);
 

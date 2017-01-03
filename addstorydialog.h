@@ -39,6 +39,15 @@ public:
                             QWidget *parent = 0);
     ~AddStoryDialog();
 
+    /*!
+      When an existing Story is edited, its original "angle" (i.e., unique
+      identity), generated at the time it was created, must remain unmodified.
+      This method signals to the AddStoryDialog that this should be the case
+      (i.e., this is an edit, not a creation, of a Story) so it will prevent
+      that "angle" from being altered.
+     */
+    void            lock_angle();
+
 protected:
     void            showEvent(QShowEvent *);
 
@@ -77,4 +86,6 @@ private:
     IReporterPointer      plugin_reporter;
 
     QUrl                story;
+
+    bool                angle_is_locked;
 };
