@@ -189,6 +189,8 @@ void TeamCity9::build_progress(const QJsonObject& status)
 
         uint now = QDateTime::currentDateTime().toTime_t();
 
+        // BUG: unchanging build status updates will not trigger
+        // the hung-build detection!
         QJsonObject cached_json = build_status[build_id];
         if(cached_json != builder)
         {
