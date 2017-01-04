@@ -341,6 +341,49 @@ void MainWindow::closeEvent(QCloseEvent* event)
     }
 }
 
+//void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
+//{
+//    int next_dupe = 0;
+//    QRegExp dupe_value("\\:\\:(\\d+)$");
+
+//    foreach(StoryInfoPointer key, staff.keys())
+//    {
+//        if(key->identity.startsWith(story_info->identity))
+//        {
+//            QString identity = key->identity;
+//            identity.remove(0, story_info->identity.length());
+//            if(dupe_value.indexIn(identity) != -1)
+//            {
+//                int this_dupe = dupe_value.cap(1).toInt();
+//                if(this_dupe > next_dupe)
+//                    next_dupe = this_dupe;
+//            }
+//        }
+//    }
+
+//    if(next_dupe)
+//        story_info->identity = QString("%1_%2").arg(story_info->identity).arg(next_dupe + 1);
+//}
+
+void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
+{
+    QString prefix = QString("%1::").arg(story_info->identity);
+    foreach(StoryInfoPointer key, staff.keys())
+    {
+        if(key->identity.startsWith(prefix))
+        {
+            // generate a random number to append to the identity
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            std::uniform_int_distribution<> dist(INT_MAX / 2, INT_MAX);
+
+            prefix = QString("%1::%2").arg(story_info->identity).arg(QString::number(dist(mt),16));
+            story_info->identity = prefix;
+            break;
+        }
+    }
+}
+
 bool MainWindow::cover_story(StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector *reporters_info)
 {
     bool result = false;
@@ -510,6 +553,10 @@ void MainWindow::dropEvent(QDropEvent* event)
         {
             // AddStoryDialog has automatically updated 'story_info' with all settings
             save_story_defaults(story_info);
+
+            // fix any duplication issues with the story identity
+            fix_identity_duplication(story_info);
+
             accept = cover_story(story_info, CoverageStart::Immediate, reporters_info);
         }
 

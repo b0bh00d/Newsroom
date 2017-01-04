@@ -110,6 +110,7 @@ private:    // methods
     void                save_story(SettingsPointer settings, StoryInfoPointer story_info);
     void                restore_story(SettingsPointer settings, StoryInfoPointer story_info);
     bool                cover_story(StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector* reporters_info = nullptr);
+    void                fix_identity_duplication(StoryInfoPointer story_info);
 
     void                build_tray_menu();
 
