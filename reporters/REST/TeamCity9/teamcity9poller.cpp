@@ -46,7 +46,7 @@ TeamCity9Poller::~TeamCity9Poller()
         QNAM->deleteLater();
 }
 
-void TeamCity9Poller::add_filter(const QString& project_name, const QString& builder_name, QObject* me)
+void TeamCity9Poller::add_interest(const QString& project_name, const QString& builder_name, QObject* me)
 {
     // make sure it's a TeamCity9 instance
     TeamCity9* teamcity9 = dynamic_cast<TeamCity9*>(me);
@@ -65,7 +65,7 @@ void TeamCity9Poller::add_filter(const QString& project_name, const QString& bui
     }
 }
 
-void TeamCity9Poller::remove_filter(const QString& project_name, const QString& builder_name, QObject* me)
+void TeamCity9Poller::remove_interest(const QString& project_name, const QString& builder_name, QObject* me)
 {
     QString key = QString("%1::%2").arg(project_name.toLower()).arg(builder_name.toLower());
     if(!interested_parties.contains(key))
@@ -313,7 +313,6 @@ void TeamCity9Poller::process_status(const QJsonObject& status, const QStringLis
     // for new builds, and check cached status for builds that
     // have completed.
 
-    QVector<QJsonObject> finals;
     QSet<int> c, p, finished_builds, new_builds;
 
     QJsonArray builder_array = status["build"].toArray();
@@ -359,33 +358,21 @@ void TeamCity9Poller::process_status(const QJsonObject& status, const QStringLis
         }
     }
 
+    QVector<int> finals;
     if(finished_builds.count())
     {
         foreach(int build_id, finished_builds)
         {
-            finals.push_back(builder_data->build_status[build_id]);
+            finals.push_back(build_id);
             builder_data->build_status.remove(build_id);
        }
     }
 
-    // get final results for any finished builds
+    // get final results for all finished builds
     if(finals.count())
     {
-        // Make a call for each buildTypeId in the finals[]
-        QMap<QString, int> buildTypeIds;
-        foreach(QJsonObject build, finals)
-        {
-            QString buildTypeId = build["buildTypeId"].toString();
-            if(buildTypeIds.contains(buildTypeId))
-                buildTypeIds[buildTypeId] = 0;
-            ++buildTypeIds[buildTypeId];
-        }
-
-        foreach(const QString& buildTypeId, buildTypeIds.keys())
-            enqueue_request(QString("%1/httpAuth/app/rest/buildTypes/id:%2/builds/running:false?count=%3&start=0")
-                                    .arg(target.toString())
-                                    .arg(buildTypeId)
-                                    .arg(buildTypeIds[buildTypeId]),
+        foreach(int build_id, finals)
+            enqueue_request(QString("%1/httpAuth/app/rest/builds/id:%2").arg(target.toString()).arg(build_id),
                             ReplyStates::GettingFinal,
                             status_data);
     }

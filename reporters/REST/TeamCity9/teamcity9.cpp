@@ -115,7 +115,7 @@ bool TeamCity9::CoverStory()
     // Qt does not provide a canonical way of creating dynamic signals and
     // slots at runtime.
 
-    poller->add_filter(project_name, builder_name, this);
+    poller->add_interest(project_name, builder_name, this);
 
     // do an initial Headline
     QString status = QString("Project \"<b>%1</b>\"").arg(project_name);
@@ -131,7 +131,7 @@ bool TeamCity9::FinishStory()
 {
     error_message.clear();
 
-    poller->remove_filter(project_name, builder_name, this);
+    poller->remove_interest(project_name, builder_name, this);
     poller.clear();     // we're done with it; don't hang on
 
     release_poller(story);
@@ -189,41 +189,46 @@ void TeamCity9::build_progress(const QJsonObject& status)
 
         uint now = QDateTime::currentDateTime().toTime_t();
 
-        // BUG: unchanging build status updates will not trigger
-        // the hung-build detection!
+        bool send_update = false;
+
         QJsonObject cached_json = build_status[build_id];
-        if(cached_json != builder)
+        send_update = (cached_json != builder);
+
+        int complete = 0;
+        if(builder.contains("percentageComplete"))
+            complete = builder["percentageComplete"].toInt();
+
+        // update data for the hung-build check
+        if(complete != eta[build_id].last_completed)
         {
-            int complete = 0;
-            if(builder.contains("percentageComplete"))
-                complete = builder["percentageComplete"].toInt();
+            eta[build_id].last_completed = complete;
+            eta[build_id].last_changed = now;
+        }
 
-            // update data for the hung-build check
-            if(complete != eta[build_id].last_completed)
+        // after a few updates, calculate an eta
+
+        QString eta_str;
+        uint completed_delta = complete - eta[build_id].initial_completed;
+        if(completed_delta > 5)
+        {
+            // how much clock time has passed since we started monitoring?
+            uint time_delta = now - eta[build_id].start;
+            uint average_per_point = time_delta / completed_delta;
+            uint percent_left = 100 - complete;
+            uint time_left = percent_left * average_per_point;
+            QDateTime target = QDateTime::currentDateTime();
+            eta_str = target.addSecs(time_left).toString("h:mm ap");
+
+            // check for hung build if no progress after 5 minutes
+            if((now - eta[build_id].last_changed) > 300)
             {
-                eta[build_id].last_completed = complete;
-                eta[build_id].last_changed = now;
+                eta_str = QString("<font color=\"#960000\">%1</font>").arg(eta_str);
+                send_update = true;
             }
+        }
 
-            // after a few updates, calculate an eta
-
-            QString eta_str;
-            uint completed_delta = complete - eta[build_id].initial_completed;
-            if(completed_delta > 5)
-            {
-                // how much clock time has passed since we started monitoring?
-                uint time_delta = now - eta[build_id].start;
-                uint average_per_point = time_delta / completed_delta;
-                uint percent_left = 100 - complete;
-                uint time_left = percent_left * average_per_point;
-                QDateTime target = QDateTime::currentDateTime();
-                eta_str = target.addSecs(time_left).toString("h:mm ap");
-
-                // check for hung build if no progress after 5 minutes
-                if((now - eta[build_id].last_changed) > 300)
-                    eta_str = QString("<font color=\"#ff0000\">%1</font>").arg(eta_str);
-            }
-
+        if(send_update)
+        {
             build_status[build_id] = builder;
 
             ReportMap report_map;
@@ -245,6 +250,18 @@ void TeamCity9::build_final(const QJsonObject& status)
         eta.remove(build_id);
 
     ReportMap report_map;
+
+    // convert the odd TeamCity timestamp to an ISO 8601
+    // format so QDateTime can grok it...
+    QString iso_8601 = status["finishDate"].toString();
+    iso_8601.insert(18, ':');
+    iso_8601.insert(13, ':');
+    iso_8601.insert(11, ':');
+    iso_8601.insert(6, '-');
+    iso_8601.insert(4, '-');
+    QDateTime finish_timestamp = QDateTime::fromString(iso_8601, Qt::ISODate).toLocalTime();
+    report_map["COMPLETED"] = QString("100% @ %1").arg(finish_timestamp.toString("h:mm ap"));
+
     populate_report_map(report_map, status, builder_name);
     QString report = render_report(report_map);
 
@@ -261,7 +278,7 @@ void TeamCity9::populate_report_map(ReportMap& report_map,
                                    const QString& builder_id,
                                    const QString& eta_str)
 {
-    report_map.clear();
+//    report_map.clear();
 
     report_map["PROJECT_NAME"] = project_name;
 
@@ -290,9 +307,7 @@ void TeamCity9::populate_report_map(ReportMap& report_map,
         report_map["STATUS"] = build["statusText"].toString();
     else
         report_map["STATUS"] = build["status"].toString();
-    if(!report_map["STATE"].compare("finished"))
-        report_map["COMPLETED"] = QString("100% @ %1").arg(QDateTime::currentDateTime().toString("h:mm ap"));
-    else
+    if(!report_map.contains("COMPLETED"))
         report_map["COMPLETED"] = QString("%1%").arg(QString::number(build["percentageComplete"].toInt()));
     if(eta_str.isEmpty() && !report_map["STATE"].compare("running"))
         report_map["ETA"] = "(pending)";

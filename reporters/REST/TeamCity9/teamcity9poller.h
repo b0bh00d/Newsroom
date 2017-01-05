@@ -30,8 +30,10 @@ public:
     TeamCity9Poller(const QUrl& target, const QString& username, const QString& password, int timeout, QObject* parent = nullptr);
     ~TeamCity9Poller();
 
-    void    add_filter(const QString& project_name, const QString& builder_name, QObject* me);
-    void    remove_filter(const QString& project_name, const QString& builder_name, QObject* me);
+    // this filtering mechanism is used because Qt does not provide
+    // a canonical means of creating runtime, dynamic signals/slots
+    void    add_interest(const QString& project_name, const QString& builder_name, QObject* me);
+    void    remove_interest(const QString& project_name, const QString& builder_name, QObject* me);
 
 private slots:
     void    slot_get_read();
