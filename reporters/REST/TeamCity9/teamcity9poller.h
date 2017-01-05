@@ -60,6 +60,12 @@ private:    // typedefs and enums
         GettingFinal,
     };
 
+    enum class Priorities
+    {
+        BackOfQueue,
+        FrontOfQueue,
+    };
+
     SPECIALIZE_MAP(int /* build id */, QJsonObject, Status)            // "StatusMap"
 
 private:    // classes
@@ -95,7 +101,7 @@ private:    // typedefs and enums
     SPECIALIZE_MAP(QString, ProjectData, Projects)      // "ProjectsMap"
     SPECIALIZE_MAP(QNetworkReply*, ReplyData, Reply)    // "ReplyMap"
     SPECIALIZE_MAP(QString, BuilderData, BuilderData)   // "BuilderDataMap"
-    SPECIALIZE_QUEUE(RequestData, Request)              // "RequestQueue"
+    SPECIALIZE_LIST(RequestData, Request)               // "RequestList"
     SPECIALIZE_MAP(QString, bool, PendingRequests)      // "PendingRequestsMap"
     SPECIALIZE_LIST(QObject*, Interested)               // "InterestedList"
     SPECIALIZE_MAP(QString, InterestedList, Interested) // "InterestedMap"
@@ -103,7 +109,7 @@ private:    // typedefs and enums
 private:    // methods
     void            notify_interested_parties(BuilderEvents event, const QString& project_name, const QString& builder_name, const QJsonObject& status);
     void            notify_interested_parties(const QString& project_name, const QString& builder_name, const QString& message);
-    void            enqueue_request(const QString& url_str, ReplyStates state, const QStringList& request_data = QStringList());
+    void            enqueue_request(const QString& url_str, ReplyStates state, const QStringList& request_data = QStringList(), Priorities priority = Priorities::BackOfQueue);
     void            enqueue_request_unique(const QString& url_str, ReplyStates state, const QStringList& request_data = QStringList());
     void            create_request(const QString& url_str, ReplyStates state, const QStringList& request_data = QStringList());
     void            process_reply(QNetworkReply *reply);
@@ -123,7 +129,7 @@ private:    // data members
     QTimer*     poll_timer;
     int         poll_timeout;
 
-    RequestQueue        requests;
+    RequestList requests;
     PendingRequestsMap  pending_requests;
 
     ProjectsMap projects;

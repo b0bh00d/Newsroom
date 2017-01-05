@@ -154,13 +154,16 @@ void TeamCity9Poller::notify_interested_parties(BuilderEvents event, const QStri
     }
 }
 
-void TeamCity9Poller::enqueue_request(const QString& url_str, ReplyStates state, const QStringList& request_data)
+void TeamCity9Poller::enqueue_request(const QString& url_str, ReplyStates state, const QStringList& request_data, Priorities priority)
 {
     RequestData rd;
     rd.url = url_str;
     rd.state = state;
     rd.data = request_data;
-    requests.enqueue(rd);
+    if(priority == Priorities::BackOfQueue)
+        requests.push_back(rd);
+    else
+        requests.insert(0, rd);
     pending_requests[rd.url] = true;
 }
 
@@ -368,19 +371,20 @@ void TeamCity9Poller::process_status(const QJsonObject& status, const QStringLis
        }
     }
 
-    // get final results for all finished builds
+    // get final results for all finished builds as priorities
     if(finals.count())
     {
         foreach(int build_id, finals)
             enqueue_request(QString("%1/httpAuth/app/rest/builds/id:%2").arg(target.toString()).arg(build_id),
                             ReplyStates::GettingFinal,
-                            status_data);
+                            status_data,
+                            Priorities::FrontOfQueue);
     }
 }
 
 void TeamCity9Poller::process_final(const QJsonObject& status, const QStringList &status_data)
 {
-    // 'status' will be a history report for a single build, something like:
+    // 'status' will be a detailed (result) report for a single build, something like:
     // {
     //   "id":12412,
     //   "buildTypeId":"DaveV_Windows",
@@ -485,7 +489,8 @@ void TeamCity9Poller::slot_request_pump()
 
     if(requests.count())
     {
-        RequestData rd = requests.dequeue();
+        RequestData rd = requests.front();
+        requests.pop_front();
         create_request(rd.url, rd.state, rd.data);
     }
 }
@@ -516,12 +521,4 @@ void TeamCity9Poller::slot_poll()
             }
         }
     }
-
-//    if(builder_name.isEmpty())
-//    {
-//        QJsonObject project_json = json_projects[project_name];
-//        url_str = QString("%1/httpAuth/app/rest/builds?locator=project:%2,running:true,defaultFilter:false")
-//                            .arg(target.toString())
-//                            .arg(project_json["id"].toString());
-//    }
 }
