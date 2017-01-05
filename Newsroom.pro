@@ -15,6 +15,9 @@ CONFIG += C++11
 
 CONFIG(debug, debug|release) {
     #CONFIG += highlight_lanes
+    DESTDIR = deploy/debug
+} else {
+    DESTDIR = deploy/release
 }
 
 INCLUDEPATH += reporters/interfaces
@@ -25,17 +28,14 @@ DEFINES += QT_DLL QT_NETWORK_LIB
 
 mac {
     DEFINES += QT_OSX
-	DESTDIR = deploy
 }
 
 unix:!mac {
     DEFINES += QT_LINUX
-	DESTDIR = deploy/bin
 }
 
 win32 {
     DEFINES += QT_WIN
-	DESTDIR = deploy/bin
 }
 
 win32:RC_FILE = Newsroom.rc

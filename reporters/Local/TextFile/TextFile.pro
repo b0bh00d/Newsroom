@@ -10,6 +10,12 @@ DEFINES += TEXTFILE_LIBRARY
 
 INCLUDEPATH += ../../interfaces
 
+CONFIG(debug, debug|release) {
+    DLLDESTDIR = ../../../deploy/debug/reporters
+} else {
+    DLLDESTDIR = ../../../deploy/release/reporters
+}
+
 mac {
     DEFINES += QT_OSX
 }
@@ -19,7 +25,6 @@ unix:!mac {
 }
 
 win32 {
-    DLLDESTDIR = ../../../deploy/bin/reporters
     DEFINES += QT_WIN
 }
 
