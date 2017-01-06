@@ -606,6 +606,7 @@ void MainWindow::build_tray_menu()
 //    options_action  = new QAction(QIcon(":/images/Options.png"), tr("Edit &Settings..."), this);
 //    if(note_clipboard)
 //        paste_action = new QAction(QIcon(":/images/Restore.png"), tr("&Paste Note"), this);
+    settings_action = new QAction(QIcon(":/images/Options.png"), tr("&Settings..."), this);
     about_action    = new QAction(QIcon(":/images/About.png"), tr("&About"), this);
     quit_action     = new QAction(QIcon(":/images/Quit.png"), tr("&Quit"), this);
 
@@ -618,6 +619,8 @@ void MainWindow::build_tray_menu()
 //        trayIconMenu->addAction(paste_action);
 //        trayIconMenu->addSeparator();
 //    }
+    trayIconMenu->addAction(settings_action);
+    trayIconMenu->addSeparator();
     trayIconMenu->addAction(about_action);
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(quit_action);
@@ -822,7 +825,9 @@ void MainWindow::slot_message_clicked()
 
 void MainWindow::slot_menu_action(QAction* action)
 {
-    if(action == about_action)
+    if(action == settings_action)
+        slot_edit_settings(false);
+    else if(action == about_action)
 //        slot_about()
     {}
     else if(action == quit_action)
