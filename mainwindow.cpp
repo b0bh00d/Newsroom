@@ -89,6 +89,8 @@ MainWindow::MainWindow(QWidget *parent)
     build_tray_menu();
 
     trayIcon->show();
+
+    qApp->setQuitOnLastWindowClosed(false);
 }
 
 MainWindow::~MainWindow()
