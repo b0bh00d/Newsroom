@@ -375,10 +375,9 @@ void TeamCity9Poller::process_status(const QJsonObject& status, const QStringLis
     if(finals.count())
     {
         foreach(int build_id, finals)
-            enqueue_request(QString("%1/httpAuth/app/rest/builds/id:%2").arg(target.toString()).arg(build_id),
+            create_request(QString("%1/httpAuth/app/rest/builds/id:%2").arg(target.toString()).arg(build_id),
                             ReplyStates::GettingFinal,
-                            status_data,
-                            Priorities::FrontOfQueue);
+                            status_data);
     }
 }
 
