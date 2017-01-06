@@ -34,6 +34,7 @@ public:
 
     virtual bool cache()    { return false; }
     virtual bool flush()    { return false; }
+    virtual bool remove()   { return false; }
 
     QString     get_error_string()  const { return error_string; }
 
@@ -105,6 +106,7 @@ public:
 
     bool        cache();
     bool        flush();
+    bool        remove();
 
 protected:      // methods
     // format-specific I/O functions (XML, JSON, etc.)

@@ -787,3 +787,9 @@ void SettingsXML::write_item(Item* item, QDomNode* parent, QDomDocument* doc)
         parent->appendChild(child);
     }
 }
+
+bool SettingsXML::remove()
+{
+    tree_root.clear();
+    return QFile::remove(filename);
+}
