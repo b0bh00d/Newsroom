@@ -126,6 +126,7 @@ private:    // data members
     QSystemTrayIcon*    trayIcon;
     QMenu*              trayIconMenu;
 
+    QAction*            settings_action;
     QAction*            quit_action;
     QAction*            options_action;
     QAction*            about_action;
