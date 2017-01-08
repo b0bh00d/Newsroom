@@ -56,7 +56,8 @@ SOURCES += main.cpp \
            addstorydialog.cpp \
            editheadlinedialog.cpp \
            settings.cpp \
-           label.cpp
+           label.cpp \
+           seriestree.cpp
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -73,7 +74,10 @@ HEADERS  += mainwindow.h \
             reporters/interfaces/ireporter.h \
             editheadlinedialog.h \
             settings.h \
-            label.h
+            seriesinfo.h \
+            staffinfo.h \
+            label.h \
+            seriestree.h
 
 # Plug-in interface
 HEADERS += \

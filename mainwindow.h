@@ -24,15 +24,11 @@
 #include <QtCore/QPluginLoader>
 #include <QtCore/QSettings>
 
-#include "specialize.h"
-#include "chyron.h"
+#include "seriesinfo.h"    // -> staffinfo.h
 #include "lanemanager.h"
-#include "producer.h"
 #include "settings.h"
 
 #include "addstorydialog.h"
-
-#include "reporters/interfaces/ireporter.h"
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
@@ -48,7 +44,7 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-public:
+public:     // methods
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
@@ -75,22 +71,13 @@ private:    // typedefs and enums
         Delayed
     };
 
-    struct StaffInfo
-    {
-        // this is the staff and equipment assigned to
-        // cover a story
-        IReporterPointer    reporter;
-        ProducerPointer     producer;
-        ChyronPointer       chyron;
-    };
-
     SPECIALIZE_MAP(QString, QByteArray, Window)             // "WindowMap"
     SPECIALIZE_QUEUE(HeadlinePointer, Headline)             // "HeadlineQueue"
     SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)           // "HeadlineMap"
-    SPECIALIZE_LIST(StoryInfoPointer, Story)                // "StoryList"
     SPECIALIZE_MAP(QString, PluginsInfoVector, Reporters)   // "ReportersMap"
-    SPECIALIZE_MAP(StoryInfoPointer, StaffInfo, Staff)      // "StaffMap"
     SPECIALIZE_SHAREDPTR(QPixmap, Pixmap)                   // "PixmapPointer"
+    SPECIALIZE_LIST(StoryInfoPointer, Story)                // "StoryList"
+    SPECIALIZE_MAP(QString, QString, String)                // "StringMap"
 
 private slots:
     void                slot_quit();
@@ -105,11 +92,13 @@ private:    // methods
     bool                load_reporters();
     void                load_application_settings();
     void                save_application_settings();
-    void                restore_story_defaults(StoryInfoPointer story_info);
-    void                save_story_defaults(StoryInfoPointer story_info);
+    void                load_series(const QString& name);
+    void                save_series(const QString& name);
     void                save_story(SettingsPointer settings, StoryInfoPointer story_info);
     void                restore_story(SettingsPointer settings, StoryInfoPointer story_info);
-    bool                cover_story(StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector* reporters_info = nullptr);
+    void                restore_story_defaults(StoryInfoPointer story_info);
+    void                save_story_defaults(StoryInfoPointer story_info);
+    bool                cover_story(StaffMap& staff, StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector* reporters_info = nullptr);
     void                fix_identity_duplication(StoryInfoPointer story_info);
 
     void                build_tray_menu();
@@ -141,8 +130,8 @@ private:    // data members
 
     QMimeDatabase       mime_db;
 
-    StoryList           stories;
-    StaffMap            staff;
+    SeriesMap           series;
+    StringMap           story_series;          ///< Index: To which Series does a Story belong?
     LaneManagerPointer  lane_manager;
 
     ReportersMap        beat_reporters;

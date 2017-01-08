@@ -59,4 +59,4 @@ private:        // data members
 };
 
 SPECIALIZE_SHAREDPTR(Producer, Producer)    // "ProducerPointer"
-Q_DECLARE_METATYPE(ProducerPointer)
+//Q_DECLARE_METATYPE(ProducerPointer)

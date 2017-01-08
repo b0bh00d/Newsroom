@@ -328,20 +328,23 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_Stories">
+     <widget class="QWidget" name="tab_Series">
       <attribute name="title">
-       <string>Stories</string>
+       <string>Series</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
-          <widget class="QTreeWidget" name="tree_Stories">
+          <widget class="SeriesTree" name="tree_Series">
            <property name="autoScroll">
             <bool>false</bool>
            </property>
+           <property name="dragEnabled">
+            <bool>true</bool>
+           </property>
            <property name="rootIsDecorated">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
            <attribute name="headerVisible">
             <bool>false</bool>
@@ -463,6 +466,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SeriesTree</class>
+   <extends>QTreeWidget</extends>
+   <header>seriestree.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>combo_FontFamily</tabstop>
   <tabstop>combo_FontSize</tabstop>
