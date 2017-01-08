@@ -9,11 +9,15 @@
 
 extern MainWindow* mainwindow;
 
-SettingsDialog::SettingsDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::SettingsDialog)
+SettingsDialog::SettingsDialog(QWidget *parent)
+    : editing(false),
+      QDialog(parent),
+      ui(new Ui::SettingsDialog)
 {
     ui->setupUi(this);
+
+    connect(ui->tree_Series, &QTreeWidget::itemDoubleClicked, this, &SettingsDialog::slot_rename_series);
+    connect(ui->tree_Series, &QTreeWidget::itemChanged, this, &SettingsDialog::slot_series_renamed);
 
     connect(ui->combo_FontFamily, &QFontComboBox::currentFontChanged, this, &SettingsDialog::slot_update_font);
     connect(ui->combo_FontSize, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
@@ -21,7 +25,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     connect(ui->button_AddStyle, &QPushButton::clicked, this, &SettingsDialog::slot_add_style);
     connect(ui->button_DeleteStyle, &QPushButton::clicked, this, &SettingsDialog::slot_delete_style);
     connect(ui->button_EditStyle, &QPushButton::clicked, this, &SettingsDialog::slot_edit_style);
-    connect(ui->tree_Stories, &QTreeWidget::itemSelectionChanged, this, &SettingsDialog::slot_story_selection_changed);
+    connect(ui->tree_Series, &QTreeWidget::itemSelectionChanged, this, &SettingsDialog::slot_story_selection_changed);
     connect(ui->button_EditStory, &QPushButton::clicked, this, &SettingsDialog::slot_edit_story);
     connect(ui->button_StartCoverage, &QPushButton::clicked, this, &SettingsDialog::slot_start_coverage);
     connect(ui->button_StopCoverage, &QPushButton::clicked, this, &SettingsDialog::slot_stop_coverage);
@@ -81,8 +85,6 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     while(ui->tree_Styles->topLevelItemCount())
         delete ui->tree_Styles->takeTopLevelItem(0);
 
-//    new QTreeWidgetItem(ui->tree_Styles, QStringList() << "Default" << "" << mainwindow->default_stylesheet);
-
     foreach(const HeadlineStyle& style, style_list)
     {
         QList<QTreeWidgetItem*> items = ui->tree_Styles->findItems(style.name, Qt::MatchExactly, 0);
@@ -102,27 +104,42 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     ui->tree_Styles->topLevelItem(0)->setSelected(true);
 }
 
-void SettingsDialog::set_stories(const QList<QString>& stories, const QList<ProducerPointer> producers)
+void SettingsDialog::set_series(const SeriesMap& series)
 {
-    while(ui->tree_Stories->topLevelItemCount())
-        delete ui->tree_Stories->takeTopLevelItem(0);
+    while(ui->tree_Series->topLevelItemCount())
+        delete ui->tree_Series->takeTopLevelItem(0);
 
-    for(int i = 0;i < stories.length();++i)
+    ui->tree_Series->setDragEnabled(true);
+    ui->tree_Series->viewport()->setAcceptDrops(true);
+    ui->tree_Series->setDropIndicatorShown(true);
+    ui->tree_Series->setDefaultDropAction(Qt::TargetMoveAction);
+    ui->tree_Series->setDragDropMode(QAbstractItemView::InternalMove);
+
+    foreach(const QString& name, series.keys())
     {
-        QVariant v;
-        v.setValue(producers[i]);
+        QTreeWidgetItem* series_item = new QTreeWidgetItem(ui->tree_Series, QStringList() << name);
+        series_item->setFlags(series_item->flags() | Qt::ItemIsEditable);
 
-        QTreeWidgetItem* tree_item = new QTreeWidgetItem(ui->tree_Stories, QStringList() << "" << stories[i]);
-        tree_item->setData(0, Qt::UserRole, v);
+        const SeriesInfo& series_info = series[name];
 
-        if(producers[i]->is_covering_story())
-            tree_item->setIcon(0, QIcon(":/images/Covering.png"));
-        else
-            tree_item->setIcon(0, QIcon(":/images/NotCovering.png"));
+        foreach(StoryInfoPointer story_info, series_info.staff.keys())
+        {
+            const StaffInfo& staff_info = series_info.staff[story_info];
+
+            QTreeWidgetItem* story_item = new QTreeWidgetItem(series_item, QStringList() << "" << story_info->identity);
+            producers[story_item->text(1)] = staff_info.producer;
+
+            if(staff_info.producer->is_covering_story())
+                story_item->setIcon(0, QIcon(":/images/Covering.png"));
+            else
+                story_item->setIcon(0, QIcon(":/images/NotCovering.png"));
+        }
+
+        series_item->setExpanded(true);
     }
 
-    for(int i = 0;i < ui->tree_Stories->columnCount();++i)
-        ui->tree_Stories->resizeColumnToContents(i);
+    for(int i = 0;i < ui->tree_Series->columnCount();++i)
+        ui->tree_Series->resizeColumnToContents(i);
 
     slot_story_selection_changed();
 }
@@ -169,16 +186,26 @@ void SettingsDialog::get_styles(HeadlineStyleList& style_list)
     }
 }
 
-QList<QString> SettingsDialog::get_stories()
+SettingsDialog::SeriesList SettingsDialog::get_series()
 {
-    QList<QString> remaining_stories;
-    for(int i = 0;i < ui->tree_Stories->topLevelItemCount();++i)
+    SeriesList sl;
+    for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
     {
-        QTreeWidgetItem* item = ui->tree_Stories->topLevelItem(i);
-        remaining_stories.append(item->text(1));
+        QTreeWidgetItem* series_item = ui->tree_Series->topLevelItem(i);
+        if(series_item->childCount() || !series_item->text(0).compare("Default"))
+        {
+            QStringList stories;
+            for(int j = 0;j < series_item->childCount();++j)
+            {
+                QTreeWidgetItem* story_item = series_item->child(j);
+                stories << story_item->text(1);
+            }
+
+            sl.append(qMakePair(series_item->text(0), stories));
+        }
     }
 
-    return remaining_stories;
+    return sl;
 }
 
 // font selection changed
@@ -280,18 +307,47 @@ void SettingsDialog::slot_apply_stylesheet()
 
 void SettingsDialog::slot_story_selection_changed()
 {
-    ui->tab_Stories->setEnabled(ui->tree_Stories->topLevelItemCount() != 0);
-    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
-    ui->button_RemoveStory->setEnabled(selections.length() != 0);
+    ui->tab_Series->setEnabled(ui->tree_Series->topLevelItemCount() != 0);
+    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
 
+    int series_selected = 0;
+    int stories_selected = 0;
+    foreach(const QTreeWidgetItem* item, selections)
+    {
+        if(ui->tree_Series->indexOfTopLevelItem(const_cast<QTreeWidgetItem*>(item)) == -1)
+            ++stories_selected;
+        else
+            ++series_selected;
+    }
+
+    ui->button_RemoveStory->setEnabled(selections.length() != 0 && !series_selected);
+
+    ui->button_EditStory->setEnabled(false);
     ui->button_StartCoverage->setEnabled(false);
     ui->button_StopCoverage->setEnabled(false);
 
-    if(selections.count())
+    if(series_selected && !stories_selected)
+    {
+        int covering = 0;
+        int not_covering = 0;
+        for(int i = 0;i < selections[0]->childCount();++i)
+        {
+            QTreeWidgetItem* item = selections[0]->child(i);
+            ProducerPointer producer = producers[item->text(1)];
+            if(producer->is_covering_story())
+                ++covering;
+            else
+                ++not_covering;
+        }
+
+        ui->button_StartCoverage->setEnabled(not_covering != 0);
+        ui->button_StopCoverage->setEnabled(covering != 0);
+    }
+    else if(stories_selected && !series_selected)
     {
         ui->button_EditStory->setEnabled(true);
 
-        ProducerPointer producer = selections[0]->data(0, Qt::UserRole).value<ProducerPointer>();
+        ProducerPointer producer = producers[selections[0]->text(1)];
         ui->button_StartCoverage->setEnabled(!producer->is_covering_story());
         ui->button_StopCoverage->setEnabled(producer->is_covering_story());
     }
@@ -299,16 +355,16 @@ void SettingsDialog::slot_story_selection_changed()
 
 void SettingsDialog::slot_edit_story()
 {
-    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
+    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
     emit signal_edit_story(selections[0]->text(1));
 }
 
 void SettingsDialog::slot_start_coverage()
 {
-    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
+    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
     if(selections.count())
     {
-        ProducerPointer producer = selections[0]->data(0, Qt::UserRole).value<ProducerPointer>();
+        ProducerPointer producer = producers[selections[0]->text(1)];
         if(!producer->start_covering_story())
         {
             QMessageBox::critical(this,
@@ -319,8 +375,8 @@ void SettingsDialog::slot_start_coverage()
         {
             selections[0]->setIcon(0, QIcon(":/images/Covering.png"));
 
-            for(int i = 0;i < ui->tree_Stories->columnCount();++i)
-                ui->tree_Stories->resizeColumnToContents(i);
+            for(int i = 0;i < ui->tree_Series->columnCount();++i)
+                ui->tree_Series->resizeColumnToContents(i);
 
             slot_story_selection_changed();
         }
@@ -329,18 +385,18 @@ void SettingsDialog::slot_start_coverage()
 
 void SettingsDialog::slot_stop_coverage()
 {
-    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
+    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
     if(selections.count())
     {
-        ProducerPointer producer = selections[0]->data(0, Qt::UserRole).value<ProducerPointer>();
+        ProducerPointer producer = producers[selections[0]->text(1)];
         if(producer->is_covering_story())
         {
             if(producer->stop_covering_story())
             {
                 selections[0]->setIcon(0, QIcon(":/images/NotCovering.png"));
 
-                for(int i = 0;i < ui->tree_Stories->columnCount();++i)
-                    ui->tree_Stories->resizeColumnToContents(i);
+                for(int i = 0;i < ui->tree_Series->columnCount();++i)
+                    ui->tree_Series->resizeColumnToContents(i);
 
                 slot_story_selection_changed();
             }
@@ -352,22 +408,26 @@ void SettingsDialog::slot_start_coverage_all()
 {
     bool changed = false;
 
-    for(int i = 0;i < ui->tree_Stories->topLevelItemCount();++i)
+    for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
     {
-        QTreeWidgetItem* item = ui->tree_Stories->topLevelItem(i);
-        ProducerPointer producer = item->data(0, Qt::UserRole).value<ProducerPointer>();
-        if(!producer->is_covering_story())
+        QTreeWidgetItem* series_item = ui->tree_Series->topLevelItem(i);
+        for(int j = 0;j < series_item->childCount();++j)
         {
-            if(producer->start_covering_story())
-                item->setIcon(0, QIcon(":/images/Covering.png"));
-            changed = true;
+            QTreeWidgetItem* story_item = series_item->child(j);
+            ProducerPointer producer = producers[story_item->text(1)];
+            if(!producer->is_covering_story())
+            {
+                if(producer->start_covering_story())
+                    story_item->setIcon(0, QIcon(":/images/Covering.png"));
+                changed = true;
+            }
         }
     }
 
     if(changed)
     {
-        for(int i = 0;i < ui->tree_Stories->columnCount();++i)
-            ui->tree_Stories->resizeColumnToContents(i);
+        for(int i = 0;i < ui->tree_Series->columnCount();++i)
+            ui->tree_Series->resizeColumnToContents(i);
 
         slot_story_selection_changed();
     }
@@ -377,22 +437,26 @@ void SettingsDialog::slot_stop_coverage_all()
 {
     bool changed = false;
 
-    for(int i = 0;i < ui->tree_Stories->topLevelItemCount();++i)
+    for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
     {
-        QTreeWidgetItem* item = ui->tree_Stories->topLevelItem(i);
-        ProducerPointer producer = item->data(0, Qt::UserRole).value<ProducerPointer>();
-        if(producer->is_covering_story())
+        QTreeWidgetItem* series_item = ui->tree_Series->topLevelItem(i);
+        for(int j = 0;j < series_item->childCount();++j)
         {
-            if(producer->stop_covering_story())
-                item->setIcon(0, QIcon(":/images/NotCovering.png"));
-            changed = true;
+            QTreeWidgetItem* story_item = series_item->child(j);
+            ProducerPointer producer = producers[story_item->text(1)];
+            if(producer->is_covering_story())
+            {
+                if(producer->stop_covering_story())
+                    story_item->setIcon(0, QIcon(":/images/NotCovering.png"));
+                changed = true;
+            }
         }
     }
 
     if(changed)
     {
-        for(int i = 0;i < ui->tree_Stories->columnCount();++i)
-            ui->tree_Stories->resizeColumnToContents(i);
+        for(int i = 0;i < ui->tree_Series->columnCount();++i)
+            ui->tree_Series->resizeColumnToContents(i);
 
         slot_story_selection_changed();
     }
@@ -400,15 +464,30 @@ void SettingsDialog::slot_stop_coverage_all()
 
 void SettingsDialog::slot_remove_story()
 {
-    QList<QTreeWidgetItem *> selections = ui->tree_Stories->selectedItems();
-    foreach(QTreeWidgetItem* item, selections)
-        delete ui->tree_Stories->takeTopLevelItem(ui->tree_Stories->indexOfTopLevelItem(item));
+    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
+    QList<QTreeWidgetItem *>::iterator iter;
+    for(iter = selections.begin();iter != selections.end();++iter)
+    {
+        QTreeWidgetItem* series = (*iter)->parent();
+        delete series->takeChild(series->indexOfChild(*iter));
+
+        if(series->childCount() == 0 && series->text(0).compare("Default"))
+            delete ui->tree_Series->takeTopLevelItem(ui->tree_Series->indexOfTopLevelItem(series));
+    }
 }
 
 void SettingsDialog::slot_remove_story_all()
 {
-    while(ui->tree_Stories->topLevelItemCount())
-        delete ui->tree_Stories->takeTopLevelItem(0);
+    while(ui->tree_Series->topLevelItemCount())
+    {
+        QTreeWidgetItem* series = ui->tree_Series->takeTopLevelItem(0);
+        while(series->childCount())
+            delete series->takeChild(0);
+        delete ui->tree_Series->takeTopLevelItem(0);
+    }
+
+    QTreeWidgetItem* new_default = new QTreeWidgetItem(ui->tree_Series, QStringList() << "Default");
+    new_default->setFlags(new_default->flags() | Qt::ItemIsEditable);
 }
 
 void SettingsDialog::slot_compact_mode_clicked(bool /*checked*/)
@@ -416,6 +495,50 @@ void SettingsDialog::slot_compact_mode_clicked(bool /*checked*/)
     ui->label_ZoomOut1->setEnabled(ui->check_CompactMode->isChecked());
     ui->edit_ZoomOutPercent->setEnabled(ui->check_CompactMode->isChecked());
     ui->label_ZoomOut2->setEnabled(ui->check_CompactMode->isChecked());
+}
+
+void SettingsDialog::slot_rename_series(QTreeWidgetItem* item, int col)
+{
+    if(col == 0 && ui->tree_Series->indexOfTopLevelItem(item) != -1)
+    {
+        editing = true;
+        original_series_name = item->text(0);
+        ui->tree_Series->editItem(item, col);
+    }
+}
+
+void SettingsDialog::slot_series_renamed(QTreeWidgetItem* item, int col)
+{
+    if(!editing || col != 0)
+        return;
+    editing = false;
+
+    QString new_series_name = item->text(0);
+    if(!original_series_name.compare(new_series_name))
+        return;     // no change
+
+    // make sure it's not a duplicate
+    for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
+    {
+        QTreeWidgetItem* top_item = ui->tree_Series->topLevelItem(i);
+        if(top_item == item)
+            continue;
+        if(!top_item->text(0).compare(new_series_name))
+        {
+            // dupe!
+            item->setText(0, original_series_name);
+            return;
+        }
+    }
+
+    // was this "Default"
+    if(!original_series_name.compare("Default"))
+    {
+        // add a new "Default" entry
+        QTreeWidgetItem* new_default = new QTreeWidgetItem(QStringList() << "Default");
+        new_default->setFlags(new_default->flags() | Qt::ItemIsEditable);
+        ui->tree_Series->insertTopLevelItem(0, new_default);
+    }
 }
 
 // this is from an early iteration of the application; I keep it for the gradient stylesheet refrence

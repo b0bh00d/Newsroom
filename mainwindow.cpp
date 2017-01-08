@@ -141,6 +141,596 @@ bool MainWindow::load_reporters()
     return beat_reporters.count() > 0;
 }
 
+void MainWindow::set_visible(bool visible)
+{
+    if(visible)
+        restore_window_data(this);
+
+    QWidget::setVisible(visible);
+}
+
+void MainWindow::paintEvent(QPaintEvent* /*event*/)
+{
+    QPainter painter(this);
+
+    auto winSize = size();
+    auto pixmapRatio = (float)background_image->width() / background_image->height();
+    auto windowRatio = (float)winSize.width() / winSize.height();
+
+    if(pixmapRatio > windowRatio)
+    {
+        auto newWidth = (int)(winSize.height() * pixmapRatio);
+        auto offset = (newWidth - winSize.width()) / -2;
+        painter.drawPixmap(offset, 0, newWidth, winSize.height(), *(background_image.data()));
+    }
+    else
+    {
+        auto newHeight = (int)(winSize.width() / pixmapRatio);
+        auto offset = (newHeight - winSize.height()) / -2;
+        painter.drawPixmap(0, offset, winSize.width(), newHeight, *(background_image.data()));
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    if(trayIcon->isVisible())
+    {
+        save_window_data(this);
+        hide();
+        event->ignore();
+    }
+}
+
+//void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
+//{
+//    int next_dupe = 0;
+//    QRegExp dupe_value("\\:\\:(\\d+)$");
+
+//    foreach(StoryInfoPointer key, staff.keys())
+//    {
+//        if(key->identity.startsWith(story_info->identity))
+//        {
+//            QString identity = key->identity;
+//            identity.remove(0, story_info->identity.length());
+//            if(dupe_value.indexIn(identity) != -1)
+//            {
+//                int this_dupe = dupe_value.cap(1).toInt();
+//                if(this_dupe > next_dupe)
+//                    next_dupe = this_dupe;
+//            }
+//        }
+//    }
+
+//    if(next_dupe)
+//        story_info->identity = QString("%1_%2").arg(story_info->identity).arg(next_dupe + 1);
+//}
+
+void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
+{
+    QString prefix = QString("%1::").arg(story_info->identity);
+    foreach(const QString& series_key, series.keys())
+    {
+        foreach(StoryInfoPointer key, series[series_key].staff.keys())
+        {
+            if(key->identity.startsWith(prefix))
+            {
+                // generate a random number to append to the identity
+                std::random_device rd;
+                std::mt19937 mt(rd());
+                std::uniform_int_distribution<> dist(INT_MAX / 2, INT_MAX);
+
+                prefix = QString("%1::%2").arg(story_info->identity).arg(QString::number(dist(mt),16));
+                story_info->identity = prefix;
+                break;
+            }
+        }
+    }
+}
+
+bool MainWindow::cover_story(StaffMap& staff, StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector *reporters_info)
+{
+    bool result = false;
+
+    if(!staff.contains(story_info))
+    {
+        StaffInfo staff_info;
+
+        if(!reporters_info)
+        {
+            if(beat_reporters.contains(story_info->reporter_beat))
+                reporters_info = &beat_reporters[story_info->reporter_beat];
+
+            if(!reporters_info)
+            {
+                QMessageBox::critical(0,
+                                      tr("Newsroom: Error"),
+                                      tr("No Reporters are available to cover the \"%1\" beat!").arg(story_info->reporter_beat));
+                return result;
+            }
+        }
+
+        // create a Chyron to display the Headlines for this story
+
+        staff_info.chyron = ChyronPointer(new Chyron(story_info, lane_manager));
+
+        // assign a staff Reporter from the selected department to cover the story
+
+        foreach(const PluginInfo& pi_info, (*reporters_info))
+        {
+            QObject* instance = pi_info.factory->instance();
+            IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+            Q_ASSERT(ireporterfactory);
+            IReporterPointer plugin_reporter = ireporterfactory->newInstance();
+            if(!story_info->reporter_id.compare(plugin_reporter->PluginID()))
+            {
+                staff_info.reporter = plugin_reporter;
+                // give the Reporter their assignment
+                staff_info.reporter->SetRequirements(story_info->reporter_parameters);
+                break;
+            }
+        }
+
+        // assign a staff Producer to receive Reporter filings and create Headlines
+
+        staff_info.producer = ProducerPointer(new Producer(staff_info.reporter, story_info, headline_style_list, this));
+
+        connect(staff_info.producer.data(), &Producer::signal_new_headline, staff_info.chyron.data(), &Chyron::slot_file_headline);
+
+        staff[story_info] = staff_info;
+    }
+
+    StaffInfo& staff_info = staff[story_info];
+
+    if(coverage_start == CoverageStart::Delayed)
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int> dist(2, std::nextafter(6, INT_MAX));
+
+        int offset = last_start_offset + dist(mt);
+        last_start_offset = offset;
+
+        QTimer::singleShot(offset * 1000, staff_info.producer.data(), &Producer::slot_start_covering_story);
+
+        result = true;
+    }
+    else if(coverage_start == CoverageStart::Immediate)
+    {
+        if(staff_info.producer->start_covering_story())
+        {
+            connect(staff_info.producer.data(), &Producer::signal_new_headline,
+                    staff_info.chyron.data(), &Chyron::slot_file_headline);
+
+            result = true;
+        }
+        else
+        {
+            QMessageBox::critical(0,
+                                  tr("Newsroom: Error"),
+                                  tr("The Reporter \"%1\" could not cover the Story!").arg(staff_info.reporter->DisplayName()[0]));
+            staff.remove(story_info);
+        }
+    }
+    else if(coverage_start == CoverageStart::None)
+        result = true;
+
+//    if(result)
+//        stories.append(story_info);
+
+    return result;
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    bool accept = true;
+
+    //    QStringList formats = event->mimeData()->formats();
+    //    if(event->mimeData()->hasFormat("text/uri-list"))
+
+    if(event->mimeData()->hasUrls())
+    {
+        QList<QUrl> urls = event->mimeData()->urls();
+        foreach(const QUrl& url, urls)
+        {
+            if(url.isLocalFile())
+            {
+                QString text = url.toLocalFile();
+                QString name = mime_db.mimeTypeForFile(text).name();
+                if(!name.startsWith("text/"))
+                    accept = false;
+            }
+        }
+    }
+    else
+        accept = false;
+
+    if(accept)
+        event->acceptProposedAction();
+}
+
+void MainWindow::dragMoveEvent(QDragMoveEvent *event)
+{
+    event->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent* event)
+{
+    bool accept = false;
+
+    // each element in the list has already been vetted
+    // in dragEnterEvent() above
+
+    QList<QUrl> urls = event->mimeData()->urls();
+    foreach(const QUrl& story, urls)
+    {
+        PluginsInfoVector* reporters_info = nullptr;
+
+        StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
+        restore_story_defaults(story_info);
+        story_info->story = story;
+        story_info->identity.clear();
+        story_info->dashboard_compact_mode = compact_mode;
+        story_info->dashboard_compression = compact_compression;
+
+        if(story.isLocalFile())
+            story_info->reporter_beat = "Local";
+        else
+            story_info->reporter_beat = "REST";
+
+        if(beat_reporters.contains(story_info->reporter_beat))
+            reporters_info = &beat_reporters[story_info->reporter_beat];
+
+        if(!reporters_info)
+        {
+            QMessageBox::critical(0,
+                                  tr("Newsroom: Error"),
+                                  tr("No Reporters are available to cover the \"%1\" beat!")
+                                        .arg(story_info->reporter_beat));
+            return;
+        }
+
+        AddStoryDialog addstory_dlg(reporters_info, story_info, settings, this);
+
+        restore_window_data(&addstory_dlg);
+
+        if(addstory_dlg.exec() == QDialog::Accepted)
+        {
+            // AddStoryDialog has automatically updated 'story_info' with all settings
+            save_story_defaults(story_info);
+
+            // fix any duplication issues with the story identity
+            fix_identity_duplication(story_info);
+
+            story_series[story_info->identity] = "Default";
+            accept = cover_story(series["Default"].staff, story_info, CoverageStart::Immediate, reporters_info);
+        }
+
+        save_window_data(&addstory_dlg);
+    }
+
+    if(accept)
+        event->acceptProposedAction();
+}
+
+void MainWindow::save_window_data(QWidget* window)
+{
+    if(!window_geometry_save_enabled)
+        return;
+
+    QString key = window->windowTitle();
+    window_data[key] = window->saveGeometry();
+
+    settings_modified = true;
+}
+
+void MainWindow::restore_window_data(QWidget* window)
+{
+    QString key = window->windowTitle();
+    if(window_data.find(key) == window_data.end())
+        return;
+
+    window->restoreGeometry(window_data[key]);
+}
+
+void MainWindow::slot_quit()
+{
+    if(settings_modified)
+        save_application_settings();
+
+    qApp->quit();
+}
+
+void MainWindow::build_tray_menu()
+{
+    if(trayIconMenu)
+    {
+        disconnect(trayIconMenu, &QMenu::triggered, this, &MainWindow::slot_menu_action);
+        delete trayIconMenu;
+    }
+
+//    options_action  = new QAction(QIcon(":/images/Options.png"), tr("Edit &Settings..."), this);
+//    if(note_clipboard)
+//        paste_action = new QAction(QIcon(":/images/Restore.png"), tr("&Paste Note"), this);
+    settings_action = new QAction(QIcon(":/images/Options.png"), tr("&Settings..."), this);
+    about_action    = new QAction(QIcon(":/images/About.png"), tr("&About"), this);
+    quit_action     = new QAction(QIcon(":/images/Quit.png"), tr("&Quit"), this);
+
+    trayIconMenu = new QMenu(this);
+
+//    trayIconMenu->addAction(options_action);
+//    trayIconMenu->addSeparator();
+//    if(note_clipboard)
+//    {
+//        trayIconMenu->addAction(paste_action);
+//        trayIconMenu->addSeparator();
+//    }
+    trayIconMenu->addAction(settings_action);
+    trayIconMenu->addSeparator();
+    trayIconMenu->addAction(about_action);
+    trayIconMenu->addSeparator();
+    trayIconMenu->addAction(quit_action);
+
+    trayIcon->setContextMenu(trayIconMenu);
+    connect(trayIconMenu, &QMenu::triggered, this, &MainWindow::slot_menu_action);
+}
+
+void MainWindow::save_application_settings()
+{
+    settings->clear_section("/Application");
+
+    settings->begin_section("/Application");
+
+    settings->set_item("auto_start", auto_start);
+    settings->set_item("continue_coverage", continue_coverage);
+    settings->set_item("dashboard.compact_mode", compact_mode);
+    settings->set_item("dashboard.compact_compression", compact_compression);
+    settings->set_item("chyron.font", headline_font.toString());
+
+    settings->begin_array("HeadlineStyles");
+    quint32 index = 0;
+    foreach(const HeadlineStyle& style, *(headline_style_list.data()))
+    {
+        settings->set_array_index(index++);
+
+        settings->set_item("name", style.name);
+        settings->set_item("triggers", style.triggers);
+        settings->set_item("stylesheet", style.stylesheet);
+    }
+
+    settings->end_array();
+
+    if(window_data.size())
+    {
+        settings->begin_array("WindowData");
+
+        index = 0;
+        QList<QString> keys = window_data.keys();
+        foreach(QString key, keys)
+        {
+            settings->set_array_index(index++);
+
+            settings->set_item("key", key);
+            settings->set_item("geometry", window_data[key]);
+        }
+
+        settings->end_array();
+    }
+
+    QStringList series_names;
+    foreach(const QString& series_name, series.keys())
+    {
+        series_names << series_name;
+        save_series(series_name);
+    }
+
+    settings->set_item("series", series_names);
+
+    settings->end_section();
+
+    settings->flush();
+
+    settings_modified = false;
+}
+
+void MainWindow::load_application_settings()
+{
+    window_data.clear();
+    if(lane_manager)
+        lane_manager.clear();
+
+    // add a Default Series entry on first runs
+    series.clear();
+    SeriesInfo si;
+    si.name = "Default";
+    series[si.name] = si;
+
+    // add a Default stylesheet entry on first runs
+    headline_style_list->clear();
+    HeadlineStyle hs;
+    hs.name = "Default";
+    hs.stylesheet = default_stylesheet;
+    headline_style_list->append(hs);
+
+    settings->begin_section("/Application");
+
+    auto_start = settings->get_item("auto_start", false).toBool();
+    continue_coverage = settings->get_item("continue_coverage", false).toBool();
+    compact_mode = settings->get_item("dashboard.compact_mode", false).toBool();
+    compact_compression = settings->get_item("dashboard.compact_compression", 25).toInt();
+    QFont f = ui->label->font();
+    QString font_str = settings->get_item("chyron.font", f.toString()).toString();
+    if(!font_str.isEmpty())
+        headline_font.fromString(font_str);
+
+    int styles_size = settings->begin_array("HeadlineStyles");
+    if(styles_size)
+    {
+        for(int i = 0; i < styles_size; ++i)
+        {
+            settings->set_array_index(i);
+
+            HeadlineStyle hs;
+            hs.name = settings->get_item("name").toString();
+            hs.triggers = settings->get_item("triggers").toStringList();
+            hs.stylesheet = settings->get_item("stylesheet").toString();
+
+            bool updated = false;
+            for(HeadlineStyleList::iterator iter = headline_style_list->begin();
+                iter != headline_style_list->end();++iter)
+            {
+                if(!iter->name.compare(hs.name))
+                {
+                    iter->triggers = hs.triggers;
+                    iter->stylesheet = hs.stylesheet;
+                    updated = true;
+                    break;
+                }
+            }
+
+            if(!updated)
+                headline_style_list->append(hs);
+        }
+    }
+    settings->end_array();
+
+    lane_manager = LaneManagerPointer(new LaneManager(headline_font, (*headline_style_list.data())[0].stylesheet, this));
+
+    int windata_size = settings->begin_array("WindowData");
+    if(windata_size)
+    {
+        for(int i = 0; i < windata_size; ++i)
+        {
+            settings->set_array_index(i);
+
+            QString key = settings->get_item("key").toString();
+            window_data[key] = settings->get_item("geometry").toByteArray();
+        }
+    }
+    settings->end_array();
+
+    QStringList series_names = settings->get_item("series", QStringList() << "Default").toStringList();
+    foreach(const QString& series_name, series_names)
+        load_series(series_name);
+
+    settings->end_section();
+
+    settings_modified = !QFile::exists(settings_file_name);
+}
+
+void MainWindow::load_series(const QString& name)
+{
+    QString series_dir = QDir::toNativeSeparators(QString("%1/Series")
+                                                .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    if(!QFile::exists(series_dir))
+        return;
+
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(name));
+    SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
+    series_settings->cache();
+
+    series_settings->begin_section("/Series");
+
+    QBitArray is_active;
+    QStringList active_list = series_settings->get_item("active", QString()).toString().split(",");
+
+    int story_count = series_settings->begin_array("Stories");
+    if(story_count)
+    {
+        is_active.resize(story_count);
+        foreach(const QString& active_index, active_list)
+            is_active.setBit(active_index.toInt());
+
+        if(!series.contains(name))
+        {
+            SeriesInfo si;
+            si.name = name;
+        }
+
+        SeriesInfo& si = series[name];
+
+        for(int i = 0; i < story_count; ++i)
+        {
+            series_settings->set_array_index(i);
+
+            StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
+            restore_story(series_settings, story_info);
+
+            story_info->dashboard_compact_mode = compact_mode;
+            story_info->dashboard_compression = compact_compression;
+
+            CoverageStart coverage_start = CoverageStart::None;
+            if(continue_coverage && is_active.testBit(i))
+            {
+                if(story_info->reporter_beat.compare("Local"))
+                    coverage_start = CoverageStart::Immediate;
+                else
+                    // prevent non-local Reporters from potentially hammering servers all at once
+                    coverage_start = CoverageStart::Delayed;
+            }
+
+            story_series[story_info->identity] = name;
+            cover_story(si.staff, story_info, coverage_start);
+        }
+    }
+    series_settings->end_array();
+
+    series_settings->end_section();
+}
+
+void MainWindow::save_series(const QString& name)
+{
+    QString series_dir = QDir::toNativeSeparators(QString("%1/Series")
+                                                .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    if(!QFile::exists(series_dir))
+    {
+        QDir d(series_dir);
+        if(!d.mkdir("."))
+            return;
+    }
+
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(name));
+    SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
+
+    if(!series.contains(name))
+    {
+        series_settings->remove();
+        return;
+    }
+
+    QStringList active;
+
+    SeriesInfo& si = series[name];
+
+    series_settings->cache();
+
+    series_settings->begin_section("/Series");
+
+    if(!si.staff.isEmpty())
+    {
+        series_settings->begin_array("Stories");
+
+        int index = 0;
+        foreach(StoryInfoPointer key, si.staff.keys())
+        {
+            if(si.staff[key].producer->is_covering_story())
+                active << QString::number(index);
+
+            series_settings->set_array_index(index++);
+            save_story(series_settings, key);
+        }
+
+        series_settings->end_array();
+
+        series_settings->set_item("active", active.join(","));
+    }
+    else
+        series_settings->clear_section("Stories");
+
+    series_settings->end_section();
+
+    series_settings->flush();
+}
+
 void MainWindow::restore_story_defaults(StoryInfoPointer story_info)
 {
     settings->begin_section("/StoryDefaults");
@@ -303,504 +893,6 @@ void MainWindow::restore_story(SettingsPointer settings, StoryInfoPointer story_
     story_info->font.fromString(settings->get_item("font", headline_font.toString()).toString());
 }
 
-void MainWindow::set_visible(bool visible)
-{
-    if(visible)
-        restore_window_data(this);
-
-    QWidget::setVisible(visible);
-}
-
-void MainWindow::paintEvent(QPaintEvent* /*event*/)
-{
-    QPainter painter(this);
-
-    auto winSize = size();
-    auto pixmapRatio = (float)background_image->width() / background_image->height();
-    auto windowRatio = (float)winSize.width() / winSize.height();
-
-    if(pixmapRatio > windowRatio)
-    {
-        auto newWidth = (int)(winSize.height() * pixmapRatio);
-        auto offset = (newWidth - winSize.width()) / -2;
-        painter.drawPixmap(offset, 0, newWidth, winSize.height(), *(background_image.data()));
-    }
-    else
-    {
-        auto newHeight = (int)(winSize.width() / pixmapRatio);
-        auto offset = (newHeight - winSize.height()) / -2;
-        painter.drawPixmap(0, offset, winSize.width(), newHeight, *(background_image.data()));
-    }
-}
-
-void MainWindow::closeEvent(QCloseEvent* event)
-{
-    if(trayIcon->isVisible())
-    {
-        save_window_data(this);
-        hide();
-        event->ignore();
-    }
-}
-
-//void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
-//{
-//    int next_dupe = 0;
-//    QRegExp dupe_value("\\:\\:(\\d+)$");
-
-//    foreach(StoryInfoPointer key, staff.keys())
-//    {
-//        if(key->identity.startsWith(story_info->identity))
-//        {
-//            QString identity = key->identity;
-//            identity.remove(0, story_info->identity.length());
-//            if(dupe_value.indexIn(identity) != -1)
-//            {
-//                int this_dupe = dupe_value.cap(1).toInt();
-//                if(this_dupe > next_dupe)
-//                    next_dupe = this_dupe;
-//            }
-//        }
-//    }
-
-//    if(next_dupe)
-//        story_info->identity = QString("%1_%2").arg(story_info->identity).arg(next_dupe + 1);
-//}
-
-void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
-{
-    QString prefix = QString("%1::").arg(story_info->identity);
-    foreach(StoryInfoPointer key, staff.keys())
-    {
-        if(key->identity.startsWith(prefix))
-        {
-            // generate a random number to append to the identity
-            std::random_device rd;
-            std::mt19937 mt(rd());
-            std::uniform_int_distribution<> dist(INT_MAX / 2, INT_MAX);
-
-            prefix = QString("%1::%2").arg(story_info->identity).arg(QString::number(dist(mt),16));
-            story_info->identity = prefix;
-            break;
-        }
-    }
-}
-
-bool MainWindow::cover_story(StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector *reporters_info)
-{
-    bool result = false;
-
-    if(!staff.contains(story_info))
-    {
-        StaffInfo staff_info;
-
-        if(!reporters_info)
-        {
-            if(beat_reporters.contains(story_info->reporter_beat))
-                reporters_info = &beat_reporters[story_info->reporter_beat];
-
-            if(!reporters_info)
-            {
-                QMessageBox::critical(0,
-                                      tr("Newsroom: Error"),
-                                      tr("No Reporters are available to cover the \"%1\" beat!").arg(story_info->reporter_beat));
-                return result;
-            }
-        }
-
-        // create a Chyron to display the Headlines for this story
-
-        staff_info.chyron = ChyronPointer(new Chyron(story_info, lane_manager));
-
-        // assign a staff Reporter from the selected department to cover the story
-
-        foreach(const PluginInfo& pi_info, (*reporters_info))
-        {
-            QObject* instance = pi_info.factory->instance();
-            IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
-            Q_ASSERT(ireporterfactory);
-            IReporterPointer plugin_reporter = ireporterfactory->newInstance();
-            if(!story_info->reporter_id.compare(plugin_reporter->PluginID()))
-            {
-                staff_info.reporter = plugin_reporter;
-                staff_info.reporter->SetRequirements(story_info->reporter_parameters);
-                break;
-            }
-        }
-
-        // assign a staff Producer to receive Reporter filings and create Headlines
-
-        staff_info.producer = ProducerPointer(new Producer(staff_info.reporter, story_info, headline_style_list, this));
-
-        connect(staff_info.producer.data(), &Producer::signal_new_headline, staff_info.chyron.data(), &Chyron::slot_file_headline);
-
-        staff[story_info] = staff_info;
-    }
-
-    StaffInfo& staff_info = staff[story_info];
-
-    if(coverage_start == CoverageStart::Delayed)
-    {
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_int_distribution<int> dist(2, std::nextafter(6, INT_MAX));
-
-        int offset = last_start_offset + dist(mt);
-        last_start_offset = offset;
-
-        QTimer::singleShot(offset * 1000, staff_info.producer.data(), &Producer::slot_start_covering_story);
-
-        result = true;
-    }
-    else if(coverage_start == CoverageStart::Immediate)
-    {
-        if(staff_info.producer->start_covering_story())
-        {
-            connect(staff_info.producer.data(), &Producer::signal_new_headline,
-                    staff_info.chyron.data(), &Chyron::slot_file_headline);
-
-            result = true;
-        }
-        else
-        {
-            QMessageBox::critical(0,
-                                  tr("Newsroom: Error"),
-                                  tr("The Reporter \"%1\" could not cover the Story!").arg(staff_info.reporter->DisplayName()[0]));
-            staff.remove(story_info);
-        }
-    }
-    else if(coverage_start == CoverageStart::None)
-        result = true;
-
-    if(result)
-        stories.append(story_info);
-
-    return result;
-}
-
-void MainWindow::dragEnterEvent(QDragEnterEvent *event)
-{
-    bool accept = true;
-
-    //    QStringList formats = event->mimeData()->formats();
-    //    if(event->mimeData()->hasFormat("text/uri-list"))
-
-    if(event->mimeData()->hasUrls())
-    {
-        QList<QUrl> urls = event->mimeData()->urls();
-        foreach(const QUrl& url, urls)
-        {
-            if(url.isLocalFile())
-            {
-                QString text = url.toLocalFile();
-                QString name = mime_db.mimeTypeForFile(text).name();
-                if(!name.startsWith("text/"))
-                    accept = false;
-            }
-        }
-    }
-    else
-        accept = false;
-
-    if(accept)
-        event->acceptProposedAction();
-}
-
-void MainWindow::dragMoveEvent(QDragMoveEvent *event)
-{
-    event->acceptProposedAction();
-}
-
-void MainWindow::dropEvent(QDropEvent* event)
-{
-    bool accept = false;
-
-    // each element in the list has already been vetted
-    // in dragEnterEvent() above
-
-    QList<QUrl> urls = event->mimeData()->urls();
-    foreach(const QUrl& story, urls)
-    {
-        PluginsInfoVector* reporters_info = nullptr;
-
-        StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
-        restore_story_defaults(story_info);
-        story_info->story = story;
-        story_info->identity.clear();
-        story_info->dashboard_compact_mode = compact_mode;
-        story_info->dashboard_compression = compact_compression;
-
-        if(story.isLocalFile())
-            story_info->reporter_beat = "Local";
-        else
-            story_info->reporter_beat = "REST";
-
-        if(beat_reporters.contains(story_info->reporter_beat))
-            reporters_info = &beat_reporters[story_info->reporter_beat];
-
-        if(!reporters_info)
-        {
-            QMessageBox::critical(0,
-                                  tr("Newsroom: Error"),
-                                  tr("No Reporters are available to cover the \"%1\" beat!")
-                                        .arg(story_info->reporter_beat));
-            return;
-        }
-
-        AddStoryDialog addstory_dlg(reporters_info, story_info, settings, this);
-
-        restore_window_data(&addstory_dlg);
-
-        if(addstory_dlg.exec() == QDialog::Accepted)
-        {
-            // AddStoryDialog has automatically updated 'story_info' with all settings
-            save_story_defaults(story_info);
-
-            // fix any duplication issues with the story identity
-            fix_identity_duplication(story_info);
-
-            accept = cover_story(story_info, CoverageStart::Immediate, reporters_info);
-        }
-
-        save_window_data(&addstory_dlg);
-    }
-
-    if(accept)
-        event->acceptProposedAction();
-}
-
-void MainWindow::save_window_data(QWidget* window)
-{
-    if(!window_geometry_save_enabled)
-        return;
-
-    QString key = window->windowTitle();
-    window_data[key] = window->saveGeometry();
-
-    settings_modified = true;
-}
-
-void MainWindow::restore_window_data(QWidget* window)
-{
-    QString key = window->windowTitle();
-    if(window_data.find(key) == window_data.end())
-        return;
-
-    window->restoreGeometry(window_data[key]);
-}
-
-void MainWindow::slot_quit()
-{
-    if(settings_modified)
-        save_application_settings();
-
-    qApp->quit();
-}
-
-void MainWindow::build_tray_menu()
-{
-    if(trayIconMenu)
-    {
-        disconnect(trayIconMenu, &QMenu::triggered, this, &MainWindow::slot_menu_action);
-        delete trayIconMenu;
-    }
-
-//    options_action  = new QAction(QIcon(":/images/Options.png"), tr("Edit &Settings..."), this);
-//    if(note_clipboard)
-//        paste_action = new QAction(QIcon(":/images/Restore.png"), tr("&Paste Note"), this);
-    settings_action = new QAction(QIcon(":/images/Options.png"), tr("&Settings..."), this);
-    about_action    = new QAction(QIcon(":/images/About.png"), tr("&About"), this);
-    quit_action     = new QAction(QIcon(":/images/Quit.png"), tr("&Quit"), this);
-
-    trayIconMenu = new QMenu(this);
-
-//    trayIconMenu->addAction(options_action);
-//    trayIconMenu->addSeparator();
-//    if(note_clipboard)
-//    {
-//        trayIconMenu->addAction(paste_action);
-//        trayIconMenu->addSeparator();
-//    }
-    trayIconMenu->addAction(settings_action);
-    trayIconMenu->addSeparator();
-    trayIconMenu->addAction(about_action);
-    trayIconMenu->addSeparator();
-    trayIconMenu->addAction(quit_action);
-
-    trayIcon->setContextMenu(trayIconMenu);
-    connect(trayIconMenu, &QMenu::triggered, this, &MainWindow::slot_menu_action);
-}
-
-void MainWindow::save_application_settings()
-{
-    settings->clear_section("/Application");
-
-    settings->begin_section("/Application");
-
-    settings->set_item("auto_start", auto_start);
-    settings->set_item("continue_coverage", continue_coverage);
-    settings->set_item("dashboard.compact_mode", compact_mode);
-    settings->set_item("dashboard.compact_compression", compact_compression);
-    settings->set_item("chyron.font", headline_font.toString());
-
-    settings->begin_array("HeadlineStyles");
-    quint32 index = 0;
-    foreach(const HeadlineStyle& style, *(headline_style_list.data()))
-    {
-        settings->set_array_index(index++);
-
-        settings->set_item("name", style.name);
-        settings->set_item("triggers", style.triggers);
-        settings->set_item("stylesheet", style.stylesheet);
-    }
-
-    settings->end_array();
-
-    if(window_data.size())
-    {
-        settings->begin_array("WindowData");
-
-        index = 0;
-        QList<QString> keys = window_data.keys();
-        foreach(QString key, keys)
-        {
-            settings->set_array_index(index++);
-
-            settings->set_item("key", key);
-            settings->set_item("geometry", window_data[key]);
-        }
-
-        settings->end_array();
-    }
-
-    if(!staff.isEmpty())
-    {
-        settings->begin_array("Stories");
-
-        index = 0;
-        foreach(StoryInfoPointer key, stories)
-        {
-            settings->set_array_index(index++);
-            save_story(settings, key);
-        }
-
-        settings->end_array();
-    }
-    else
-        settings->clear_section("Stories");
-
-    settings->end_section();
-
-    settings->flush();
-
-    settings_modified = false;
-}
-
-void MainWindow::load_application_settings()
-{
-    window_data.clear();
-    if(lane_manager)
-        lane_manager.clear();
-    stories.clear();
-    staff.clear();
-
-    headline_style_list->clear();
-    // add a Default stylesheet entry on first runs
-    HeadlineStyle hs;
-    hs.name = "Default";
-    hs.stylesheet = default_stylesheet;
-    headline_style_list->append(hs);
-
-    settings->begin_section("/Application");
-
-    auto_start = settings->get_item("auto_start", false).toBool();
-    continue_coverage = settings->get_item("continue_coverage", false).toBool();
-    compact_mode = settings->get_item("dashboard.compact_mode", false).toBool();
-    compact_compression = settings->get_item("dashboard.compact_compression", 25).toInt();
-    QFont f = ui->label->font();
-    QString font_str = settings->get_item("chyron.font", f.toString()).toString();
-    if(!font_str.isEmpty())
-        headline_font.fromString(font_str);
-
-    int styles_size = settings->begin_array("HeadlineStyles");
-    if(styles_size)
-    {
-        for(int i = 0; i < styles_size; ++i)
-        {
-            settings->set_array_index(i);
-
-            HeadlineStyle hs;
-            hs.name = settings->get_item("name").toString();
-            hs.triggers = settings->get_item("triggers").toStringList();
-            hs.stylesheet = settings->get_item("stylesheet").toString();
-
-            bool updated = false;
-            for(HeadlineStyleList::iterator iter = headline_style_list->begin();
-                iter != headline_style_list->end();++iter)
-            {
-                if(!iter->name.compare(hs.name))
-                {
-                    iter->triggers = hs.triggers;
-                    iter->stylesheet = hs.stylesheet;
-                    updated = true;
-                    break;
-                }
-            }
-
-            if(!updated)
-                headline_style_list->append(hs);
-        }
-    }
-    settings->end_array();
-
-    int windata_size = settings->begin_array("WindowData");
-    if(windata_size)
-    {
-        for(int i = 0; i < windata_size; ++i)
-        {
-            settings->set_array_index(i);
-
-            QString key = settings->get_item("key").toString();
-            window_data[key] = settings->get_item("geometry").toByteArray();
-        }
-    }
-    settings->end_array();
-
-    lane_manager = LaneManagerPointer(new LaneManager(headline_font, (*headline_style_list.data())[0].stylesheet, this));
-
-    int story_count = settings->begin_array("Stories");
-    if(story_count)
-    {
-        for(int i = 0; i < story_count; ++i)
-        {
-            settings->set_array_index(i);
-
-            StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
-            restore_story(settings, story_info);
-
-            story_info->dashboard_compact_mode = compact_mode;
-            story_info->dashboard_compression = compact_compression;
-
-            CoverageStart coverage_start = CoverageStart::None;
-            if(continue_coverage)
-            {
-                if(story_info->reporter_beat.compare("Local"))
-                    coverage_start = CoverageStart::Immediate;
-                else
-                    // prevent non-local Reporters from potentially hammering servers all at once
-                    coverage_start = CoverageStart::Delayed;
-            }
-
-            cover_story(story_info, coverage_start);
-        }
-    }
-    settings->end_array();
-
-    settings->end_section();
-
-    settings_modified = !QFile::exists(settings_file_name);
-}
-
 void MainWindow::slot_icon_activated(QSystemTrayIcon::ActivationReason reason)
 {
     switch(reason)
@@ -848,20 +940,12 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 {
     SettingsDialog dlg(this);
 
-    QList<QString> story_identities;
-    QList<ProducerPointer> producer_identities;
-    foreach(StoryInfoPointer story_info, stories)
-    {
-        story_identities.append(story_info->identity);
-        producer_identities.append(staff[story_info].producer);
-    }
-
     dlg.set_autostart(auto_start);
     dlg.set_continue_coverage(continue_coverage);
     dlg.set_compact_mode(compact_mode, compact_compression);
     dlg.set_font(headline_font);
     dlg.set_styles(*(headline_style_list.data()));
-    dlg.set_stories(story_identities, producer_identities);
+    dlg.set_series(series);
 
     restore_window_data(&dlg);
 
@@ -869,35 +953,94 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     if(dlg.exec() == QDialog::Accepted)
     {
+        QString series_dir = QDir::toNativeSeparators(QString("%1/Series")
+                                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+
         auto_start                       = dlg.get_autostart();
         continue_coverage                = dlg.get_continue_coverage();
         compact_mode                     = dlg.get_compact_mode(compact_compression);
         headline_font                    = dlg.get_font();
-        QList<QString> remaining_stories = dlg.get_stories();
-
         dlg.get_styles(*(headline_style_list.data()));
 
-        if(remaining_stories.count() != stories.count())
-        {
-            // stories have been deleted
+        // process any moves before any deletions!
 
-            QVector<StoryInfoPointer> deleted_stories;
-            foreach(const QString& story_id, story_identities)
+        SettingsDialog::SeriesList remaining_stories = dlg.get_series();
+
+        // first, handle Stories that might have moved to a different Series
+
+        QStringList remaining_series;
+        foreach(const SettingsDialog::SeriesPair& pair, remaining_stories)
+        {
+            remaining_series << pair.first;
+
+            foreach(const QString& story_id, pair.second)
             {
-                if(!remaining_stories.contains(story_id))
+                // the original Series name is sitting in story_series[]
+                if(story_series[story_id].compare(pair.first))
                 {
-                    foreach(StoryInfoPointer story_info, stories)
+                    // this one has moved
+                    SeriesInfo& old_series = series[story_series[story_id]];
+                    SeriesInfo& new_series = series[pair.first];
+
+                    foreach(StoryInfoPointer story_info, old_series.staff.keys())
                     {
                         if(!story_info->identity.compare(story_id))
-                           deleted_stories.append(story_info);
+                        {
+                            new_series.staff[story_info] = old_series.staff[story_info];
+                            old_series.staff.remove(story_info);
+                            break;
+                        }
                     }
+
+                    story_series[story_id] = pair.first;
                 }
             }
+        }
 
-            foreach(StoryInfoPointer story_info, deleted_stories)
+        // now, clear any deleted Series
+
+        QStringList deleted_series;
+        foreach(const QString& series_name, series.keys())
+        {
+            if(!remaining_series.contains(series_name))
+                deleted_series << series_name;
+        }
+
+        foreach(const QString& series_name, deleted_series)
+        {
+            foreach(StoryInfoPointer story_info, series[series_name].staff.keys())
             {
-                stories.removeAll(story_info);
-                staff.remove(story_info);
+                story_series.remove(story_info->identity);
+                series[series_name].staff.remove(story_info);
+            }
+
+            series.remove(series_name);
+
+            QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(series_name));
+            SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
+            series_settings->remove();
+        }
+
+        // finally, clear any deleted Stories
+
+        QList<QString> deleted_stories = story_series.keys();
+        foreach(const SettingsDialog::SeriesPair& pair, remaining_stories)
+        {
+            foreach(const QString& story_id, pair.second)
+                deleted_stories.removeAll(story_id);
+        }
+
+        foreach(const QString& story_id, deleted_stories)
+        {
+            SeriesInfo& si = series[story_series[story_id]];
+            story_series.remove(story_id);
+            foreach(StoryInfoPointer story_info, si.staff.keys())
+            {
+                if(!story_info->identity.compare(story_id))
+                {
+                    si.staff.remove(story_info);
+                    break;
+                }
             }
         }
 
@@ -910,8 +1053,9 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 void MainWindow::slot_edit_story(const QString& story_id)
 {
     StoryInfoPointer story_info;
+    SeriesInfo& si = series[story_series[story_id]];
 
-    foreach(StoryInfoPointer key, stories)
+    foreach(StoryInfoPointer key, si.staff.keys())
     {
         if(!key->identity.compare(story_id))
         {
@@ -936,7 +1080,7 @@ void MainWindow::slot_edit_story(const QString& story_id)
         return;
     }
 
-    CoverageStart coverage_start = staff[story_info].producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
+    CoverageStart coverage_start = si.staff[story_info].producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
 
     AddStoryDialog addstory_dlg(reporters_info, story_info, settings, this);
 
@@ -956,10 +1100,10 @@ void MainWindow::slot_edit_story(const QString& story_id)
 
     if(addstory_dlg.exec() == QDialog::Accepted)
     {
-        staff.remove(story_info);
+        si.staff.remove(story_info);
 
         // AddStoryDialog has automatically updated 'story_info' with all settings
-        (void)cover_story(story_info, coverage_start, reporters_info);
+        (void)cover_story(si.staff, story_info, coverage_start, reporters_info);
     }
 
     save_window_data(&addstory_dlg);

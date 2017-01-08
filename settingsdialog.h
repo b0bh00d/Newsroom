@@ -6,17 +6,24 @@
 #include <QtCore/QList>
 
 #include "types.h"
-#include "producer.h"
+#include "specialize.h"
+#include "seriesinfo.h"    // -> staffinfo.h -> producer.h
 
 namespace Ui {
 class SettingsDialog;
 }
 
+class QTreeWidgetItem;
+
 class SettingsDialog : public QDialog
 {
     Q_OBJECT
 
-public:
+public:     // typdefs and enums
+    SPECIALIZE_PAIR(QString, QStringList, Series)       // "SeriesPair"
+    SPECIALIZE_LIST(SeriesPair, Series)                 // "SeriesList"
+
+public:     // methods
     explicit SettingsDialog(QWidget *parent = 0);
     ~SettingsDialog();
 
@@ -26,13 +33,14 @@ public:
     void            set_font(const QFont& font);
     void            set_styles(const HeadlineStyleList& style_list);
     void            set_stories(const QList<QString>& stories, const QList<ProducerPointer> producers);
+    void            set_series(const SeriesMap& series);
 
     bool            get_autostart();
     bool            get_continue_coverage();
     bool            get_compact_mode(int& zoom_percent);
     QFont           get_font();
     void            get_styles(HeadlineStyleList& style_list);
-    QList<QString>  get_stories();
+    SeriesList      get_series();
 
 signals:
     void            signal_edit_story(const QString& story_id);
@@ -53,7 +61,17 @@ protected slots:
     void            slot_remove_story();
     void            slot_remove_story_all();
     void            slot_compact_mode_clicked(bool);
+    void            slot_rename_series(QTreeWidgetItem*, int);
+    void            slot_series_renamed(QTreeWidgetItem*, int);
 
-private:
+private:    // typedefs and enums
+    SPECIALIZE_MAP(QString, ProducerPointer, Producer)     // "ProducerMap"
+
+private:    // data members
     Ui::SettingsDialog *ui;
+
+    ProducerMap     producers;
+
+    QString         original_series_name;
+    bool            editing;
 };
