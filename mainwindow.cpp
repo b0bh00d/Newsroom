@@ -514,12 +514,8 @@ void MainWindow::save_application_settings()
         settings->end_array();
     }
 
-    QStringList series_names;
-    foreach(const QString& series_name, series.keys())
-    {
-        series_names << series_name;
+    foreach(const QString& series_name, series_names)
         save_series(series_name);
-    }
 
     settings->set_item("series", series_names);
 
@@ -606,7 +602,7 @@ void MainWindow::load_application_settings()
     }
     settings->end_array();
 
-    QStringList series_names = settings->get_item("series", QStringList() << "Default").toStringList();
+    series_names = settings->get_item("series", QStringList() << "Default").toStringList();
     foreach(const QString& series_name, series_names)
         load_series(series_name);
 
@@ -950,7 +946,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     settings_dlg->set_compact_mode(compact_mode, compact_compression);
     settings_dlg->set_font(headline_font);
     settings_dlg->set_styles(*(headline_style_list.data()));
-    settings_dlg->set_series(series);
+    settings_dlg->set_series(series_names, series);
 
     restore_window_data(settings_dlg);
 
@@ -1004,11 +1000,16 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
         // now, clear any deleted Series
 
+        series_names = remaining_series;
+
         QStringList deleted_series;
         foreach(const QString& series_name, series.keys())
         {
             if(!remaining_series.contains(series_name))
+            {
                 deleted_series << series_name;
+                series_names.removeAll(series_name);
+            }
         }
 
         foreach(const QString& series_name, deleted_series)
