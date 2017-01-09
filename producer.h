@@ -12,6 +12,7 @@
 #include "specialize.h"
 #include "headline.h"
 #include "storyinfo.h"
+#include "chyron.h"
 
 /// @class Producer
 /// @brief Manages a Reporter covering a Story
@@ -26,7 +27,8 @@ class Producer : public QObject
 {
     Q_OBJECT
 public:
-    explicit Producer(IReporterPointer reporter,
+    explicit Producer(ChyronPointer chyron,
+                      IReporterPointer reporter,
                       StoryInfoPointer story_info,
                       StyleListPointer style_list,
                       QObject *parent = 0);
@@ -53,7 +55,8 @@ private:        // methods
 private:        // data members
     bool                covering_story;
 
-    IReporterPointer    reporter_plugin;
+    IReporterPointer    reporter;
+    ChyronPointer       chyron;
     StoryInfoPointer    story_info;
     StyleListPointer    style_list;
 };

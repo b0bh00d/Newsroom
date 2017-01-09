@@ -23,6 +23,16 @@ Chyron::Chyron(StoryInfoPointer story_info, LaneManagerPointer lane_manager, QOb
     age_timer = new QTimer(this);
     age_timer->setInterval(100);
     connect(age_timer, &QTimer::timeout, this, &Chyron::slot_age_headlines);
+}
+
+Chyron::~Chyron()
+{
+    hide();
+    age_timer->deleteLater();
+}
+
+void Chyron::display()
+{
     age_timer->start();
 
     lane_manager->subscribe(this);
@@ -32,10 +42,11 @@ Chyron::Chyron(StoryInfoPointer story_info, LaneManagerPointer lane_manager, QOb
 #endif
 }
 
-Chyron::~Chyron()
+void Chyron::hide()
 {
 #ifdef HIGHLIGHT_LANES
-    highlight->deleteLater();
+    if(highlight)
+        highlight->deleteLater();
 #endif
 
     lane_manager->unsubscribe(this);

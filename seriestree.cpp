@@ -38,19 +38,10 @@ void SeriesTree::dropEvent(QDropEvent* event)
     // the default implementation takes care of the actual move inside the tree
     QTreeWidget::dropEvent(event);
 
-//    // find out their row numbers before the drag
-//    QList<int> fromRows;
-//    foreach(QTreeWidgetItem *item, dragItems)
-//        fromRows.append(indexFromItem(item).row());
-
-//    // the default implementation takes care of the actual move inside the tree
-//    QTreeWidget::dropEvent(event);
-
-//    // query the indices of the dragged items again
-//    QList<int> toRows;
-//    foreach(QTreeWidgetItem *item, dragItems)
-//        toRows.append(indexFromItem(item).row());
-
-    // notify subscribers in some useful way
-//    emit itemsMoved(fromRows, toRows);
+    // in case they missed the parenting target
+    if(indexOfTopLevelItem(dragItems[0]) != -1)
+    {
+        takeTopLevelItem(indexOfTopLevelItem(dragItems[0]));
+        destination_item->insertChild(0, dragItems[0]);
+    }
 }
