@@ -126,6 +126,7 @@ void LaneManager::unsubscribe(Chyron* chyron)
     DashboardPointer dashboard_group;
     if(IS_DASHBOARD(story_info->entry_type))
     {
+        // find the dashboard group that contains this Chyron
         foreach(DashboardPointer dashboard, dashboard_map[story_info->entry_type])
         {
             foreach(LaneDataPointer lane, dashboard->chyrons)
@@ -182,14 +183,14 @@ void LaneManager::unsubscribe(Chyron* chyron)
     // than the one that is unsubscribing
     bool shifting = false;
 
-    foreach(LaneDataPointer data, (*lane_list))
+    foreach(LaneDataPointer lane_data, (*lane_list))
     {
-        if(data->owner == chyron)
+        if(lane_data->owner == chyron)
             shifting = true;
-        if(!shifting || data->owner == chyron)
+        if(!shifting || lane_data->owner == chyron)
             continue;
 
-        StoryInfoPointer data_story_info = data->owner->get_settings();
+        StoryInfoPointer data_story_info = lane_data->owner->get_settings();
 
         switch(data_story_info->entry_type)
         {
@@ -203,7 +204,7 @@ void LaneManager::unsubscribe(Chyron* chyron)
             case AnimEntryType::TrainUpCenterBottom:
             case AnimEntryType::DashboardInLeftTop:
             case AnimEntryType::DashboardInLeftBottom:
-                data->owner->shift_left(shift);
+                lane_data->owner->shift_left(shift);
                 break;
             case AnimEntryType::SlideDownRightTop:
             case AnimEntryType::TrainDownRightTop:
@@ -211,7 +212,7 @@ void LaneManager::unsubscribe(Chyron* chyron)
             case AnimEntryType::TrainUpRightBottom:
             case AnimEntryType::DashboardInRightTop:
             case AnimEntryType::DashboardInRightBottom:
-                data->owner->shift_right(shift);
+                lane_data->owner->shift_right(shift);
                 break;
             case AnimEntryType::SlideInLeftTop:
             case AnimEntryType::TrainInLeftTop:
@@ -219,7 +220,7 @@ void LaneManager::unsubscribe(Chyron* chyron)
             case AnimEntryType::TrainInRightTop:
             case AnimEntryType::DashboardDownLeftTop:
             case AnimEntryType::DashboardDownRightTop:
-                data->owner->shift_up(shift);
+                lane_data->owner->shift_up(shift);
                 break;
             case AnimEntryType::SlideInLeftBottom:
             case AnimEntryType::TrainInLeftBottom:
@@ -227,7 +228,7 @@ void LaneManager::unsubscribe(Chyron* chyron)
             case AnimEntryType::TrainInRightBottom:
             case AnimEntryType::DashboardUpLeftBottom:
             case AnimEntryType::DashboardUpRightBottom:
-                data->owner->shift_down(shift);
+                lane_data->owner->shift_down(shift);
         }
     }
 
@@ -237,7 +238,82 @@ void LaneManager::unsubscribe(Chyron* chyron)
     {
         dashboard_group->chyrons.removeAll(data);
         if(dashboard_group->chyrons.isEmpty())
+        {
+            // collapse all remaining dashboards of lower priority,
+            // just like we did for individual Chyrons above
+
+            bool shifting = false;
+
+            foreach(DashboardPointer dashboard, dashboard_map[story_info->entry_type])
+            {
+                if(dashboard_group == dashboard)
+                    shifting = true;
+                if(!shifting || dashboard_group == dashboard)
+                    continue;
+
+                StoryInfoPointer data_story_info = dashboard->chyrons[0]->owner->get_settings();
+                AnimEntryType entry_type = data_story_info->entry_type;
+
+                foreach(LaneDataPointer lane_data, dashboard->chyrons)
+                {
+                    switch(entry_type)
+                    {
+                        case AnimEntryType::DashboardInLeftTop:
+                        case AnimEntryType::DashboardInRightTop:
+                            shift = data->lane_boundaries.height();
+                            lane_data->owner->shift_up(shift);
+                            break;
+                        case AnimEntryType::DashboardInLeftBottom:
+                        case AnimEntryType::DashboardInRightBottom:
+                            shift = data->lane_boundaries.height();
+                            lane_data->owner->shift_down(shift);
+                            break;
+                        case AnimEntryType::DashboardDownLeftTop:
+                        case AnimEntryType::DashboardUpLeftBottom:
+                            shift = data->lane_boundaries.width();
+                            lane_data->owner->shift_left(shift);
+                            break;
+                        case AnimEntryType::DashboardDownRightTop:
+                        case AnimEntryType::DashboardUpRightBottom:
+                            shift = data->lane_boundaries.width();
+                            lane_data->owner->shift_right(shift);
+                            break;
+                    }
+                }
+
+                // don't forget to move the dashboard header as well
+
+                QRect r = dashboard->lane_header->geometry();
+                dashboard->lane_header->animation = new QPropertyAnimation(dashboard->lane_header.data(), "geometry");
+                dashboard->lane_header->animation->setDuration(data_story_info->anim_motion_duration);
+                dashboard->lane_header->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+                dashboard->lane_header->animation->setEasingCurve(QEasingCurve::InCubic);
+
+                switch(entry_type)
+                {
+                    case AnimEntryType::DashboardInLeftTop:
+                    case AnimEntryType::DashboardInRightTop:
+                        dashboard->lane_header->animation->setEndValue(QRect(r.x(), r.y() - shift, r.width(), r.height()));
+                        break;
+                    case AnimEntryType::DashboardInLeftBottom:
+                    case AnimEntryType::DashboardInRightBottom:
+                        dashboard->lane_header->animation->setEndValue(QRect(r.x(), r.y() + shift, r.width(), r.height()));
+                        break;
+                    case AnimEntryType::DashboardDownLeftTop:
+                    case AnimEntryType::DashboardUpLeftBottom:
+                        dashboard->lane_header->animation->setEndValue(QRect(r.x() - shift, r.y(), r.width(), r.height()));
+                        break;
+                    case AnimEntryType::DashboardDownRightTop:
+                    case AnimEntryType::DashboardUpRightBottom:
+                        dashboard->lane_header->animation->setEndValue(QRect(r.x() + shift, r.y(), r.width(), r.height()));
+                        break;
+                }
+
+                dashboard->lane_header->animation->start(QAbstractAnimation::DeleteWhenStopped);
+            }
+
             dashboard_map[story_info->entry_type].removeAll(dashboard_group);
+        }
     }
 }
 
