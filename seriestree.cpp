@@ -35,13 +35,32 @@ void SeriesTree::dropEvent(QDropEvent* event)
         return;
     }
 
+    // are they moving a Series or a Story?
+    bool was_top_level_item = (indexOfTopLevelItem(dragItems[0]) != -1);
+
     // the default implementation takes care of the actual move inside the tree
     QTreeWidget::dropEvent(event);
 
     // in case they missed the parenting target
-    if(indexOfTopLevelItem(dragItems[0]) != -1)
+
+    if(!was_top_level_item)
     {
-        takeTopLevelItem(indexOfTopLevelItem(dragItems[0]));
-        destination_item->insertChild(0, dragItems[0]);
+        // Stories cannot be top-level items
+        if(indexOfTopLevelItem(dragItems[0]) != -1)
+        {
+            takeTopLevelItem(indexOfTopLevelItem(dragItems[0]));
+            destination_item->insertChild(0, dragItems[0]);
+        }
+    }
+    else
+    {
+        // Series cannot be parented to other Series
+        if(indexOfTopLevelItem(dragItems[0]) == -1)
+        {
+            QTreeWidgetItem* parent = dragItems[0]->parent();
+            parent->takeChild(parent->indexOfChild(dragItems[0]));
+            insertTopLevelItem(indexOfTopLevelItem(parent), dragItems[0]);
+            dragItems[0]->setExpanded(true);
+        }
     }
 }
