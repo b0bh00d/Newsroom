@@ -29,6 +29,7 @@
 #include "settings.h"
 
 #include "addstorydialog.h"
+#include "settingsdialog.h"
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
@@ -144,4 +145,6 @@ private:    // data members
     int                 last_start_offset;
 
     PixmapPointer       background_image;
+
+    SettingsDialog*     settings_dlg;
 };

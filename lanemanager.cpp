@@ -14,6 +14,9 @@ LaneManager::LaneManager(const QFont& font, const QString& stylesheet, QObject *
 
 void LaneManager::subscribe(Chyron* chyron)
 {
+    if(data_map.contains(chyron))
+        return;
+
     StoryInfoPointer story_info = chyron->get_settings();
 
     QDesktopWidget* desktop = QApplication::desktop();
@@ -113,6 +116,9 @@ void LaneManager::subscribe(Chyron* chyron)
 
 void LaneManager::unsubscribe(Chyron* chyron)
 {
+    if(!data_map.contains(chyron))
+        return;
+
     StoryInfoPointer story_info = chyron->get_settings();
 
     LaneList* lane_list;

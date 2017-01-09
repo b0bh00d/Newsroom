@@ -67,6 +67,10 @@ protected slots:
 private:    // typedefs and enums
     SPECIALIZE_MAP(QString, ProducerPointer, Producer)     // "ProducerMap"
 
+private:    // methods
+    void            start_coverage(QTreeWidgetItem* item);
+    void            stop_coverage(QTreeWidgetItem* item);
+
 private:    // data members
     Ui::SettingsDialog *ui;
 

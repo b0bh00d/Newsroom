@@ -359,27 +359,46 @@ void SettingsDialog::slot_edit_story()
     emit signal_edit_story(selections[0]->text(1));
 }
 
+void SettingsDialog::start_coverage(QTreeWidgetItem* item)
+{
+    ProducerPointer producer = producers[item->text(1)];
+    if(!producer->start_covering_story())
+    {
+        QMessageBox::critical(this,
+                              "Newsroom: Error",
+                              "The Producer reports this Story cannot be covered!");
+    }
+    else
+        item->setIcon(0, QIcon(":/images/Covering.png"));
+}
+
 void SettingsDialog::slot_start_coverage()
 {
     QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
     if(selections.count())
     {
-        ProducerPointer producer = producers[selections[0]->text(1)];
-        if(!producer->start_covering_story())
+        if(ui->tree_Series->indexOfTopLevelItem(selections[0]) != -1)
         {
-            QMessageBox::critical(this,
-                                  "Newsroom: Error",
-                                  "The Producer reports this Story cannot be covered!");
+            for(int i = 0;i < selections[0]->childCount();++i)
+                start_coverage(selections[0]->child(i));
         }
         else
-        {
-            selections[0]->setIcon(0, QIcon(":/images/Covering.png"));
+            start_coverage(selections[0]);
 
-            for(int i = 0;i < ui->tree_Series->columnCount();++i)
-                ui->tree_Series->resizeColumnToContents(i);
+        for(int i = 0;i < ui->tree_Series->columnCount();++i)
+            ui->tree_Series->resizeColumnToContents(i);
 
-            slot_story_selection_changed();
-        }
+        slot_story_selection_changed();
+    }
+}
+
+void SettingsDialog::stop_coverage(QTreeWidgetItem* item)
+{
+    ProducerPointer producer = producers[item->text(1)];
+    if(producer->is_covering_story())
+    {
+        if(producer->stop_covering_story())
+            item->setIcon(0, QIcon(":/images/NotCovering.png"));
     }
 }
 
@@ -388,19 +407,18 @@ void SettingsDialog::slot_stop_coverage()
     QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
     if(selections.count())
     {
-        ProducerPointer producer = producers[selections[0]->text(1)];
-        if(producer->is_covering_story())
+        if(ui->tree_Series->indexOfTopLevelItem(selections[0]) != -1)
         {
-            if(producer->stop_covering_story())
-            {
-                selections[0]->setIcon(0, QIcon(":/images/NotCovering.png"));
-
-                for(int i = 0;i < ui->tree_Series->columnCount();++i)
-                    ui->tree_Series->resizeColumnToContents(i);
-
-                slot_story_selection_changed();
-            }
+            for(int i = 0;i < selections[0]->childCount();++i)
+                stop_coverage(selections[0]->child(i));
         }
+        else
+            stop_coverage(selections[0]);
+
+        for(int i = 0;i < ui->tree_Series->columnCount();++i)
+            ui->tree_Series->resizeColumnToContents(i);
+
+        slot_story_selection_changed();
     }
 }
 
@@ -517,6 +535,13 @@ void SettingsDialog::slot_series_renamed(QTreeWidgetItem* item, int col)
     if(!original_series_name.compare(new_series_name))
         return;     // no change
 
+    if(new_series_name.isEmpty())
+    {
+        // blank names not allowed
+        item->setText(0, original_series_name);
+        return;
+    }
+
     // make sure it's not a duplicate
     for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
     {
@@ -539,6 +564,9 @@ void SettingsDialog::slot_series_renamed(QTreeWidgetItem* item, int col)
         new_default->setFlags(new_default->flags() | Qt::ItemIsEditable);
         ui->tree_Series->insertTopLevelItem(0, new_default);
     }
+
+    for(int i = 0;i < ui->tree_Series->columnCount();++i)
+        ui->tree_Series->resizeColumnToContents(i);
 }
 
 // this is from an early iteration of the application; I keep it for the gradient stylesheet refrence

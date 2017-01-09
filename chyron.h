@@ -32,6 +32,9 @@ public:
                     QObject* parent = nullptr);
     ~Chyron();
 
+    void        display();      // Begins displaying Headlines
+    void        hide();         // Stops displaying Headlines (and destroys existing)
+
     StoryInfoPointer get_settings()      const   { return story_info; }
 
     // These methods are used by the Lane Manager to adjust lanes

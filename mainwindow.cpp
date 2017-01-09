@@ -19,7 +19,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include "settingsdialog.h"
 #include "chyron.h"
 
 MainWindow* mainwindow;
@@ -35,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
       start_automatically(false),
       settings_modified(false),
       last_start_offset(0),
+      settings_dlg(nullptr),
       QMainWindow(parent),
       ui(new Ui::MainWindow)
 {
@@ -272,9 +272,11 @@ bool MainWindow::cover_story(StaffMap& staff, StoryInfoPointer story_info, Cover
 
         // assign a staff Producer to receive Reporter filings and create Headlines
 
-        staff_info.producer = ProducerPointer(new Producer(staff_info.reporter, story_info, headline_style_list, this));
-
-        connect(staff_info.producer.data(), &Producer::signal_new_headline, staff_info.chyron.data(), &Chyron::slot_file_headline);
+        staff_info.producer = ProducerPointer(new Producer(staff_info.chyron,
+                                                           staff_info.reporter,
+                                                           story_info,
+                                                           headline_style_list,
+                                                           this));
 
         staff[story_info] = staff_info;
     }
@@ -297,17 +299,13 @@ bool MainWindow::cover_story(StaffMap& staff, StoryInfoPointer story_info, Cover
     else if(coverage_start == CoverageStart::Immediate)
     {
         if(staff_info.producer->start_covering_story())
-        {
-            connect(staff_info.producer.data(), &Producer::signal_new_headline,
-                    staff_info.chyron.data(), &Chyron::slot_file_headline);
-
             result = true;
-        }
         else
         {
             QMessageBox::critical(0,
                                   tr("Newsroom: Error"),
-                                  tr("The Reporter \"%1\" could not cover the Story!").arg(staff_info.reporter->DisplayName()[0]));
+                                  tr("The Reporter \"%1\" could not cover the Story!")
+                                        .arg(staff_info.reporter->DisplayName()[0]));
             staff.remove(story_info);
         }
     }
@@ -624,7 +622,7 @@ void MainWindow::load_series(const QString& name)
     if(!QFile::exists(series_dir))
         return;
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(name));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(name))));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
     series_settings->cache();
 
@@ -688,7 +686,7 @@ void MainWindow::save_series(const QString& name)
             return;
     }
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(name));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(name))));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
 
     if(!series.contains(name))
@@ -938,33 +936,39 @@ void MainWindow::slot_restore()
 
 void MainWindow::slot_edit_settings(bool /*checked*/)
 {
-    SettingsDialog dlg(this);
+    if(settings_dlg)
+        return;
 
-    dlg.set_autostart(auto_start);
-    dlg.set_continue_coverage(continue_coverage);
-    dlg.set_compact_mode(compact_mode, compact_compression);
-    dlg.set_font(headline_font);
-    dlg.set_styles(*(headline_style_list.data()));
-    dlg.set_series(series);
+    settings_action->setEnabled(false);
+    ui->action_Settings->setEnabled(false);
 
-    restore_window_data(&dlg);
+    settings_dlg = new SettingsDialog(this);
 
-    connect(&dlg, &SettingsDialog::signal_edit_story, this, &MainWindow::slot_edit_story);
+    settings_dlg->set_autostart(auto_start);
+    settings_dlg->set_continue_coverage(continue_coverage);
+    settings_dlg->set_compact_mode(compact_mode, compact_compression);
+    settings_dlg->set_font(headline_font);
+    settings_dlg->set_styles(*(headline_style_list.data()));
+    settings_dlg->set_series(series);
 
-    if(dlg.exec() == QDialog::Accepted)
+    restore_window_data(settings_dlg);
+
+    connect(settings_dlg, &SettingsDialog::signal_edit_story, this, &MainWindow::slot_edit_story);
+
+    if(settings_dlg->exec() == QDialog::Accepted)
     {
         QString series_dir = QDir::toNativeSeparators(QString("%1/Series")
                                                     .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
 
-        auto_start                       = dlg.get_autostart();
-        continue_coverage                = dlg.get_continue_coverage();
-        compact_mode                     = dlg.get_compact_mode(compact_compression);
-        headline_font                    = dlg.get_font();
-        dlg.get_styles(*(headline_style_list.data()));
+        auto_start                       = settings_dlg->get_autostart();
+        continue_coverage                = settings_dlg->get_continue_coverage();
+        compact_mode                     = settings_dlg->get_compact_mode(compact_compression);
+        headline_font                    = settings_dlg->get_font();
+        settings_dlg->get_styles(*(headline_style_list.data()));
 
         // process any moves before any deletions!
 
-        SettingsDialog::SeriesList remaining_stories = dlg.get_series();
+        SettingsDialog::SeriesList remaining_stories = settings_dlg->get_series();
 
         // first, handle Stories that might have moved to a different Series
 
@@ -1016,7 +1020,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
             series.remove(series_name);
 
-            QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(series_name));
+            QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(series_name))));
             SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
             series_settings->remove();
         }
@@ -1047,7 +1051,13 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
         save_application_settings();
     }
 
-    save_window_data(&dlg);
+    save_window_data(settings_dlg);
+
+    settings_dlg->deleteLater();
+    settings_dlg = nullptr;
+
+    settings_action->setEnabled(true);
+    ui->action_Settings->setEnabled(true);
 }
 
 void MainWindow::slot_edit_story(const QString& story_id)

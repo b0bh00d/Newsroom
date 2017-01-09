@@ -1,11 +1,13 @@
 #include "producer.h"
 
-Producer::Producer(IReporterPointer reporter,
+Producer::Producer(ChyronPointer chyron,
+                   IReporterPointer reporter,
                    StoryInfoPointer story_info,
                    StyleListPointer style_list,
                    QObject *parent)
-    : covering_story(false),
-      reporter_plugin(reporter),
+    : chyron(chyron),
+      reporter(reporter),
+      covering_story(false),
       story_info(story_info),
       style_list(style_list),
       QObject(parent)
@@ -16,18 +18,24 @@ Producer::~Producer()
 {
     if(covering_story)
         stop_covering_story();
+
+    chyron.clear();
+    reporter.clear();
 }
 
 bool Producer::start_covering_story()
 {
-    if(reporter_plugin.isNull())
+    if(reporter.isNull() || chyron.isNull())
         return false;
 
-    connect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
-    reporter_plugin->SetStory(story_info->story);
-    if(!reporter_plugin->CoverStory())
+    connect(this, &Producer::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
+    chyron->display();
+
+    connect(reporter.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
+    reporter->SetStory(story_info->story);
+    if(!reporter->CoverStory())
     {
-        disconnect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
+        disconnect(reporter.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
         return false;
     }
 
@@ -37,11 +45,14 @@ bool Producer::start_covering_story()
 
 bool Producer::stop_covering_story()
 {
-    if(reporter_plugin.isNull())
+    if(reporter.isNull() || chyron.isNull())
         return false;
 
-    disconnect(reporter_plugin.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
-    covering_story = !reporter_plugin->FinishStory();
+    disconnect(this, &Producer::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
+    chyron->hide();
+
+    disconnect(reporter.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
+    covering_story = !reporter->FinishStory();
     return !covering_story;
 }
 
