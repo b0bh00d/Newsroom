@@ -104,7 +104,7 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     ui->tree_Styles->topLevelItem(0)->setSelected(true);
 }
 
-void SettingsDialog::set_series(const SeriesMap& series)
+void SettingsDialog::set_series(const QStringList& series_names, const SeriesMap& series)
 {
     while(ui->tree_Series->topLevelItemCount())
         delete ui->tree_Series->takeTopLevelItem(0);
@@ -115,7 +115,7 @@ void SettingsDialog::set_series(const SeriesMap& series)
     ui->tree_Series->setDefaultDropAction(Qt::TargetMoveAction);
     ui->tree_Series->setDragDropMode(QAbstractItemView::InternalMove);
 
-    foreach(const QString& name, series.keys())
+    foreach(const QString& name, series_names)
     {
         QTreeWidgetItem* series_item = new QTreeWidgetItem(ui->tree_Series, QStringList() << name);
         series_item->setFlags(series_item->flags() | Qt::ItemIsEditable);

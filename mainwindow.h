@@ -132,7 +132,9 @@ private:    // data members
     QMimeDatabase       mime_db;
 
     SeriesMap           series;
-    StringMap           story_series;          ///< Index: To which Series does a Story belong?
+    QStringList         series_names;       ///< Provides a fixed order to Series; may correspond to screen positioning
+    StringMap           story_series;       ///< Index: To which Series does a Story belong?
+
     LaneManagerPointer  lane_manager;
 
     ReportersMap        beat_reporters;

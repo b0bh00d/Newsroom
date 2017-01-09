@@ -33,7 +33,7 @@ public:     // methods
     void            set_font(const QFont& font);
     void            set_styles(const HeadlineStyleList& style_list);
     void            set_stories(const QList<QString>& stories, const QList<ProducerPointer> producers);
-    void            set_series(const SeriesMap& series);
+    void            set_series(const QStringList& series_names, const SeriesMap& series);
 
     bool            get_autostart();
     bool            get_continue_coverage();
