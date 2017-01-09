@@ -62,7 +62,7 @@
           <item>
            <widget class="QCheckBox" name="check_CompactMode">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dashboard types will display thumbnail views of each member Chyron headline, only displaying their styleSheet unless you mouse-over them. This mode provides a &amp;quot;1000-foot view&amp;quot; of monitored activities, saving on screen space.&lt;/p&gt;&lt;p&gt;Depending upon when they are made, changes to this setting will activate the next time you start Newsroom.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When enabled, Dashboard entry types will display thumbnail views of each member Chyron headline, only displaying their styleSheet unless you mouse-over them. This mode provides a &amp;quot;1000-foot view&amp;quot; of monitored activities, saving on screen space.&lt;/p&gt;&lt;p&gt;Changes to this setting will not activate until the next time you start Newsroom.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string>Enable compact mode (may require restart)</string>
