@@ -622,7 +622,7 @@ void MainWindow::load_series(const QString& name)
     if(!QFile::exists(series_dir))
         return;
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(name))));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(name, "", "?*$"))));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
     series_settings->cache();
 
@@ -670,6 +670,7 @@ void MainWindow::load_series(const QString& name)
             cover_story(si.staff, story_info, coverage_start);
         }
     }
+
     series_settings->end_array();
 
     series_settings->end_section();
@@ -686,7 +687,7 @@ void MainWindow::save_series(const QString& name)
             return;
     }
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(name))));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(name, "", "?*$"))));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
 
     if(!series.contains(name))
@@ -1020,7 +1021,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
             series.remove(series_name);
 
-            QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(series_name))));
+            QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(series_name, "", "?*$"))));
             SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
             series_settings->remove();
         }
