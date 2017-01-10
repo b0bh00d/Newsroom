@@ -24,7 +24,7 @@
 #include <QtCore/QPluginLoader>
 #include <QtCore/QSettings>
 
-#include "seriesinfo.h"    // -> staffinfo.h
+#include "seriesinfo.h"
 #include "lanemanager.h"
 #include "settings.h"
 
@@ -93,13 +93,13 @@ private:    // methods
     bool                load_reporters();
     void                load_application_settings();
     void                save_application_settings();
-    void                load_series(const QString& name);
-    void                save_series(const QString& name);
+    void                load_series(SeriesInfo &series_info);
+    void                save_series(const SeriesInfo& series_info);
     void                save_story(SettingsPointer settings, StoryInfoPointer story_info);
     void                restore_story(SettingsPointer settings, StoryInfoPointer story_info);
     void                restore_story_defaults(StoryInfoPointer story_info);
     void                save_story_defaults(StoryInfoPointer story_info);
-    bool                cover_story(StaffMap& staff, StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector* reporters_info = nullptr);
+    bool                cover_story(ProducerPointer& producer, StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector* reporters_info = nullptr);
     void                fix_identity_duplication(StoryInfoPointer story_info);
 
     void                build_tray_menu();
@@ -131,9 +131,7 @@ private:    // data members
 
     QMimeDatabase       mime_db;
 
-    SeriesMap           series;
-    QStringList         series_names;       ///< Provides a fixed order to Series; may correspond to screen positioning
-    StringMap           story_series;       ///< Index: To which Series does a Story belong?
+    SeriesInfoList      series_ordered;
 
     LaneManagerPointer  lane_manager;
 

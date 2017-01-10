@@ -7,7 +7,7 @@
 
 #include "types.h"
 #include "specialize.h"
-#include "seriesinfo.h"    // -> staffinfo.h -> producer.h
+#include "seriesinfo.h"    // -> producer.h
 
 namespace Ui {
 class SettingsDialog;
@@ -19,10 +19,6 @@ class SettingsDialog : public QDialog
 {
     Q_OBJECT
 
-public:     // typdefs and enums
-    SPECIALIZE_PAIR(QString, QStringList, Series)       // "SeriesPair"
-    SPECIALIZE_LIST(SeriesPair, Series)                 // "SeriesList"
-
 public:     // methods
     explicit SettingsDialog(QWidget *parent = 0);
     ~SettingsDialog();
@@ -33,14 +29,14 @@ public:     // methods
     void            set_font(const QFont& font);
     void            set_styles(const HeadlineStyleList& style_list);
     void            set_stories(const QList<QString>& stories, const QList<ProducerPointer> producers);
-    void            set_series(const QStringList& series_names, const SeriesMap& series);
+    void            set_series(const SeriesInfoList& series_ordered);
 
     bool            get_autostart();
     bool            get_continue_coverage();
     bool            get_compact_mode(int& zoom_percent);
     QFont           get_font();
     void            get_styles(HeadlineStyleList& style_list);
-    SeriesList      get_series();
+    SeriesInfoList  get_series();
 
 signals:
     void            signal_edit_story(const QString& story_id);

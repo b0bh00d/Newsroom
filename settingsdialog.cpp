@@ -104,7 +104,7 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     ui->tree_Styles->topLevelItem(0)->setSelected(true);
 }
 
-void SettingsDialog::set_series(const QStringList& series_names, const SeriesMap& series)
+void SettingsDialog::set_series(const SeriesInfoList& series_ordered)
 {
     while(ui->tree_Series->topLevelItemCount())
         delete ui->tree_Series->takeTopLevelItem(0);
@@ -115,21 +115,19 @@ void SettingsDialog::set_series(const QStringList& series_names, const SeriesMap
     ui->tree_Series->setDefaultDropAction(Qt::TargetMoveAction);
     ui->tree_Series->setDragDropMode(QAbstractItemView::InternalMove);
 
-    foreach(const QString& name, series_names)
+    foreach(const SeriesInfo& series_info, series_ordered)
     {
-        QTreeWidgetItem* series_item = new QTreeWidgetItem(ui->tree_Series, QStringList() << name);
+        QTreeWidgetItem* series_item = new QTreeWidgetItem(ui->tree_Series, QStringList() << series_info.name);
         series_item->setFlags(series_item->flags() | Qt::ItemIsEditable);
 
-        const SeriesInfo& series_info = series[name];
-
-        foreach(StoryInfoPointer story_info, series_info.staff.keys())
+        foreach(ProducerPointer producer, series_info.producers)
         {
-            const StaffInfo& staff_info = series_info.staff[story_info];
+            StoryInfoPointer story_info = producer->get_story();
 
             QTreeWidgetItem* story_item = new QTreeWidgetItem(series_item, QStringList() << "" << story_info->identity);
-            producers[story_item->text(1)] = staff_info.producer;
+            producers[story_item->text(1)] = producer;
 
-            if(staff_info.producer->is_covering_story())
+            if(producer->is_covering_story())
                 story_item->setIcon(0, QIcon(":/images/Covering.png"));
             else
                 story_item->setIcon(0, QIcon(":/images/NotCovering.png"));
@@ -186,22 +184,26 @@ void SettingsDialog::get_styles(HeadlineStyleList& style_list)
     }
 }
 
-SettingsDialog::SeriesList SettingsDialog::get_series()
+SeriesInfoList SettingsDialog::get_series()
 {
-    SeriesList sl;
+    SeriesInfoList sl;
     for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
     {
         QTreeWidgetItem* series_item = ui->tree_Series->topLevelItem(i);
+
         if(series_item->childCount() || !series_item->text(0).compare("Default"))
         {
-            QStringList stories;
+            SeriesInfo si;
+            si.name = series_item->text(0);
+
+//            QStringList stories;
             for(int j = 0;j < series_item->childCount();++j)
             {
                 QTreeWidgetItem* story_item = series_item->child(j);
-                stories << story_item->text(1);
+                si.producers.append(producers[story_item->text(1)]);
             }
 
-            sl.append(qMakePair(series_item->text(0), stories));
+            sl.append(si);
         }
     }
 
@@ -484,14 +486,20 @@ void SettingsDialog::slot_remove_story()
 {
     QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
     QList<QTreeWidgetItem *>::iterator iter;
+    QStringList story_ids;
     for(iter = selections.begin();iter != selections.end();++iter)
     {
+        story_ids << (*iter)->text(1);
+
         QTreeWidgetItem* series = (*iter)->parent();
         delete series->takeChild(series->indexOfChild(*iter));
 
         if(series->childCount() == 0 && series->text(0).compare("Default"))
             delete ui->tree_Series->takeTopLevelItem(ui->tree_Series->indexOfTopLevelItem(series));
     }
+
+    foreach(const QString& story_id, story_ids)
+        producers.remove(story_id);
 }
 
 void SettingsDialog::slot_remove_story_all()
@@ -506,6 +514,8 @@ void SettingsDialog::slot_remove_story_all()
 
     QTreeWidgetItem* new_default = new QTreeWidgetItem(ui->tree_Series, QStringList() << "Default");
     new_default->setFlags(new_default->flags() | Qt::ItemIsEditable);
+
+    producers.clear();
 }
 
 void SettingsDialog::slot_compact_mode_clicked(bool /*checked*/)

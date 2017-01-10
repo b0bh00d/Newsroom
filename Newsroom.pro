@@ -75,7 +75,6 @@ HEADERS  += mainwindow.h \
             editheadlinedialog.h \
             settings.h \
             seriesinfo.h \
-            staffinfo.h \
             label.h \
             seriestree.h
 

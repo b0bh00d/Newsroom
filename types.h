@@ -60,3 +60,6 @@ struct HeadlineStyle
 
 SPECIALIZE_LIST(HeadlineStyle, HeadlineStyle)           // "HeadlineStyleList"
 SPECIALIZE_SHAREDPTR(HeadlineStyleList, StyleList)      // "StyleListPointer"
+
+SPECIALIZE_PAIR(QString, QStringList, Series)           // "SeriesPair"
+SPECIALIZE_LIST(SeriesPair, Series)                     // "SeriesList"
