@@ -974,9 +974,12 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
         // process any moves before any deletions!
 
-        // the 'series_list' returned by SettingsDialog is the way
-        // Series/Stories look now.  the remaining code simply updates
-        // the state of live Newsroom instances to reflect it.
+        // the SeriesInfoList returned by SettingsDialog is the way
+        // Series/Stories look now, and the assignment to 'series_ordered'
+        // has IMMEDIATE affect.
+        //
+        // the remaining code simply cleans up the lingering remnants of
+        // any deleted Series.
 
         series_ordered = settings_dlg->get_series();
 
