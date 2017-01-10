@@ -208,11 +208,12 @@ void MainWindow::closeEvent(QCloseEvent* event)
 void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
 {
     QString prefix = QString("%1::").arg(story_info->identity);
-    foreach(const QString& series_key, series.keys())
+    foreach(const SeriesInfo& series_info, series_ordered)
     {
-        foreach(StoryInfoPointer key, series[series_key].staff.keys())
+        foreach(ProducerPointer producer, series_info.producers)
         {
-            if(key->identity.startsWith(prefix))
+            StoryInfoPointer si = producer->get_story();
+            if(si->identity.startsWith(prefix))
             {
                 // generate a random number to append to the identity
                 std::random_device rd;
@@ -227,14 +228,12 @@ void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
     }
 }
 
-bool MainWindow::cover_story(StaffMap& staff, StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector *reporters_info)
+bool MainWindow::cover_story(ProducerPointer& producer, StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector *reporters_info)
 {
     bool result = false;
 
-    if(!staff.contains(story_info))
+    if(producer.isNull())
     {
-        StaffInfo staff_info;
-
         if(!reporters_info)
         {
             if(beat_reporters.contains(story_info->reporter_beat))
@@ -251,10 +250,11 @@ bool MainWindow::cover_story(StaffMap& staff, StoryInfoPointer story_info, Cover
 
         // create a Chyron to display the Headlines for this story
 
-        staff_info.chyron = ChyronPointer(new Chyron(story_info, lane_manager));
+        ChyronPointer chyron = ChyronPointer(new Chyron(story_info, lane_manager));
 
         // assign a staff Reporter from the selected department to cover the story
 
+        IReporterPointer reporter;
         foreach(const PluginInfo& pi_info, (*reporters_info))
         {
             QObject* instance = pi_info.factory->instance();
@@ -263,25 +263,17 @@ bool MainWindow::cover_story(StaffMap& staff, StoryInfoPointer story_info, Cover
             IReporterPointer plugin_reporter = ireporterfactory->newInstance();
             if(!story_info->reporter_id.compare(plugin_reporter->PluginID()))
             {
-                staff_info.reporter = plugin_reporter;
+                reporter = plugin_reporter;
                 // give the Reporter their assignment
-                staff_info.reporter->SetRequirements(story_info->reporter_parameters);
+                reporter->SetRequirements(story_info->reporter_parameters);
                 break;
             }
         }
 
         // assign a staff Producer to receive Reporter filings and create Headlines
 
-        staff_info.producer = ProducerPointer(new Producer(staff_info.chyron,
-                                                           staff_info.reporter,
-                                                           story_info,
-                                                           headline_style_list,
-                                                           this));
-
-        staff[story_info] = staff_info;
+        producer = ProducerPointer(new Producer(chyron, reporter, story_info, headline_style_list, this));
     }
-
-    StaffInfo& staff_info = staff[story_info];
 
     if(coverage_start == CoverageStart::Delayed)
     {
@@ -292,28 +284,25 @@ bool MainWindow::cover_story(StaffMap& staff, StoryInfoPointer story_info, Cover
         int offset = last_start_offset + dist(mt);
         last_start_offset = offset;
 
-        QTimer::singleShot(offset * 1000, staff_info.producer.data(), &Producer::slot_start_covering_story);
+        QTimer::singleShot(offset * 1000, producer.data(), &Producer::slot_start_covering_story);
 
         result = true;
     }
     else if(coverage_start == CoverageStart::Immediate)
     {
-        if(staff_info.producer->start_covering_story())
+        if(producer->start_covering_story())
             result = true;
         else
         {
             QMessageBox::critical(0,
                                   tr("Newsroom: Error"),
                                   tr("The Reporter \"%1\" could not cover the Story!")
-                                        .arg(staff_info.reporter->DisplayName()[0]));
-            staff.remove(story_info);
+                                        .arg(producer->get_reporter()->DisplayName()[0]));
+            producer.clear();
         }
     }
     else if(coverage_start == CoverageStart::None)
         result = true;
-
-//    if(result)
-//        stories.append(story_info);
 
     return result;
 }
@@ -399,8 +388,17 @@ void MainWindow::dropEvent(QDropEvent* event)
             // fix any duplication issues with the story identity
             fix_identity_duplication(story_info);
 
-            story_series[story_info->identity] = "Default";
-            accept = cover_story(series["Default"].staff, story_info, CoverageStart::Immediate, reporters_info);
+            // find "Default"
+            for(SeriesInfoList::iterator iter = series_ordered.begin();iter != series_ordered.end();++iter)
+            {
+                if(!iter->name.compare("Default"))
+                {
+                    ProducerPointer producer;
+                    if(cover_story(producer, story_info, CoverageStart::Immediate, reporters_info))
+                        iter->producers.append(producer);
+                    break;
+                }
+            }
         }
 
         save_window_data(&addstory_dlg);
@@ -514,8 +512,12 @@ void MainWindow::save_application_settings()
         settings->end_array();
     }
 
-    foreach(const QString& series_name, series_names)
-        save_series(series_name);
+    QStringList series_names;
+    foreach(const SeriesInfo& series_info, series_ordered)
+    {
+        series_names << series_info.name;
+        save_series(series_info);
+    }
 
     settings->set_item("series", series_names);
 
@@ -533,10 +535,7 @@ void MainWindow::load_application_settings()
         lane_manager.clear();
 
     // add a Default Series entry on first runs
-    series.clear();
-    SeriesInfo si;
-    si.name = "Default";
-    series[si.name] = si;
+    series_ordered.clear();
 
     // add a Default stylesheet entry on first runs
     headline_style_list->clear();
@@ -602,23 +601,29 @@ void MainWindow::load_application_settings()
     }
     settings->end_array();
 
-    series_names = settings->get_item("series", QStringList() << "Default").toStringList();
+    QStringList series_names = settings->get_item("series", QStringList() << "Default").toStringList();
     foreach(const QString& series_name, series_names)
-        load_series(series_name);
+    {
+        SeriesInfo si;
+        si.name = series_name;
+        series_ordered.append(si);
+
+        load_series(series_ordered.back());
+    }
 
     settings->end_section();
 
     settings_modified = !QFile::exists(settings_file_name);
 }
 
-void MainWindow::load_series(const QString& name)
+void MainWindow::load_series(SeriesInfo &series_info)
 {
     QString series_dir = QDir::toNativeSeparators(QString("%1/Series")
                                                 .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
     if(!QFile::exists(series_dir))
         return;
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(name, "", "?*$"))));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(series_info.name, "", "?*$"))));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
     series_settings->cache();
 
@@ -634,13 +639,7 @@ void MainWindow::load_series(const QString& name)
         foreach(const QString& active_index, active_list)
             is_active.setBit(active_index.toInt());
 
-        if(!series.contains(name))
-        {
-            SeriesInfo si;
-            si.name = name;
-        }
-
-        SeriesInfo& si = series[name];
+        QMap<ProducerPointer, CoverageStart> start_info;
 
         for(int i = 0; i < story_count; ++i)
         {
@@ -652,18 +651,32 @@ void MainWindow::load_series(const QString& name)
             story_info->dashboard_compact_mode = compact_mode;
             story_info->dashboard_compression = compact_compression;
 
-            CoverageStart coverage_start = CoverageStart::None;
-            if(continue_coverage && is_active.testBit(i))
-            {
-                if(story_info->reporter_beat.compare("Local"))
-                    coverage_start = CoverageStart::Immediate;
-                else
-                    // prevent non-local Reporters from potentially hammering servers all at once
-                    coverage_start = CoverageStart::Delayed;
-            }
+            // inject the story into the system, but don't start coverage
 
-            story_series[story_info->identity] = name;
-            cover_story(si.staff, story_info, coverage_start);
+            ProducerPointer producer;
+            if(cover_story(producer, story_info, CoverageStart::None))
+            {
+                series_info.producers.append(producer);
+
+                CoverageStart coverage_start = CoverageStart::None;
+                if(continue_coverage && is_active.testBit(i))
+                {
+                    if(story_info->reporter_beat.compare("Local"))
+                        coverage_start = CoverageStart::Immediate;
+                    else
+                        // prevent non-local Reporters from potentially hammering servers all at once
+                        coverage_start = CoverageStart::Delayed;
+                }
+
+                start_info[producer] = coverage_start;
+            }
+        }
+
+        // launch the Stories in user-defined order
+        foreach(ProducerPointer key, start_info.keys())
+        {
+            if(start_info[key] != CoverageStart::None)
+                cover_story(key, key->get_story(), start_info[key]);
         }
     }
 
@@ -672,7 +685,7 @@ void MainWindow::load_series(const QString& name)
     series_settings->end_section();
 }
 
-void MainWindow::save_series(const QString& name)
+void MainWindow::save_series(const SeriesInfo &series_info)
 {
     QString series_dir = QDir::toNativeSeparators(QString("%1/Series")
                                                 .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
@@ -683,35 +696,27 @@ void MainWindow::save_series(const QString& name)
             return;
     }
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(name, "", "?*$"))));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(series_info.name, "", "?*$"))));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
 
-    if(!series.contains(name))
-    {
-        series_settings->remove();
-        return;
-    }
-
     QStringList active;
-
-    SeriesInfo& si = series[name];
 
     series_settings->cache();
 
     series_settings->begin_section("/Series");
 
-    if(!si.staff.isEmpty())
+    if(!series_info.producers.isEmpty())
     {
         series_settings->begin_array("Stories");
 
         int index = 0;
-        foreach(StoryInfoPointer key, si.staff.keys())
+        foreach(ProducerPointer producer, series_info.producers)
         {
-            if(si.staff[key].producer->is_covering_story())
+            if(producer->is_covering_story())
                 active << QString::number(index);
 
             series_settings->set_array_index(index++);
-            save_story(series_settings, key);
+            save_story(series_settings, producer->get_story());
         }
 
         series_settings->end_array();
@@ -946,11 +951,15 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     settings_dlg->set_compact_mode(compact_mode, compact_compression);
     settings_dlg->set_font(headline_font);
     settings_dlg->set_styles(*(headline_style_list.data()));
-    settings_dlg->set_series(series_names, series);
+    settings_dlg->set_series(series_ordered);
 
     restore_window_data(settings_dlg);
 
     connect(settings_dlg, &SettingsDialog::signal_edit_story, this, &MainWindow::slot_edit_story);
+
+    QStringList original_series;
+    foreach(const SeriesInfo& series_info, series_ordered)
+        original_series << series_info.name;
 
     if(settings_dlg->exec() == QDialog::Accepted)
     {
@@ -965,45 +974,23 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
         // process any moves before any deletions!
 
-        SettingsDialog::SeriesList remaining_stories = settings_dlg->get_series();
+        // the 'series_list' returned by SettingsDialog is the way
+        // Series/Stories look now.  the remaining code simply updates
+        // the state of live Newsroom instances to reflect it.
+
+        series_ordered = settings_dlg->get_series();
 
         // first, handle Stories that might have moved to a different Series
 
         QStringList remaining_series;
-        foreach(const SettingsDialog::SeriesPair& pair, remaining_stories)
-        {
-            remaining_series << pair.first;
-
-            foreach(const QString& story_id, pair.second)
-            {
-                // the original Series name is sitting in story_series[]
-                if(story_series[story_id].compare(pair.first))
-                {
-                    // this one has moved
-                    SeriesInfo& old_series = series[story_series[story_id]];
-                    SeriesInfo& new_series = series[pair.first];
-
-                    foreach(StoryInfoPointer story_info, old_series.staff.keys())
-                    {
-                        if(!story_info->identity.compare(story_id))
-                        {
-                            new_series.staff[story_info] = old_series.staff[story_info];
-                            old_series.staff.remove(story_info);
-                            break;
-                        }
-                    }
-
-                    story_series[story_id] = pair.first;
-                }
-            }
-        }
+        foreach(const SeriesInfo& series_info, series_ordered)
+            remaining_series << series_info.name;
 
         // now, clear any deleted Series
 
-        series_names = remaining_series;
-
+        QStringList series_names = remaining_series;
         QStringList deleted_series;
-        foreach(const QString& series_name, series.keys())
+        foreach(const QString& series_name, original_series)
         {
             if(!remaining_series.contains(series_name))
             {
@@ -1014,40 +1001,9 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
         foreach(const QString& series_name, deleted_series)
         {
-            foreach(StoryInfoPointer story_info, series[series_name].staff.keys())
-            {
-                story_series.remove(story_info->identity);
-                series[series_name].staff.remove(story_info);
-            }
-
-            series.remove(series_name);
-
             QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(series_name, "", "?*$"))));
             SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
             series_settings->remove();
-        }
-
-        // finally, clear any deleted Stories
-
-        QList<QString> deleted_stories = story_series.keys();
-        foreach(const SettingsDialog::SeriesPair& pair, remaining_stories)
-        {
-            foreach(const QString& story_id, pair.second)
-                deleted_stories.removeAll(story_id);
-        }
-
-        foreach(const QString& story_id, deleted_stories)
-        {
-            SeriesInfo& si = series[story_series[story_id]];
-            story_series.remove(story_id);
-            foreach(StoryInfoPointer story_info, si.staff.keys())
-            {
-                if(!story_info->identity.compare(story_id))
-                {
-                    si.staff.remove(story_info);
-                    break;
-                }
-            }
         }
 
         save_application_settings();
@@ -1064,20 +1020,23 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
 void MainWindow::slot_edit_story(const QString& story_id)
 {
-    StoryInfoPointer story_info;
-    SeriesInfo& si = series[story_series[story_id]];
-
-    foreach(StoryInfoPointer key, si.staff.keys())
+    ProducerPointer producer;
+    foreach(const SeriesInfo& si, series_ordered)
     {
-        if(!key->identity.compare(story_id))
+        foreach(ProducerPointer pp, si.producers)
         {
-            story_info = key;
-            break;
+            StoryInfoPointer story_info = pp->get_story();
+            if(!story_info->identity.compare(story_id))
+            {
+                producer = pp;
+                break;
+            }
         }
     }
 
-    Q_ASSERT(!story_info.isNull());      // this really shouldn't happen
+    Q_ASSERT(!producer.isNull());       // this really shouldn't happen
 
+    StoryInfoPointer story_info = producer->get_story();
     PluginsInfoVector* reporters_info = nullptr;
 
     if(beat_reporters.contains(story_info->reporter_beat))
@@ -1092,7 +1051,7 @@ void MainWindow::slot_edit_story(const QString& story_id)
         return;
     }
 
-    CoverageStart coverage_start = si.staff[story_info].producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
+    CoverageStart coverage_start = producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
 
     AddStoryDialog addstory_dlg(reporters_info, story_info, settings, this);
 
@@ -1112,10 +1071,10 @@ void MainWindow::slot_edit_story(const QString& story_id)
 
     if(addstory_dlg.exec() == QDialog::Accepted)
     {
-        si.staff.remove(story_info);
+        producer->stop_covering_story();
 
         // AddStoryDialog has automatically updated 'story_info' with all settings
-        (void)cover_story(si.staff, story_info, coverage_start, reporters_info);
+        (void)cover_story(producer, story_info, coverage_start, reporters_info);
     }
 
     save_window_data(&addstory_dlg);

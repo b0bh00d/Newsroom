@@ -34,7 +34,10 @@ public:
                       QObject *parent = 0);
     ~Producer();
 
-    QUrl    get_story()             const { return story_info->story; }
+    StoryInfoPointer get_story()    const { return story_info; }
+    IReporterPointer get_reporter() const { return reporter; }
+    ChyronPointer    get_chyron()   const { return chyron; }
+
     bool    is_covering_story()     const { return covering_story; }
     bool    start_covering_story();
     bool    stop_covering_story();

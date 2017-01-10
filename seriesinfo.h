@@ -1,12 +1,14 @@
 #pragma once
 
 #include "specialize.h"
-#include "staffinfo.h"
+#include "producer.h"
 
+SPECIALIZE_LIST(ProducerPointer, Producer)          // "ProducerList"
 struct SeriesInfo
 {
     // Series are collections of related Stories
+    // (entirely contained within Producers)
     QString             name;
-    StaffMap            staff;
+    ProducerList        producers;
 };
-SPECIALIZE_MAP(QString, SeriesInfo, Series)         // "SeriesMap"
+SPECIALIZE_LIST(SeriesInfo, SeriesInfo)             // "SeriesInfoList"
