@@ -1,5 +1,8 @@
 #pragma once
 
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QDesktopWidget>
+
 #include <QtCore/QPluginLoader>
 //#include <QtCore/QSettings>
 #include <QtCore/QString>

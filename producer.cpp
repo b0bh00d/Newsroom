@@ -84,11 +84,19 @@ void Producer::file_headline(const QString& data)
         stylesheet = default_stylesheet;    // set to Default
 
     // file a headline with the new content
-    HeadlinePointer headline(new Headline(story_info->story, data));
+    int w, h;
+    story_info->get_dimensions(w, h);
+    HeadlineGenerator generator(w, h, story_info->story, data);
+    HeadlinePointer headline = generator.get_headline();
 
     headline->set_font(story_info->font);
     headline->set_stylesheet(stylesheet);
-    headline->set_progress(story_info->include_progress_bar, story_info->progress_text_re, story_info->progress_on_top);
+    if(story_info->include_progress_bar)
+    {
+        LandscapeHeadline* ls_headline = dynamic_cast<LandscapeHeadline*>(headline.data());
+        if(ls_headline)
+            ls_headline->enable_progress_detection(story_info->progress_text_re, story_info->progress_on_top);
+    }
 
     emit signal_new_headline(headline);
 }

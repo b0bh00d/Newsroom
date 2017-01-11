@@ -1,4 +1,3 @@
-#include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QPlainTextEdit>
 

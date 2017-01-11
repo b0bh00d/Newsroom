@@ -1,6 +1,3 @@
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QDesktopWidget>
-
 #include "chyron.h"
 
 #include "lanemanager.h"
@@ -18,9 +15,6 @@ void LaneManager::subscribe(Chyron* chyron)
         return;
 
     StoryInfoPointer story_info = chyron->get_settings();
-
-    QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(story_info->primary_screen);
 
     LaneDataPointer data(new LaneData());
     data->owner = chyron;
@@ -47,50 +41,37 @@ void LaneManager::subscribe(Chyron* chyron)
 
         if(dashboard_group.isNull())
         {
-            dashboard_group = DashboardPointer(new DashboardData());
-            dashboard_group->id = story_info->dashboard_group_id;
-            dashboard_group->lane_header = HeadlinePointer(new Headline(QUrl(),
-                                                                        QString("<h2><center>%1</center></h2>").arg(story_info->dashboard_group_id),
-                                                                        story_info->entry_type,
-                                                                        Qt::AlignHCenter|Qt::AlignVCenter));
-            dashboard_group->lane_header->set_font(headline_font);
-            dashboard_group->lane_header->set_stylesheet(headline_stylesheet);
 
             int w = 0;
             int h = 0;
+            story_info->get_dimensions(w, h);
+
             switch(story_info->entry_type)
             {
                 case AnimEntryType::DashboardDownLeftTop:
                 case AnimEntryType::DashboardDownRightTop:
                 case AnimEntryType::DashboardUpLeftBottom:
                 case AnimEntryType::DashboardUpRightBottom:
-                    if(story_info->headlines_pixel_width)
-                    {
-                        w = story_info->headlines_pixel_width;
-                        h = story_info->headlines_pixel_height * 0.35;
-                    }
-                    else
-                    {
-                        w = (story_info->headlines_percent_width / 100.0) * r_desktop.width();
-                        h = (story_info->headlines_percent_height / 100.0) * r_desktop.height() * 0.35;
-                    }
+                    h *= 0.35;
                     break;
                 case AnimEntryType::DashboardInLeftTop:
                 case AnimEntryType::DashboardInLeftBottom:
                 case AnimEntryType::DashboardInRightTop:
                 case AnimEntryType::DashboardInRightBottom:
-                    if(story_info->headlines_pixel_width)
-                    {
-                        w = story_info->headlines_pixel_width * 0.15;
-                        h = story_info->headlines_pixel_height;
-                    }
-                    else
-                    {
-                        w = (story_info->headlines_percent_width / 100.0) * r_desktop.width() * 0.15;
-                        h = (story_info->headlines_percent_height / 100.0) * r_desktop.height();
-                    }
+                    w *= 0.15;
                     break;
             }
+
+            dashboard_group = DashboardPointer(new DashboardData());
+            dashboard_group->id = story_info->dashboard_group_id;
+            HeadlineGenerator generator(w, h,
+                                        QUrl(),
+                                        QString("<h2><center>%1</center></h2>").arg(story_info->dashboard_group_id),
+                                        story_info->entry_type,
+                                        Qt::AlignHCenter|Qt::AlignVCenter);
+            dashboard_group->lane_header = generator.get_headline();
+            dashboard_group->lane_header->set_font(headline_font);
+            dashboard_group->lane_header->set_stylesheet(headline_stylesheet);
 
             if(story_info->dashboard_compact_mode)
             {
