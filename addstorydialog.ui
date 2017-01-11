@@ -508,99 +508,98 @@
            </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_8">
+           <layout class="QHBoxLayout" name="horizontalLayout_8"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="group_HeadlinesBounds">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="title">
+          <string>Visibility</string>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_12">
             <item>
-             <widget class="QGroupBox" name="group_HeadlinesBounds">
-              <property name="enabled">
-               <bool>true</bool>
+             <widget class="QCheckBox" name="check_LimitContent">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You may wish to limit the amount of content each Headline displays (i.e., the number of lines of text). If enabled, you may enter the maximum number of lines that each will display.&lt;/p&gt;&lt;p&gt;Additional Headlines may be required to fully display all text submitted by a Reporter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
-              <property name="title">
-               <string>Visibility</string>
+              <property name="text">
+               <string>Limit headline content to</string>
               </property>
-              <property name="flat">
-               <bool>true</bool>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_2">
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_12">
-                 <item>
-                  <widget class="QCheckBox" name="check_LimitContent">
-                   <property name="toolTip">
-                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You may wish to limit the amount of content each Headline displays (i.e., the number of lines of text). If enabled, you may enter the maximum number of lines that each will display.&lt;/p&gt;&lt;p&gt;Additional Headlines may be required to fully display all text submitted by a Reporter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                   </property>
-                   <property name="text">
-                    <string>Limit headline content to</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="edit_LimitContent">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="toolTip">
-                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You may wish to limit the amount of content each Headline displays (i.e., the number of lines of text). If enabled, you may enter the maximum number of lines that each will display.&lt;/p&gt;&lt;p&gt;Additional Headlines may be required to fully display all text submitted by a Reporter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_12">
-                   <property name="text">
-                    <string>lines</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_9">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="radio_HeadlinesSizeTextScale">
-                 <property name="toolTip">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If enabled, this option will cause a Headline to attempt to reduce the size of displayed text until it fits fully into the dimensions specified above.&lt;/p&gt;&lt;p&gt;Please note that this may cause some Headlines to be virtually unreadable. You may use the &amp;quot;Limit headline content&amp;quot; setting in conjunction with this setting to ensure that does not happen.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                 </property>
-                 <property name="text">
-                  <string>Scale text to fit headline</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="radio_HeadlinesSizeTextClip">
-                 <property name="toolTip">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Text that overflows the boundaries of a Headline will simply be clipped.&lt;/p&gt;&lt;p&gt;If this frequently results in unreadable text, you may wish to consider scaling instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                 </property>
-                 <property name="text">
-                  <string>Clip text to fit headline</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
              </widget>
             </item>
+            <item>
+             <widget class="QLineEdit" name="edit_LimitContent">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>40</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You may wish to limit the amount of content each Headline displays (i.e., the number of lines of text). If enabled, you may enter the maximum number of lines that each will display.&lt;/p&gt;&lt;p&gt;Additional Headlines may be required to fully display all text submitted by a Reporter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_12">
+              <property name="text">
+               <string>lines</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_9">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
            </layout>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radio_HeadlinesSizeTextScale">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If enabled, this option will cause a Headline to attempt to reduce the size of displayed text until it fits fully into the dimensions specified above.&lt;/p&gt;&lt;p&gt;Please note that this may cause some Headlines to be virtually unreadable. You may use the &amp;quot;Limit headline content&amp;quot; setting in conjunction with this setting to ensure that does not happen.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string>Scale text to fit headline</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radio_HeadlinesSizeTextClip">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Text that overflows the boundaries of a Headline will simply be clipped.&lt;/p&gt;&lt;p&gt;If this frequently results in unreadable text, you may wish to consider scaling instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string>Clip text to fit headline</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
