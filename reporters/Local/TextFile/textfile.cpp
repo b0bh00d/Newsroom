@@ -15,7 +15,9 @@ TextFile::TextFile(QObject *parent)
 // IPlugin
 QStringList TextFile::DisplayName() const
 {
-    return QStringList() << QObject::tr("Text File") << QObject::tr("Reads a text file containing ASCII characters");
+    return QStringList() << QObject::tr("Text File (Log)") <<
+           QObject::tr("Reads a slow-to-moderately updated text file from the local\n"
+                       "disc.  Assumes text is appended to the end of the file.");
 }
 
 QByteArray TextFile::PluginID() const
