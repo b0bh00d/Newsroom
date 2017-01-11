@@ -20,7 +20,7 @@ class QPropertyAnimation;
 /// a specific story.  It inherits from QLabel, so it is the visible element
 /// on the screen, but its visibility and life cycle are managed by the Chyron.
 ///
-/// This is a base class for specialization on orientation (portrait or landscape).
+/// This is a base class that provides common behaviors for all subclasses.
 
 class Headline : public QLabel
 {
@@ -139,6 +139,8 @@ protected:  // data members
 
     QRect           starting_geometry;
     QTimer*         hover_timer;
+
+    qreal           old_opacity;
 
     // in the '!stay_visible' case, because of the way the nativeEvent()
     // function works, a new window will end up displaying BENEATH the
