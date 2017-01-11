@@ -44,6 +44,7 @@ AddStoryDialog::AddStoryDialog(PluginsInfoVector *reporters_info,
       story_info(story_info),
       settings(settings),
       angle_is_locked(false),
+      current_reporter_index(0),
       QDialog(parent),
       ui(new Ui::AddStoryDialog)
 {
@@ -306,11 +307,15 @@ void AddStoryDialog::load_settings()
             }
 
             ui->combo_AvailableReporters->setCurrentIndex(index);
-        }
+            ui->combo_AvailableReporters->setToolTip(info[index].tooltip);
+
+            current_reporter_index = index;
+       }
     }
     else
     {
-        ui->combo_AvailableReporters->setEnabled(false);
+//        ui->combo_AvailableReporters->setEnabled(false);
+        ui->combo_AvailableReporters->setToolTip(info[0].tooltip);
 
         QObject* instance = info[ui->combo_AvailableReporters->currentIndex()].factory->instance();
         IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
@@ -582,6 +587,9 @@ void AddStoryDialog::slot_train_reduce_opacity_clicked(bool /*checked*/)
 
 void AddStoryDialog::slot_reporter_changed(int index)
 {
+    if(index == current_reporter_index)
+        return;
+
     PluginsInfoVector& info = *plugin_factories;
 
     ui->combo_AvailableReporters->setToolTip(info[index].tooltip);

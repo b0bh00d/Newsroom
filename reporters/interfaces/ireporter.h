@@ -35,6 +35,10 @@ public:     // methods
       URL.  It can also optionally return a tooltip value that the host can
       display to help clarify the support provided by the plug-in.
 
+      The tooltip should be a brief but informative description of the plug-in,
+      and should include enough information so the user can decide if this
+      plug-in is the right tool for the job.
+
       \returns A displayable name for the plug-in.
      */
     virtual QStringList DisplayName() const = 0;

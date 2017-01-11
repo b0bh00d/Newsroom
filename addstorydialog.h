@@ -83,9 +83,11 @@ private:
     QStringList         reporter_configuration;
 
     PluginsInfoVector*  plugin_factories;
-    IReporterPointer      plugin_reporter;
+    IReporterPointer    plugin_reporter;
 
     QUrl                story;
 
     bool                angle_is_locked;
+
+    int                 current_reporter_index;
 };
