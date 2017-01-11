@@ -137,7 +137,7 @@ protected:  // data members
     QString         progress_text_re;
     bool            progress_on_top;
 
-    QRect           starting_geometry;
+    QRect           starting_geometry, target_geometry;
     QTimer*         hover_timer;
 
     qreal           old_opacity;

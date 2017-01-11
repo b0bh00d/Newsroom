@@ -148,7 +148,7 @@ void Headline::zoom_out()
 
     QPropertyAnimation* animation = new QPropertyAnimation(this, "geometry", this);
     animation->setDuration(200);
-    animation->setStartValue(QRect(starting_geometry.x(), starting_geometry.y(), original_w, original_h));
+    animation->setStartValue(target_geometry);
     animation->setEndValue(starting_geometry);
     animation->setEasingCurve(QEasingCurve::OutCubic);
     connect(animation, &QPropertyAnimation::finished, this, &Headline::slot_turn_on_compact_mode);
@@ -181,10 +181,63 @@ void Headline::slot_zoom_in()
 
     starting_geometry = geometry();
 
+    // we need to figure out a direction to expand.
+
+    switch(entry_type)
+    {
+        case AnimEntryType::DashboardDownLeftTop:
+        case AnimEntryType::DashboardInLeftTop:
+            target_geometry = QRect(starting_geometry.x(), starting_geometry.x(), original_w, original_h);
+            break;
+        case AnimEntryType::DashboardDownRightTop:
+        case AnimEntryType::DashboardInRightTop:
+            target_geometry = QRect(starting_geometry.x() - (original_w - starting_geometry.width()),
+                                    starting_geometry.y(), original_w, original_h);
+            break;
+        case AnimEntryType::DashboardInLeftBottom:
+        case AnimEntryType::DashboardUpLeftBottom:
+            target_geometry = QRect(starting_geometry.x(),
+                                    starting_geometry.y() - (original_h - starting_geometry.height()),
+                                    original_w, original_h);
+            break;
+        case AnimEntryType::DashboardInRightBottom:
+        case AnimEntryType::DashboardUpRightBottom:
+            target_geometry = QRect(starting_geometry.x() - (original_w - starting_geometry.width()),
+                                    starting_geometry.y() - (original_h - starting_geometry.height()),
+                                    original_w, original_h);
+            break;
+    }
+
+    // if any of our visible geometry exceeds the boundaries of
+    // the screen, it cannot be used.
+
+    // expand down-and-right from top-left point
+//    target_geometry = QRect(starting_geometry.x(), starting_geometry.x(), original_w, original_h);
+//    if(target_geometry.right() > r_desktop.right() || target_geometry.bottom() > r_desktop.bottom())
+//    {
+//        // expand up-and-right from bottom-left point
+//        target_geometry = QRect(starting_geometry.x(),
+//                                starting_geometry.y() - (original_h - starting_geometry.height()),
+//                                original_w, original_h);
+//        if(target_geometry.right() > r_desktop.right() || target_geometry.top() < r_desktop.top())
+//        {
+//            // expand up-and-left from top-right point
+//            target_geometry = QRect(starting_geometry.x() - (original_w - starting_geometry.width()),
+//                                    starting_geometry.y() - (original_h - starting_geometry.height()),
+//                                    original_w, original_h);
+//            if(target_geometry.left() < r_desktop.left() || target_geometry.top() < r_desktop.top())
+//            {
+//                // expand down-and-left from bottom-right point
+//                target_geometry = QRect(starting_geometry.x() - (original_w - starting_geometry.width()),
+//                                        starting_geometry.y(), original_w, original_h);
+//            }
+//        }
+//    }
+
     QPropertyAnimation* animation = new QPropertyAnimation(this, "geometry");
     animation->setDuration(200);
     animation->setStartValue(starting_geometry);
-    animation->setEndValue(QRect(starting_geometry.x(), starting_geometry.y(), original_w, original_h));
+    animation->setEndValue(target_geometry);
     animation->setEasingCurve(QEasingCurve::OutCubic);
     connect(animation, &QPropertyAnimation::finished, this, &Headline::slot_turn_off_compact_mode);
     animation->start(QAbstractAnimation::DeleteWhenStopped);
