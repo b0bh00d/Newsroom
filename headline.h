@@ -1,7 +1,8 @@
 #pragma once
 
-#include <QWidget>
+#include <QtWidgets/QLabel>
 
+#include <QtGui/QPaintEvent>
 #include <QtGui/QFont>
 
 #include <QtCore/QUrl>
@@ -10,17 +11,18 @@
 #include "types.h"
 #include "specialize.h"
 
-class QLabel;
 class QPropertyAnimation;
 
 /// @class Headline
 /// @brief Contains data submitted by a Reporter
 ///
 /// The Headline class contains the headline submitted by a Reporter watching
-/// a specific story.  It inherits from QWidget, so it is the visible element
+/// a specific story.  It inherits from QLabel, so it is the visible element
 /// on the screen, but its visibility and life cycle are managed by the Chyron.
+///
+/// This is a base class for specialization on orientation (portrait or landscape).
 
-class Headline : public QWidget
+class Headline : public QLabel
 {
     Q_OBJECT
 public:
@@ -35,12 +37,13 @@ public:
         headline = source.headline;
         entry_type = source.entry_type;
     }
-    ~Headline();
+    virtual ~Headline();
+
+    void    set_shrink_to_fit(bool shrink = true) { shrink_text_to_fit = shrink; }
+    void    set_compact_mode(bool compact, int original_width, int original_height);
 
     void    set_font(const QFont& font)                         { this->font = font; }
     void    set_stylesheet(const QString& stylesheet)           { this->stylesheet = stylesheet; }
-    void    set_progress(bool include_progress, const QString& re, bool on_top);
-    void    set_compact_mode(bool compact, int original_width, int original_height);
 
 signals:
     void    signal_mouse_enter();
@@ -75,22 +78,36 @@ protected:  // methods
      */
 
     /*!
-      This method is employed by the Chyron class to perform configuration of
-      the Headline for display.  Dependending upon the value of 'fixed_text',
-      the Headline will initialize differently.
+      This method is employed by the Chyron and LaneManager classes to perform
+      configuration of the Headline for display.  Dependending upon the value
+      of 'fixed_text', the Headline will initialize differently.
 
       \param stay_visible Indicates whether or not the widget should be top-most in the Z order
       \param fixed_text Selects how to handle text that exceeds the size of the fixed sizes.  If this is FixedText::None, then default initialization is performed.
       \param width The fixed width the Headline will use.
       \param height The fixed height the Headline will use.
      */
-    void    initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron, LaneManager
+    virtual void initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron, LaneManager
 
     /*!
       In "compact mode", this method is called to restore the Headline to its
-      compacted size.
+      compacted size after animation is complete.
      */
-    void    zoom_out();
+    void zoom_out();
+
+    /*!
+      These virtual functions are for subclasses to override in case they need to
+      make adjustments before and after the 'zooming' effect in Dashboard 'compact
+      mode'.  The base class does nothing.
+     @{
+     */
+    virtual void prepare_to_zoom_in()   {}
+    virtual void zoomed_in()            {}
+    virtual void prepare_to_zoom_out()  {}
+    virtual void zoomed_out()           {}
+    /*!
+      @}
+     */
 
 protected:  // data members
     bool            stay_visible;
@@ -103,28 +120,25 @@ protected:  // data members
     QFont           font;
     QString         stylesheet;
 
+    bool            shrink_text_to_fit;
     bool            compact_mode;
     int             original_w;
     int             original_h;
 
-    bool                ignore;     // Chyron
-    uint                viewed;     // Chyron
+    bool            ignore;         // Chyron
+    uint            viewed;         // Chyron
     QPropertyAnimation* animation;  // Chyron
 
     QLabel*         label;
 
-    double          old_opacity;
-
     AnimEntryType   entry_type;
-
-    Qt::Alignment   alignment;
 
     bool            include_progress_bar;
     QString         progress_text_re;
     bool            progress_on_top;
 
+    QRect           starting_geometry;
     QTimer*         hover_timer;
-    QRect           georect;
 
     // in the '!stay_visible' case, because of the way the nativeEvent()
     // function works, a new window will end up displaying BENEATH the
@@ -137,8 +151,130 @@ protected:  // data members
 
     QWidget*        bottom_window;  // Chyron
 
-    friend class Chyron;        // the Chyron manages the Headlines on the screen
-    friend class LaneManager;   // needs to initialize() it's Dashboard Headline banner
+    friend class Chyron;        // manages the Headline's life cycle and appearance
+    friend class LaneManager;   // needs to access initialize() for its Dashboard Headline banner
+};
+
+class PortraitHeadline : public Headline
+{
+    Q_OBJECT
+public:
+    explicit PortraitHeadline(const QUrl& story,
+                              const QString& headline,
+                              AnimEntryType entry_type = AnimEntryType::PopCenter,
+                              Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
+                              bool configure_for_left = true,
+                              QWidget *parent = nullptr);
+    ~PortraitHeadline();
+
+    /*!
+      By definition, the PortraitHeadline has a width that is smaller than its
+      height.  Therefore, text displayed within it is rotated vertically.  This
+      method sets an internal value that indicates how the text should be rotated
+      for display.  If 'left' (meaning the Headline will be aligned along the left
+      side of the screen), then the text is rotated such that English would flow
+      from the bottom to the top.  Otherwise, the assumption is that the Headline
+      will be right-side aligned, and text will be rotated such that English would
+      flow from the top to the bottom.
+
+      @param for_left A Boolean indicating a left-side screen alignment if true, otherwise a right-side alignment will be used.
+     */
+    void    set_for_left(bool for_left = true) { configure_for_left = for_left; }
+
+protected:      // methods
+    void    paintEvent(QPaintEvent*) Q_DECL_OVERRIDE;
+    QSize   sizeHint() const Q_DECL_OVERRIDE;
+    QSize   minimumSizeHint() const Q_DECL_OVERRIDE;
+
+    virtual void initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron, LaneManager
+
+protected:      // data members
+    bool    configure_for_left;
+};
+
+class LandscapeHeadline : public Headline
+{
+    Q_OBJECT
+public:
+    explicit LandscapeHeadline(const QUrl& story,
+                               const QString& headline,
+                               AnimEntryType entry_type = AnimEntryType::PopCenter,
+                               Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
+                               QWidget *parent = nullptr);
+    ~LandscapeHeadline();
+
+    /*!
+      The LandscapeHeadline can be configured to detect a progress indicator within
+      the Headline text.  This indicator is usually a numeric value followed by a
+      percent sign (%), but the user can configure whatever regular expression they
+      wish to retrieve a numeric value for this purpose.
+
+      If detected, the LandscapeHeadline will include a progress bar somewhere on
+      the Headline itself.  The user can place the progress bar on the top or the
+      bottom, or if 'compact mode' is active, the entire Headline window itself will
+      display the progress bar.
+
+      @param re The regular expression to use in attempts to detect progress indicator within the Headline text.
+      @param on_top A Boolean indicating the position of the progress bar: true places it on the top of the Headline, false on the bottom.
+     */
+    void    enable_progress_detection(const QString& re, bool on_top);
+
+protected:      // methods
+    void    changeEvent(QEvent* event) Q_DECL_OVERRIDE;
+    void    paintEvent(QPaintEvent*) Q_DECL_OVERRIDE;
+    QSize   sizeHint() const  Q_DECL_OVERRIDE;
+    QSize   minimumSizeHint() const  Q_DECL_OVERRIDE;
+
+    void initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron, LaneManager
+
+    /*!
+      We override the Headline 'zoom' hooks so we can turn off progress detection
+      during the zooming animation, and then turn it back on after the animation
+      is complete.  This provides for a cleaner looking animation.
+     @{
+     */
+    void prepare_to_zoom_in();
+    void zoomed_in();
+    void prepare_to_zoom_out();
+    void zoomed_out();
+    /*!
+      @}
+     */
+
+protected:      // data members
+    bool    detect_progress, old_detect_progress;
+    QString progress_re;
+    bool    progress_on_top;
+
+    int     progress_x;
+    int     progress_y;
+    int     progress_w;
+    int     progress_h;
+
+    QColor  progress_color, progress_highlight;
 };
 
 SPECIALIZE_SHAREDPTR(Headline, Headline)    // "HeadlinePointer"
+
+/// @class HeadlineGenerator
+/// @brief Helper class for generating the correct Headline subclass
+///
+/// HeadlineGenerator is a simple helper class that generates the
+/// correct Headline subclass for the dimensions provided.  It is
+/// intended to be used on the stack.
+
+class HeadlineGenerator
+{
+public:
+    explicit HeadlineGenerator(int w, int h,
+                               const QUrl& story,
+                               const QString& headline,
+                               AnimEntryType entry_type = AnimEntryType::PopCenter,
+                               Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
+                               QWidget* parent = nullptr);
+
+    HeadlinePointer get_headline()  const   { return headline; }
+
+protected:  // data members
+    HeadlinePointer headline;
+};

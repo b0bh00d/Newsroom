@@ -101,6 +101,25 @@ struct StoryInfo
           dashboard_compact_mode(false),
           dashboard_compression(25) {}
     StoryInfo(const StoryInfo& source) { *this = source; }
+
+    void get_dimensions(int& w, int& h)
+    {
+        w = 0;
+        h = 0;
+        if(interpret_as_pixels)
+        {
+            w = headlines_pixel_width;
+            h = headlines_pixel_height;
+        }
+        else
+        {
+            QDesktopWidget* desktop = QApplication::desktop();
+            QRect r_desktop = desktop->screenGeometry(primary_screen);
+
+            w = (headlines_percent_width / 100.0) * r_desktop.width();
+            h = (headlines_percent_height / 100.0) * r_desktop.height();
+        }
+    }
 };
 
 SPECIALIZE_SHAREDPTR(StoryInfo, StoryInfo)      // "StoryInfoPointer"

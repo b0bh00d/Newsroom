@@ -1,6 +1,5 @@
 #include <random>
 
-#include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QMessageBox>
 
 #include <QtGui/QFontMetrics>

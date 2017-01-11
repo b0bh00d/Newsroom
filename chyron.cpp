@@ -270,7 +270,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             headline->animation = new QPropertyAnimation(headline.data(), "geometry");
             headline->animation->setDuration(speed);
             headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-            headline->animation->setEasingCurve(QEasingCurve::InCubic);
+            headline->animation->setEasingCurve(QEasingCurve::OutCubic);
             connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
             prop_anim_map[headline->animation] = headline;
 
@@ -309,7 +309,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             headline->animation->setDuration(speed);
             headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
             headline->animation->setEndValue(QRect(r.x(), r.y(), r.width(), r.height()));
-            headline->animation->setEasingCurve(QEasingCurve::InCubic);
+            headline->animation->setEasingCurve(QEasingCurve::OutCubic);
             connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
             prop_anim_map[headline->animation] = headline;
             entering_map[headline] = true;
@@ -323,16 +323,11 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         case AnimEntryType::FadeLeftBottom:
         case AnimEntryType::FadeRightBottom:
             {
-                headline->setAttribute(Qt::WA_TranslucentBackground, true);
-
-                QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
-                eff->setOpacity(0.0);
-                headline->setGraphicsEffect(eff);
-                headline->animation = new QPropertyAnimation(eff, "opacity");
+                headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(0.0);
                 headline->animation->setEndValue(1.0);
-                headline->animation->setEasingCurve(QEasingCurve::InCubic);
+                headline->animation->setEasingCurve(QEasingCurve::OutCubic);
                 connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
                 prop_anim_map[headline->animation] = headline;
             }
@@ -343,7 +338,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         anim->setDuration(speed);
         anim->setStartValue(start);
         anim->setEndValue(end);
-        anim->setEasingCurve(QEasingCurve::InCubic);
+        anim->setEasingCurve(QEasingCurve::OutCubic);
     };
 
     switch(story_info->entry_type)
@@ -494,12 +489,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         {
             if(story_info->train_age_effect == AgeEffects::ReduceOpacityFixed)
             {
-                headline->setAttribute(Qt::WA_TranslucentBackground, true);
-
-                QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
-                eff->setOpacity(1.0);
-                headline->setGraphicsEffect(eff);
-                headline->animation = new QPropertyAnimation(eff, "opacity");
+                headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(1.0);
                 headline->animation->setEndValue(story_info->train_age_percent / 100.0);
@@ -518,12 +508,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         {
             if(story_info->dashboard_age_percent)
             {
-                headline->setAttribute(Qt::WA_TranslucentBackground, true);
-
-                QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
-                eff->setOpacity(1.0);
-                headline->setGraphicsEffect(eff);
-                headline->animation = new QPropertyAnimation(eff, "opacity");
+                headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(1.0);
                 headline->animation->setEndValue(story_info->dashboard_age_percent / 100.0);
@@ -551,23 +536,18 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 headline->animation = new QPropertyAnimation(headline.data(), "geometry");
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-                headline->animation->setEasingCurve(QEasingCurve::InCubic);
+                headline->animation->setEasingCurve(QEasingCurve::OutCubic);
                 connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
                 prop_anim_map[headline->animation] = headline;
                 break;
 
             case AnimExitType::Fade:
                 {
-                    headline->setAttribute(Qt::WA_TranslucentBackground, true);
-
-                    QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
-                    eff->setOpacity(1.0);
-                    headline->setGraphicsEffect(eff);
-                    headline->animation = new QPropertyAnimation(eff, "opacity");
+                    headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
                     headline->animation->setDuration(speed);
                     headline->animation->setStartValue(1.0);
                     headline->animation->setEndValue(0.0);
-                    headline->animation->setEasingCurve(QEasingCurve::InCubic);
+                    headline->animation->setEasingCurve(QEasingCurve::OutCubic);
                     connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
                     prop_anim_map[headline->animation] = headline;
                 }
@@ -624,7 +604,7 @@ void Chyron::shift_left(int amount)
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
         headline->animation->setDuration(story_info->anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(QEasingCurve::InCubic);
+        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
         headline->animation->setEndValue(QRect(r.x() - amount, r.y(), r.width(), r.height()));
 
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
@@ -648,7 +628,7 @@ void Chyron::shift_right(int amount)
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
         headline->animation->setDuration(story_info->anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(QEasingCurve::InCubic);
+        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
         headline->animation->setEndValue(QRect(r.x() + amount, r.y(), r.width(), r.height()));
 
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
@@ -672,7 +652,7 @@ void Chyron::shift_up(int amount)
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
         headline->animation->setDuration(story_info->anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(QEasingCurve::InCubic);
+        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
         headline->animation->setEndValue(QRect(r.x(), r.y() - amount, r.width(), r.height()));
 
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
@@ -696,7 +676,7 @@ void Chyron::shift_down(int amount)
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
         headline->animation->setDuration(story_info->anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(QEasingCurve::InCubic);
+        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
         headline->animation->setEndValue(QRect(r.x(), r.y() + amount, r.width(), r.height()));
 
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
@@ -901,46 +881,34 @@ void Chyron::slot_train_expire_headlines()
 void Chyron::slot_headline_mouse_enter()
 {
     Headline* headline = qobject_cast<Headline*>(sender());
-
-    QGraphicsEffect* eff = headline->graphicsEffect();
-    if(eff)
+    if(headline->windowOpacity() < 1.0)
     {
-        QGraphicsOpacityEffect* oeff = qobject_cast<QGraphicsOpacityEffect*>(eff);
-        if(oeff)
-        {
-            opacity_map[headline] = oeff->opacity();
+        opacity_map[headline] = headline->windowOpacity();
 
-            headline->animation = new QPropertyAnimation(oeff, "opacity");
-            headline->animation->setDuration(150);
-            headline->animation->setStartValue(oeff->opacity());
-            headline->animation->setEndValue(1.0);
-            headline->animation->setEasingCurve(QEasingCurve::InCubic);
-            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+        headline->animation = new QPropertyAnimation(headline, "windowOpacity");
+        headline->animation->setDuration(150);
+        headline->animation->setStartValue(headline->windowOpacity());
+        headline->animation->setEndValue(1.0);
+        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
-            headline->animation->start();
-        }
+        headline->animation->start();
     }
 }
 
 void Chyron::slot_headline_mouse_exit()
 {
     Headline* headline = qobject_cast<Headline*>(sender());
-
     if(opacity_map.contains(headline))
     {
-        QGraphicsEffect* eff = headline->graphicsEffect();
-        if(eff)
-        {
-            QGraphicsOpacityEffect* oeff = qobject_cast<QGraphicsOpacityEffect*>(eff);
-            headline->animation = new QPropertyAnimation(oeff, "opacity");
-            headline->animation->setDuration(150);
-            headline->animation->setStartValue(1.0);
-            headline->animation->setEndValue(opacity_map[headline]);
-            headline->animation->setEasingCurve(QEasingCurve::InCubic);
-            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+        headline->animation = new QPropertyAnimation(headline, "windowOpacity");
+        headline->animation->setDuration(150);
+        headline->animation->setStartValue(1.0);
+        headline->animation->setEndValue(opacity_map[headline]);
+        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
-            headline->animation->start();
-        }
+        headline->animation->start();
 
         opacity_map.remove(headline);
     }
