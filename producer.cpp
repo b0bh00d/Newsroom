@@ -25,6 +25,9 @@ Producer::~Producer()
 
 bool Producer::start_covering_story()
 {
+    if(covering_story)
+        return true;
+
     if(reporter.isNull() || chyron.isNull())
         return false;
 
@@ -45,6 +48,9 @@ bool Producer::start_covering_story()
 
 bool Producer::stop_covering_story()
 {
+    if(!covering_story)
+        return true;
+
     if(reporter.isNull() || chyron.isNull())
         return false;
 
