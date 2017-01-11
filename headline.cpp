@@ -38,6 +38,7 @@ Headline::Headline(const QUrl& story,
       progress_on_top(false),
       bottom_window(nullptr),
       hover_timer(nullptr),
+      old_opacity(1.0),
       QLabel(parent)
 {
     setAlignment(alignment);
@@ -164,6 +165,8 @@ void Headline::slot_turn_on_compact_mode()
 
     zoomed_out();
 
+    setWindowOpacity(old_opacity);
+
     repaint();
 }
 
@@ -198,6 +201,9 @@ void Headline::slot_turn_off_compact_mode()
     compact_mode = false;
 
     zoomed_in();
+
+    old_opacity = windowOpacity();
+    setWindowOpacity(1.0);
 
     repaint();
 }
