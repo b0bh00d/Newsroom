@@ -94,6 +94,8 @@ struct StoryInfo
           include_progress_bar(false),
           progress_text_re("\\s(\\d+)%"),
           progress_on_top(false),
+          entry_type(AnimEntryType::PopCenter),
+          exit_type(AnimExitType::Pop),
           anim_motion_duration(500),
           fade_target_duration(500),
           train_use_age_effect(false),
