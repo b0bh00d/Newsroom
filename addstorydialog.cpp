@@ -6,6 +6,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QStringList>
 #include <QtCore/QRegExp>
+#include <QtCore/QSignalBlocker>
 
 #include <ireporter.h>
 
@@ -36,11 +37,11 @@ static const QStringList animexittype_str
 #undef X
 };
 
-AddStoryDialog::AddStoryDialog(PluginsInfoVector *reporters_info,
+AddStoryDialog::AddStoryDialog(BeatsMap &beats_map,
                                StoryInfoPointer story_info,
                                SettingsPointer settings,
                                QWidget *parent)
-    : plugin_factories(reporters_info),
+    : plugin_beats(beats_map),
       story_info(story_info),
       settings(settings),
       angle_is_locked(false),
@@ -94,6 +95,8 @@ void AddStoryDialog::showEvent(QShowEvent *event)
 {
     connect(ui->combo_EntryType, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &AddStoryDialog::slot_entry_type_changed);
+    connect(ui->combo_ReporterBeats, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            this, &AddStoryDialog::slot_beat_changed);
     connect(ui->combo_AvailableReporters, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &AddStoryDialog::slot_reporter_changed);
     connect(ui->radio_InterpretAsPixels, &QCheckBox::clicked, this, &AddStoryDialog::slot_interpret_size_clicked);
@@ -136,6 +139,8 @@ void AddStoryDialog::save_settings()
         id_list << ui->combo_DashboardGroupId->itemText(i);
     settings->set_item("dashboard_group_id_list", id_list);
 
+    settings->end_section();
+
     QString story = ui->edit_Source->text();
     if(QFile::exists(story))
         story_info->story = QUrl::fromLocalFile(story);
@@ -152,33 +157,8 @@ void AddStoryDialog::save_settings()
 
     story_info->reporter_id = plugin_reporter->PluginID();
 
-    story_info->reporter_parameters.clear();
-    QList<QWidget*> all_edits = ui->group_ReporterConfig->findChildren<QWidget*>();
-    foreach(QWidget* child, all_edits)
-    {
-        QLineEdit* edit = qobject_cast<QLineEdit*>(child);
-        if(edit)
-            story_info->reporter_parameters << edit->text();
-        else
-        {
-            QPlainTextEdit* multiline = qobject_cast<QPlainTextEdit*>(child);
-            if(multiline)
-                story_info->reporter_parameters << multiline->toPlainText();
-            else
-            {
-                QComboBox* combo = qobject_cast<QComboBox*>(child);
-                if(combo)
-                    story_info->reporter_parameters << QString::number(combo->currentIndex());
-            }
-        }
-    }
-
-    settings->clear_section(story_info->reporter_id);
-    settings->begin_section(story_info->reporter_id);
-    QStringList params = plugin_reporter->Requires();
-    for(int i = 0, j = 0;i < params.length();i += 2, ++j)
-        settings->set_item(params[i], story_info->reporter_parameters[j]);
-    settings->end_section();
+    get_reporter_parameters();
+    store_reporter_parameters();
 
     if(!ui->edit_TTL->text().isEmpty())
         story_info->ttl = ui->edit_TTL->text().toInt();
@@ -255,8 +235,6 @@ void AddStoryDialog::save_settings()
         story_info->dashboard_group_id = line_edit->placeholderText();
     else
         story_info->dashboard_group_id = line_edit->text();
-
-    settings->end_section();
 }
 
 void AddStoryDialog::load_settings()
@@ -271,70 +249,39 @@ void AddStoryDialog::load_settings()
     QStringList id_list = settings->get_item("dashboard_group_id_list", QStringList()).toStringList();
     ui->combo_DashboardGroupId->addItems(id_list);
 
+    settings->end_section();
+
     if(story_info->story.isLocalFile())
     {
         ui->edit_Source->setText(QDir::toNativeSeparators(story_info->story.toLocalFile()));
         ui->edit_Source->setEnabled(false);
     }
     else
+    {
         ui->edit_Source->setText(story_info->story.toString());
+    }
 
     if(story_info->identity.isEmpty())
         ui->edit_Angle->setPlaceholderText(ui->edit_Source->text());
     else
         ui->edit_Angle->setText(story_info->identity);
 
-    PluginsInfoVector& info = *plugin_factories;
-
     ui->combo_AvailableReporters->clear();
-    foreach(const PluginInfo& pi_info, info)
+
+    if(!plugin_beats.contains(story_info->reporter_beat))
+        story_info->reporter_beat = plugin_beats.keys()[0];
+
+    foreach(const ReporterInfo& pi_info, plugin_beats[story_info->reporter_beat])
         ui->combo_AvailableReporters->addItem(pi_info.name);
 
-    if(info.count() > 1)
-    {
-        // find the Reporter
-        if(!story_info->reporter_id.isEmpty())
-        {
-            int index = 0;
-            for(index = 0;index < info.count();++index)
-            {
-                QObject* instance = info[index].factory->instance();
-                IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
-                Q_ASSERT(ireporterfactory);
-                plugin_reporter = ireporterfactory->newInstance();
-                if(!story_info->reporter_id.compare(plugin_reporter->PluginID()))
-                    break;
-            }
+    ui->combo_ReporterBeats->clear();
+    QStringList beats = plugin_beats.keys();
+    ui->combo_ReporterBeats->addItems(beats);
+    int index_of_beat = beats.indexOf(story_info->reporter_beat);
 
-            ui->combo_AvailableReporters->setCurrentIndex(index);
-            ui->combo_AvailableReporters->setToolTip(info[index].tooltip);
-
-            current_reporter_index = index;
-       }
-    }
-    else
-    {
-//        ui->combo_AvailableReporters->setEnabled(false);
-        ui->combo_AvailableReporters->setToolTip(info[0].tooltip);
-
-        QObject* instance = info[ui->combo_AvailableReporters->currentIndex()].factory->instance();
-        IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
-        Q_ASSERT(ireporterfactory);
-        plugin_reporter = ireporterfactory->newInstance();
-    }
-
-    reporter_configuration.clear();
-
-    settings->begin_section(story_info->reporter_id);
-    QStringList params = plugin_reporter->Requires();
-    for(int i = 0, j = 0;i < params.length();i += 2, ++j)
-    {
-        reporter_configuration.append(QString());
-        reporter_configuration[j] = settings->get_item(params[i], QString()).toString();
-    }
-    settings->end_section();
-
-    slot_configure_reporter_configure();
+    // this needs to be here because it will call begin_section("/AddStoryDialog")
+    ui->combo_ReporterBeats->setCurrentIndex(index_of_beat);
+    slot_beat_changed(index_of_beat);
 
     if(ui->edit_TTL->placeholderText().toInt() == story_info->ttl)
         ui->edit_TTL->setText(QString());
@@ -431,8 +378,6 @@ void AddStoryDialog::load_settings()
 
     if(!ui->edit_Angle->placeholderText().compare(story_info->identity))
         ui->edit_Angle->setText(QString());
-
-    settings->end_section();
 }
 
 void AddStoryDialog::set_display()
@@ -453,16 +398,6 @@ void AddStoryDialog::set_display()
     if(screen_count == 1)
         ui->radio_Monitor1->setDisabled(true);
 }
-
-//void AddStoryDialog::configure_for_local(bool for_local)
-//{
-//    ui->group_ReporterConfig->setHidden(for_local);
-//    ui->label_Triggers->setHidden(!for_local);
-//    ui->combo_LocalTrigger->setHidden(!for_local);
-
-//    QPushButton* button = ui->buttonBox->button(QDialogButtonBox::Ok);
-//    button->setEnabled(for_local || reporter_configuration.count());
-//}
 
 void AddStoryDialog::set_angle()
 {
@@ -488,9 +423,14 @@ void AddStoryDialog::set_angle()
     QStringList requirements = plugin_reporter->Requires();
     QString plugin_params;
     QList<QLineEdit*> all_edits = ui->group_ReporterConfig->findChildren<QLineEdit*>();
-    int index = 0;
     foreach(QLineEdit* child, all_edits)
     {
+        QString name = child->objectName();
+        if(name.isEmpty() || !name.startsWith(story_info->reporter_id))
+            continue;
+
+        int index = name.split(QChar('_')).back().toInt();
+
         QString value = child->text();
         if(!value.isEmpty() && !requirements[(index*2)+1].compare("string"))
         {
@@ -498,10 +438,9 @@ void AddStoryDialog::set_angle()
                 plugin_params += "?";
             plugin_params += value.replace(" ", "_");
         }
-        ++index;
     }
-    QString plugin_id = QString("%1%2").arg(plugin_reporter->DisplayName()[0]).arg(plugin_params.isEmpty() ? "" : QString("(%1)").arg(plugin_params));
 
+    QString plugin_id = QString("%1%2").arg(plugin_reporter->DisplayName()[0]).arg(plugin_params.isEmpty() ? "" : QString("(%1)").arg(plugin_params));
     QString display = QString("Display %1").arg(ui->radio_Monitor1->isChecked() ? 1 : (ui->radio_Monitor2->isChecked() ? 2 : (ui->radio_Monitor3->isChecked() ? 3 : 4)));
 
     if(IS_DASHBOARD(entry_type))
@@ -528,6 +467,92 @@ void AddStoryDialog::set_angle()
                         .arg(animentrytype_map[entry_type])
                         .arg(plugin_id)
                         .arg(target));
+}
+
+void AddStoryDialog::get_reporter_parameters()
+{
+    story_info->reporter_parameters.clear();
+
+    if(plugin_reporter.isNull())
+        return;
+
+    QStringList params = plugin_reporter->Requires();
+    for(int i = 0;i < params.length() / 2;++i)
+        story_info->reporter_parameters << "";
+
+    QList<QWidget*> all_edits = ui->group_ReporterConfig->findChildren<QWidget*>();
+    foreach(QWidget* child, all_edits)
+    {
+        QString name = child->objectName();
+        if(name.isEmpty() || !name.startsWith(story_info->reporter_id))
+            continue;
+
+        QString value;
+
+        QLineEdit* edit = qobject_cast<QLineEdit*>(child);
+        if(edit)
+            value = edit->text();
+        else
+        {
+            QPlainTextEdit* multiline = qobject_cast<QPlainTextEdit*>(child);
+            if(multiline)
+                value = multiline->toPlainText();
+            else
+            {
+                QComboBox* combo = qobject_cast<QComboBox*>(child);
+                if(combo)
+                    value = QString::number(combo->currentIndex());
+            }
+        }
+
+        int index = name.split(QChar('_')).back().toInt();
+        story_info->reporter_parameters[index] = value;
+    }
+}
+
+void AddStoryDialog::store_reporter_parameters()
+{
+    if(plugin_reporter.isNull())
+        return;
+
+    get_reporter_parameters();
+
+    QStringList params = plugin_reporter->Requires();
+    int params_count = params.count() / 2;
+    if(params_count && (params_count == story_info->reporter_parameters.count()))
+    {
+        settings->begin_section("/AddStoryDialog");
+
+        settings->clear_section(story_info->reporter_id);
+        settings->begin_section(story_info->reporter_id);
+        for(int i = 0, j = 0;i < params.length();i += 2, ++j)
+            settings->set_item(params[i], story_info->reporter_parameters[j]);
+
+        settings->end_section();
+
+        settings->end_section();
+    }
+}
+
+void AddStoryDialog::recall_reporter_parameters()
+{
+    if(plugin_reporter.isNull())
+        return;
+
+    story_info->reporter_parameters.clear();
+
+    settings->begin_section("/AddStoryDialog");
+
+    settings->begin_section(story_info->reporter_id);
+    QStringList params = plugin_reporter->Requires();
+    for(int i = 0, j = 0;i < params.length();i += 2, ++j)
+    {
+        story_info->reporter_parameters.append(QString());
+        story_info->reporter_parameters[j] = settings->get_item(params[i], QString()).toString();
+    }
+    settings->end_section();
+
+    settings->end_section();
 }
 
 void AddStoryDialog::slot_accepted()
@@ -585,12 +610,72 @@ void AddStoryDialog::slot_train_reduce_opacity_clicked(bool /*checked*/)
     ui->edit_TrainReduceOpacity->setEnabled(ui->radio_TrainReduceOpacityFixed->isChecked());
 }
 
+void AddStoryDialog::slot_beat_changed(int index)
+{
+    // save the current reporter configuration under the current 'reporter_id'
+
+    store_reporter_parameters();
+
+    story_info->reporter_beat = ui->combo_ReporterBeats->itemText(index);
+
+    // keep signals from being fired while we're manipulating things
+    QSignalBlocker blocker(ui->combo_AvailableReporters);
+
+    ui->combo_AvailableReporters->clear();
+
+    if(!plugin_beats.contains(story_info->reporter_beat))
+        story_info->reporter_beat = plugin_beats.keys()[0];
+
+    foreach(const ReporterInfo& pi_info, plugin_beats[story_info->reporter_beat])
+        ui->combo_AvailableReporters->addItem(pi_info.name);
+
+    if(plugin_beats[story_info->reporter_beat].count() > 1)
+    {
+        // find the Reporter
+        if(!story_info->reporter_id.isEmpty())
+        {
+            int index = 0;
+            for(index = 0;index < plugin_beats[story_info->reporter_beat].count();++index)
+            {
+                QObject* instance = plugin_beats[story_info->reporter_beat][index].factory->instance();
+                IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+                Q_ASSERT(ireporterfactory);
+                plugin_reporter = ireporterfactory->newInstance();
+                if(!story_info->reporter_id.compare(plugin_reporter->PluginID()))
+                    break;
+            }
+
+            ui->combo_AvailableReporters->setCurrentIndex(index);
+            ui->combo_AvailableReporters->setToolTip(plugin_beats[story_info->reporter_beat][index].tooltip);
+
+            current_reporter_index = index;
+       }
+    }
+    else
+    {
+        ui->combo_AvailableReporters->setToolTip(plugin_beats[story_info->reporter_beat][0].tooltip);
+
+        QObject* instance = plugin_beats[story_info->reporter_beat][ui->combo_AvailableReporters->currentIndex()].factory->instance();
+        IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+        Q_ASSERT(ireporterfactory);
+        plugin_reporter = ireporterfactory->newInstance();
+    }
+
+    story_info->reporter_id = plugin_reporter->PluginID();
+
+    recall_reporter_parameters();
+
+    slot_configure_reporter_configure();
+}
+
 void AddStoryDialog::slot_reporter_changed(int index)
 {
     if(index == current_reporter_index)
         return;
 
-    PluginsInfoVector& info = *plugin_factories;
+    store_reporter_parameters();
+
+    ReportersInfoVector& info = plugin_beats[story_info->reporter_beat];
 
     ui->combo_AvailableReporters->setToolTip(info[index].tooltip);
 
@@ -598,7 +683,10 @@ void AddStoryDialog::slot_reporter_changed(int index)
     IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
     Q_ASSERT(ireporterfactory);
     plugin_reporter = ireporterfactory->newInstance();
-    reporter_configuration.clear();
+
+    story_info->reporter_id = plugin_reporter->PluginID();
+
+    recall_reporter_parameters();
 
     slot_configure_reporter_configure();
 }
@@ -636,9 +724,9 @@ void AddStoryDialog::slot_configure_reporter_configure()
     // we populate group_ReporterConfig with controls for entering
     // Reporter configuration parameters
 
-    QObject* child;
-    while((child = ui->group_ReporterConfig->findChild<QObject*>()) != nullptr)
-        child->deleteLater();
+    QList<QObject*> children = ui->group_ReporterConfig->findChildren<QObject*>();
+    for(auto iter = children.begin();iter != children.end();++iter)
+        (*iter)->deleteLater();
 
     Q_ASSERT(!plugin_reporter.isNull());
 
@@ -674,7 +762,10 @@ void AddStoryDialog::slot_configure_reporter_configure()
         if(type.startsWith("multiline:"))
         {
             multiline = new QPlainTextEdit();
-            multiline->setObjectName(QString("multiline_%1").arg(j));
+            multiline->setObjectName(QString("%1_%2_%3")
+                                        .arg(story_info->reporter_id)
+                                        .arg(QString(QUrl::toPercentEncoding(param_name, "", "_")))
+                                        .arg(j));
             multiline->setWordWrapMode(QTextOption::NoWrap);
             if(required_fields.at(j))
                 multiline->setStyleSheet("background-color: rgb(255, 245, 245);");
@@ -685,14 +776,20 @@ void AddStoryDialog::slot_configure_reporter_configure()
         else if(type.startsWith("combo:"))
         {
             combo = new QComboBox();
-            combo->setObjectName(QString("combo_%1").arg(j));
+            combo->setObjectName(QString("%1_%2_%3")
+                                        .arg(story_info->reporter_id)
+                                        .arg(QString(QUrl::toPercentEncoding(param_name, "", "_")))
+                                        .arg(j));
             def_value = type.right(type.length() - 6);
             type = "combo";
         }
         else    // default: QTextEdit
         {
             edit = new QLineEdit();
-            edit->setObjectName(QString("edit_%1").arg(j));
+            edit->setObjectName(QString("%1_%2_%3")
+                                        .arg(story_info->reporter_id)
+                                        .arg(QString(QUrl::toPercentEncoding(param_name, "", "_")))
+                                        .arg(j));
             if(required_fields.at(j))
                 edit->setStyleSheet("background-color: rgb(255, 245, 245);");
 
@@ -706,8 +803,8 @@ void AddStoryDialog::slot_configure_reporter_configure()
 
         if(!type.compare("multiline"))
         {
-            if(reporter_configuration.count() > j && !reporter_configuration[j].isEmpty())
-                multiline->insertPlainText(reporter_configuration[j]);
+            if(story_info->reporter_parameters.count() > j && !story_info->reporter_parameters[j].isEmpty())
+                multiline->insertPlainText(story_info->reporter_parameters[j]);
             else
                 multiline->insertPlainText(def_value);
 
@@ -723,10 +820,10 @@ void AddStoryDialog::slot_configure_reporter_configure()
         {
             foreach(const QString& item, def_value.split(","))
                 combo->addItem(item.trimmed());
-            if(reporter_configuration.count() > j && !reporter_configuration[j].isEmpty())
+            if(story_info->reporter_parameters.count() > j && !story_info->reporter_parameters[j].isEmpty())
             {
-                if(reporter_configuration[j].toInt() < combo->count())
-                    combo->setCurrentIndex(reporter_configuration[j].toInt());
+                if(story_info->reporter_parameters[j].toInt() < combo->count())
+                    combo->setCurrentIndex(story_info->reporter_parameters[j].toInt());
             }
             else if(!def_value.isEmpty())
                 combo->setCurrentIndex(def_value.toInt());
@@ -749,12 +846,12 @@ void AddStoryDialog::slot_configure_reporter_configure()
             if(!def_value.isEmpty())
                 edit->setPlaceholderText(def_value);
 
-            if(reporter_configuration.count() > j && !reporter_configuration[j].isEmpty())
+            if(story_info->reporter_parameters.count() > j && !story_info->reporter_parameters[j].isEmpty())
             {
-                if(!reporter_configuration[j].compare(def_value))
+                if(!story_info->reporter_parameters[j].compare(def_value))
                     edit->setPlaceholderText(def_value);
                 else
-                    edit->setText(reporter_configuration[j]);
+                    edit->setText(story_info->reporter_parameters[j]);
             }
             else
                 edit->setPlaceholderText(def_value);
@@ -791,6 +888,11 @@ void AddStoryDialog::slot_configure_reporter_configure()
     }
 
     vbox->addItem(new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding));
+
+    QLayout* layout = ui->group_ReporterConfig->layout();
+    if(layout)
+        delete layout;
+
     ui->group_ReporterConfig->setLayout(vbox);
 
     slot_config_reporter_check_required();
@@ -799,8 +901,6 @@ void AddStoryDialog::slot_configure_reporter_configure()
 void AddStoryDialog::slot_config_reporter_check_required()
 {
     bool have_required_fields = true;
-
-    reporter_configuration.clear();
 
     QList<QWidget*> all_edits = ui->group_ReporterConfig->findChildren<QWidget*>();
     foreach(QWidget* child, all_edits)
@@ -818,10 +918,10 @@ void AddStoryDialog::slot_config_reporter_check_required()
                 name = multiline->objectName();
         }
 
-        if(name.isEmpty())
+        if(name.isEmpty() || !name.startsWith(story_info->reporter_id))
             continue;
 
-        int index = name.split(QChar('_'))[1].toInt();
+        int index = name.split(QChar('_')).back().toInt();
 
         if(required_fields.at(index))
         {
@@ -834,8 +934,6 @@ void AddStoryDialog::slot_config_reporter_check_required()
                 }
                 else
                     edit->setStyleSheet("background-color: rgb(245, 255, 245);");
-
-                reporter_configuration << edit->text();
             }
             else if(multiline)
             {
@@ -846,12 +944,8 @@ void AddStoryDialog::slot_config_reporter_check_required()
                 }
                 else
                     multiline->setStyleSheet("background-color: rgb(245, 255, 245);");
-
-                reporter_configuration << multiline->toPlainText();
             }
         }
-        else
-            reporter_configuration << "";
     }
 
     QDialogButtonBox* buttonBox = findChild<QDialogButtonBox*>("buttonBox");

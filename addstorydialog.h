@@ -33,7 +33,7 @@ class AddStoryDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit AddStoryDialog(PluginsInfoVector* reporters_info,
+    explicit AddStoryDialog(BeatsMap &beats_map,
                             StoryInfoPointer story_info,
                             SettingsPointer settings,
                             QWidget *parent = 0);
@@ -57,6 +57,7 @@ protected slots:
     void            slot_interpret_size_clicked(bool checked);
     void            slot_progress_clicked(bool checked);
     void            slot_train_reduce_opacity_clicked(bool checked);
+    void            slot_beat_changed(int index);
     void            slot_reporter_changed(int index);
     void            slot_config_reporter_check_required();
     void            slot_set_group_id_text(int index);
@@ -70,6 +71,10 @@ private:        // methods
     void            set_display();
     void            set_angle();
 
+    void            get_reporter_parameters();
+    void            store_reporter_parameters();
+    void            recall_reporter_parameters();
+
 private:
     Ui::AddStoryDialog *ui;
 
@@ -80,9 +85,9 @@ private:
     QStringList         plugin_tooltips;
 
     QBitArray           required_fields;
-    QStringList         reporter_configuration;
+//    QStringList         reporter_configuration;
 
-    PluginsInfoVector*  plugin_factories;
+    BeatsMap&           plugin_beats;
     IReporterPointer    plugin_reporter;
 
     QUrl                story;

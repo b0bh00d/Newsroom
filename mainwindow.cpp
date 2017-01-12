@@ -101,7 +101,7 @@ bool MainWindow::load_reporters()
 {
     QMap<QString, bool> id_filter;
 
-    beat_reporters.clear();
+    beats.clear();
 
     QDir plugins("reporters");
     QStringList plugins_list = plugins.entryList(QStringList() << "*.dll" << "*.so", QDir::Files);
@@ -112,7 +112,7 @@ bool MainWindow::load_reporters()
         QObject* instance = plugin->instance();
         if(instance)
         {
-            PluginInfo pi_info;
+            ReporterInfo pi_info;
             pi_info.factory = plugin;
             pi_info.path = plugin_path;
 
@@ -129,15 +129,15 @@ bool MainWindow::load_reporters()
                 if(!id_filter.contains(pi_info.id))
                 {
                     QString pi_class = ireporter->PluginClass();
-                    if(!beat_reporters.contains(pi_class))
-                        beat_reporters[pi_class] = PluginsInfoVector();
-                    beat_reporters[pi_class].push_back(pi_info);
+                    if(!beats.contains(pi_class))
+                        beats[pi_class] = ReportersInfoVector();
+                    beats[pi_class].push_back(pi_info);
                 }
             }
         }
     }
 
-    return beat_reporters.count() > 0;
+    return beats.count() > 0;
 }
 
 void MainWindow::set_visible(bool visible)
@@ -227,7 +227,7 @@ void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
     }
 }
 
-bool MainWindow::cover_story(ProducerPointer& producer, StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector *reporters_info)
+bool MainWindow::cover_story(ProducerPointer& producer, StoryInfoPointer story_info, CoverageStart coverage_start, const ReportersInfoVector *reporters_info)
 {
     bool result = false;
 
@@ -235,8 +235,8 @@ bool MainWindow::cover_story(ProducerPointer& producer, StoryInfoPointer story_i
     {
         if(!reporters_info)
         {
-            if(beat_reporters.contains(story_info->reporter_beat))
-                reporters_info = &beat_reporters[story_info->reporter_beat];
+            if(beats.contains(story_info->reporter_beat))
+                reporters_info = &beats[story_info->reporter_beat];
 
             if(!reporters_info)
             {
@@ -254,7 +254,7 @@ bool MainWindow::cover_story(ProducerPointer& producer, StoryInfoPointer story_i
         // assign a staff Reporter from the selected department to cover the story
 
         IReporterPointer reporter;
-        foreach(const PluginInfo& pi_info, (*reporters_info))
+        foreach(const ReporterInfo& pi_info, (*reporters_info))
         {
             QObject* instance = pi_info.factory->instance();
             IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
@@ -349,8 +349,6 @@ void MainWindow::dropEvent(QDropEvent* event)
     QList<QUrl> urls = event->mimeData()->urls();
     foreach(const QUrl& story, urls)
     {
-        PluginsInfoVector* reporters_info = nullptr;
-
         StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
         restore_story_defaults(story_info);
         story_info->story = story;
@@ -358,15 +356,13 @@ void MainWindow::dropEvent(QDropEvent* event)
         story_info->dashboard_compact_mode = compact_mode;
         story_info->dashboard_compression = compact_compression;
 
+        // Provide a 'hint' as to which beat is appropriate for this Story
         if(story.isLocalFile())
             story_info->reporter_beat = "Local";
         else
             story_info->reporter_beat = "REST";
 
-        if(beat_reporters.contains(story_info->reporter_beat))
-            reporters_info = &beat_reporters[story_info->reporter_beat];
-
-        if(!reporters_info)
+        if(!beats.contains(story_info->reporter_beat))
         {
             QMessageBox::critical(0,
                                   tr("Newsroom: Error"),
@@ -375,7 +371,7 @@ void MainWindow::dropEvent(QDropEvent* event)
             return;
         }
 
-        AddStoryDialog addstory_dlg(reporters_info, story_info, settings, this);
+        AddStoryDialog addstory_dlg(beats, story_info, settings, this);
 
         restore_window_data(&addstory_dlg);
 
@@ -392,6 +388,8 @@ void MainWindow::dropEvent(QDropEvent* event)
             {
                 if(!iter->name.compare("Default"))
                 {
+                    ReportersInfoVector* reporters_info = &beats[story_info->reporter_beat];
+
                     ProducerPointer producer;
                     if(cover_story(producer, story_info, CoverageStart::Immediate, reporters_info))
                         iter->producers.append(producer);
@@ -443,22 +441,12 @@ void MainWindow::build_tray_menu()
         delete trayIconMenu;
     }
 
-//    options_action  = new QAction(QIcon(":/images/Options.png"), tr("Edit &Settings..."), this);
-//    if(note_clipboard)
-//        paste_action = new QAction(QIcon(":/images/Restore.png"), tr("&Paste Note"), this);
     settings_action = new QAction(QIcon(":/images/Options.png"), tr("&Settings..."), this);
     about_action    = new QAction(QIcon(":/images/About.png"), tr("&About"), this);
     quit_action     = new QAction(QIcon(":/images/Quit.png"), tr("&Quit"), this);
 
     trayIconMenu = new QMenu(this);
 
-//    trayIconMenu->addAction(options_action);
-//    trayIconMenu->addSeparator();
-//    if(note_clipboard)
-//    {
-//        trayIconMenu->addAction(paste_action);
-//        trayIconMenu->addSeparator();
-//    }
     trayIconMenu->addAction(settings_action);
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(about_action);
@@ -533,7 +521,6 @@ void MainWindow::load_application_settings()
     if(lane_manager)
         lane_manager.clear();
 
-    // add a Default Series entry on first runs
     series_ordered.clear();
 
     // add a Default stylesheet entry on first runs
@@ -971,8 +958,6 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
         headline_font                    = settings_dlg->get_font();
         settings_dlg->get_styles(*(headline_style_list.data()));
 
-        // process any moves before any deletions!
-
         // the SeriesInfoList returned by SettingsDialog is the way
         // Series/Stories look now, and the assignment to 'series_ordered'
         // has IMMEDIATE affect.
@@ -982,13 +967,11 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
         series_ordered = settings_dlg->get_series();
 
-        // first, handle Stories that might have moved to a different Series
+        // clear any deleted Series
 
         QStringList remaining_series;
         foreach(const SeriesInfo& series_info, series_ordered)
             remaining_series << series_info.name;
-
-        // now, clear any deleted Series
 
         QStringList series_names = remaining_series;
         QStringList deleted_series;
@@ -1039,23 +1022,10 @@ void MainWindow::slot_edit_story(const QString& story_id)
     Q_ASSERT(!producer.isNull());       // this really shouldn't happen
 
     StoryInfoPointer story_info = producer->get_story();
-    PluginsInfoVector* reporters_info = nullptr;
-
-    if(beat_reporters.contains(story_info->reporter_beat))
-        reporters_info = &beat_reporters[story_info->reporter_beat];
-
-    if(!reporters_info)
-    {
-        QMessageBox::critical(0,
-                              tr("Newsroom: Error"),
-                              tr("No Reporters are available to cover the \"%1\" beat!")
-                                    .arg(story_info->reporter_beat));
-        return;
-    }
 
     CoverageStart coverage_start = producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
 
-    AddStoryDialog addstory_dlg(reporters_info, story_info, settings, this);
+    AddStoryDialog addstory_dlg(beats, story_info, settings, this);
 
     addstory_dlg.lock_angle();
 
@@ -1076,6 +1046,7 @@ void MainWindow::slot_edit_story(const QString& story_id)
         producer->stop_covering_story();
 
         // AddStoryDialog has automatically updated 'story_info' with all settings
+        ReportersInfoVector* reporters_info = &beats[story_info->reporter_beat];
         (void)cover_story(producer, story_info, coverage_start, reporters_info);
     }
 
