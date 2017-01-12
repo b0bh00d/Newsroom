@@ -75,7 +75,6 @@ private:    // typedefs and enums
     SPECIALIZE_MAP(QString, QByteArray, Window)             // "WindowMap"
     SPECIALIZE_QUEUE(HeadlinePointer, Headline)             // "HeadlineQueue"
     SPECIALIZE_MAP(QUrl, HeadlineQueue, Headline)           // "HeadlineMap"
-    SPECIALIZE_MAP(QString, PluginsInfoVector, Reporters)   // "ReportersMap"
     SPECIALIZE_SHAREDPTR(QPixmap, Pixmap)                   // "PixmapPointer"
     SPECIALIZE_LIST(StoryInfoPointer, Story)                // "StoryList"
     SPECIALIZE_MAP(QString, QString, String)                // "StringMap"
@@ -99,7 +98,7 @@ private:    // methods
     void                restore_story(SettingsPointer settings, StoryInfoPointer story_info);
     void                restore_story_defaults(StoryInfoPointer story_info);
     void                save_story_defaults(StoryInfoPointer story_info);
-    bool                cover_story(ProducerPointer& producer, StoryInfoPointer story_info, CoverageStart coverage_start, const PluginsInfoVector* reporters_info = nullptr);
+    bool                cover_story(ProducerPointer& producer, StoryInfoPointer story_info, CoverageStart coverage_start, const ReportersInfoVector *reporters_info = nullptr);
     void                fix_identity_duplication(StoryInfoPointer story_info);
 
     void                build_tray_menu();
@@ -135,7 +134,7 @@ private:    // data members
 
     LaneManagerPointer  lane_manager;
 
-    ReportersMap        beat_reporters;
+    BeatsMap            beats;
 
     SettingsPointer     settings;
     QString             settings_file_name;

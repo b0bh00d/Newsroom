@@ -43,7 +43,7 @@ enum class FixedText
 
 SPECIALIZE_SHAREDPTR(QPluginLoader, Factory)            // "FactoryPointer"
 
-struct PluginInfo
+struct ReporterInfo
 {
     FactoryPointer  factory;
     QString         path;
@@ -52,7 +52,8 @@ struct PluginInfo
     QString         id;
 };
 
-SPECIALIZE_VECTOR(PluginInfo, PluginsInfo)              // "PluginsInfoVector"
+SPECIALIZE_VECTOR(ReporterInfo, ReportersInfo)          // "ReportersInfoVector"
+SPECIALIZE_MAP(QString, ReportersInfoVector, Beats)     // "BeatsMap"
 
 struct HeadlineStyle
 {
