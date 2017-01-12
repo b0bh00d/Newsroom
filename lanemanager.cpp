@@ -336,9 +336,9 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
     int bottom = r_desktop.top() + r_desktop.height();
 
     DashboardPointer dashboard_group;
-    int r_lane_x = left, r_lane_y = top;    // keeps track of where the next Dashboard should be placed
+    int r_offset_w = 0, r_offset_h = 0; // keeps track of where the next Dashboard should be placed
     int r_header_x, r_header_y, r_header_w, r_header_h;
-    uint dashboard_position = 0;            // higher == lower priority
+    uint dashboard_position = 0;        // higher == lower priority
     if(IS_DASHBOARD(story_info->entry_type))
     {
         foreach(DashboardPointer dashboard, dashboard_map[story_info->entry_type])
@@ -363,8 +363,8 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
 
             // track the next Dashboard position
             QRect r = dashboard->lane_header->geometry();
-            r_lane_x += r.width() + story_info->margin;
-            r_lane_y += r.height() + story_info->margin;
+            r_offset_w += r.width() + story_info->margin;
+            r_offset_h += r.height() + story_info->margin;
 
             ++dashboard_position;
         }
@@ -754,22 +754,22 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
         case AnimEntryType::DashboardDownLeftTop:
         case AnimEntryType::DashboardUpLeftBottom:
             // shift header right
-            r_header_x += r_lane_x;
+            r_header_x += r_offset_w;
             break;
         case AnimEntryType::DashboardDownRightTop:
         case AnimEntryType::DashboardUpRightBottom:
             // shift header left
-            r_header_x -= r_lane_x;
+            r_header_x -= r_offset_w;
             break;
         case AnimEntryType::DashboardInLeftTop:
         case AnimEntryType::DashboardInRightTop:
             // shift header down
-            r_header_y += r_lane_y;
+            r_header_y += r_offset_h;
             break;
         case AnimEntryType::DashboardInLeftBottom:
         case AnimEntryType::DashboardInRightBottom:
             // shift header up
-            r_header_y -= r_lane_y;
+            r_header_y -= r_offset_h;
             break;
     }
 
