@@ -336,8 +336,9 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
     int bottom = r_desktop.top() + r_desktop.height();
 
     DashboardPointer dashboard_group;
+    int r_lane_x = left, r_lane_y = top;    // keeps track of where the next Dashboard should be placed
     int r_header_x, r_header_y, r_header_w, r_header_h;
-    int dashboard_position = 0; // higher == lower priority
+    int dashboard_position = 0;             // higher == lower priority
     if(IS_DASHBOARD(story_info->entry_type))
     {
         foreach(DashboardPointer dashboard, dashboard_map[story_info->entry_type])
@@ -359,6 +360,12 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
 
             if(!dashboard_group.isNull())
                 break;
+
+            // track the next Dashboard position
+            QRect r = dashboard->lane_header->geometry();
+            r_lane_x += r.width() + story_info->margin;
+            r_lane_y += r.height() + story_info->margin;
+
             ++dashboard_position;
         }
     }
@@ -747,24 +754,24 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
         case AnimEntryType::DashboardDownLeftTop:
         case AnimEntryType::DashboardUpLeftBottom:
             // shift header right
-            r_header_x = r_header_x + (dashboard_position * (r_header_w + story_info->margin));
+            r_header_x += r_lane_x;
             break;
         case AnimEntryType::DashboardDownRightTop:
         case AnimEntryType::DashboardUpRightBottom:
             // shift header left
-            r_header_x = r_header_x - (dashboard_position * (r_header_w + story_info->margin));
+            r_header_x -= r_lane_x;
             break;
         case AnimEntryType::DashboardInLeftTop:
         case AnimEntryType::DashboardInRightTop:
             // shift header down
-            r_header_y = r_header_y + (dashboard_position * (r_header_h + story_info->margin));
+            r_header_y += r_lane_y;
             break;
         case AnimEntryType::DashboardInLeftBottom:
         case AnimEntryType::DashboardInRightBottom:
             // shift header up
-            r_header_y = r_header_y - (dashboard_position * (r_header_h + story_info->margin));
+            r_header_y -= r_lane_y;
             break;
-      }
+    }
 
     if(IS_DASHBOARD(story_info->entry_type))
     {
@@ -777,16 +784,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
         }
 
         int headline_w, headline_h;
-        if(story_info->headlines_pixel_height)
-        {
-            headline_w = story_info->headlines_pixel_width;
-            headline_h = story_info->headlines_pixel_height;
-        }
-        else
-        {
-            headline_w = (story_info->headlines_percent_width / 100.0) * r_desktop.width();
-            headline_h = (story_info->headlines_percent_height / 100.0) * r_desktop.height();
-        }
+        story_info->get_dimensions(headline_w, headline_h);
 
         if(story_info->dashboard_compact_mode)
         {
