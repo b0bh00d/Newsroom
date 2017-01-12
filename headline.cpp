@@ -337,10 +337,10 @@ void PortraitHeadline::paintEvent(QPaintEvent* /*event*/)
         for(;;)
         {
             doc_size = td.documentLayout()->documentSize();
-            if(doc_size.width() < s.height())
+            if(doc_size.width() < s.height() && doc_size.height() < s.width())
                 break;
 
-            if((f.pointSizeF() - .1) < 6.0f)
+            if((f.pointSizeF() - .1) < 4.0f)
             {
                 // let it just clip the remaining text
                 //f.setPointSizeF(original_point_size);
@@ -500,7 +500,7 @@ void LandscapeHeadline::paintEvent(QPaintEvent* /*event*/)
                 if(doc_size.width() < s.width() && doc_size.height() < s.height())
                     break;
 
-                if((f.pointSizeF() - .1) < 6.0f)
+                if((f.pointSizeF() - .1) < 4.0f)
                 {
                     // let it just clip the remaining text
                     //f.setPointSizeF(original_point_size);
