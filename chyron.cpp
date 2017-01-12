@@ -483,6 +483,8 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
 {
     // the time-to-display has expired
 
+    QParallelAnimationGroup* animation_group = nullptr;
+
     QDesktopWidget* desktop = QApplication::desktop();
     QRect r_desktop = desktop->screenGeometry(story_info->primary_screen);
     QRect r = headline->geometry();
@@ -548,15 +550,13 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 break;
 
             case AnimExitType::Fade:
-                {
-                    headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
-                    headline->animation->setDuration(speed);
-                    headline->animation->setStartValue(1.0);
-                    headline->animation->setEndValue(0.0);
-                    headline->animation->setEasingCurve(story_info->motion_curve);
-                    connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
-                    prop_anim_map[headline->animation] = headline;
-                }
+                headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                headline->animation->setDuration(speed);
+                headline->animation->setStartValue(1.0);
+                headline->animation->setEndValue(0.0);
+                headline->animation->setEasingCurve(story_info->motion_curve);
+                connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
+                prop_anim_map[headline->animation] = headline;
                 break;
 
             case AnimExitType::Pop:
@@ -569,21 +569,20 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         switch(story_info->exit_type)
         {
             case AnimExitType::SlideLeft:
-                headline->animation->setEndValue(QRect(-r.width(), r.y(), r.width(), r.height()));
+            case AnimExitType::SlideFadeLeft:
+                headline->animation->setEndValue(QRect(r_desktop.x() - r.width(), r.y(), r.width(), r.height()));
                 break;
             case AnimExitType::SlideRight:
-                headline->animation->setEndValue(QRect(r_desktop.width() + r.width(), r.y(), r.width(), r.height()));
+            case AnimExitType::SlideFadeRight:
+                headline->animation->setEndValue(QRect(r_desktop.x() + r_desktop.width() + r.width(), r.y(), r.width(), r.height()));
                 break;
             case AnimExitType::SlideUp:
-                headline->animation->setEndValue(QRect(r.x(), -r.height(), r.width(), r.height()));
+            case AnimExitType::SlideFadeUp:
+                headline->animation->setEndValue(QRect(r.x(), r_desktop.y() - r.height(), r.width(), r.height()));
                 break;
             case AnimExitType::SlideDown:
-                headline->animation->setEndValue(QRect(r.x(), r_desktop.height() + r.height(), r.width(), r.height()));
-                break;
-            case AnimExitType::SlideFadeLeft:
-            case AnimExitType::SlideFadeRight:
-            case AnimExitType::SlideFadeUp:
             case AnimExitType::SlideFadeDown:
+                headline->animation->setEndValue(QRect(r.x(), r_desktop.y() + r_desktop.height() + r.height(), r.width(), r.height()));
                 break;
 
             case AnimExitType::Fade:
@@ -591,10 +590,35 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 break;
         }
 
+        switch(story_info->exit_type)
+        {
+            case AnimExitType::SlideFadeLeft:
+            case AnimExitType::SlideFadeRight:
+            case AnimExitType::SlideFadeUp:
+            case AnimExitType::SlideFadeDown:
+            {
+                animation_group = new QParallelAnimationGroup(this);
+
+                animation_group->addAnimation(headline->animation);
+
+                QPropertyAnimation* opacity_animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                opacity_animation->setDuration(speed);
+                opacity_animation->setStartValue(1.0);
+                opacity_animation->setEndValue(0.0);
+                opacity_animation->setEasingCurve(story_info->motion_curve);
+
+                animation_group->addAnimation(opacity_animation);
+                break;
+            }
+        }
+
         exiting_map[headline] = true;
         headline_list.removeAll(headline);
 
-        headline->animation->start();
+        if(animation_group)
+            animation_group->start(QAbstractAnimation::DeleteWhenStopped);
+        else
+            headline->animation->start();
     }
 }
 
