@@ -92,7 +92,7 @@ void Producer::file_headline(const QString& data)
     // file a headline with the new content
     int w, h;
     story_info->get_dimensions(w, h);
-    HeadlineGenerator generator(w, h, story_info->story, data, story_info->entry_type);
+    HeadlineGenerator generator(w, h, story_info, data, story_info->entry_type);
     HeadlinePointer headline = generator.get_headline();
 
     headline->set_font(story_info->font);

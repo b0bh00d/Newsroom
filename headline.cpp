@@ -18,12 +18,12 @@
 
 #include "headline.h"
 
-Headline::Headline(const QUrl& story,
+Headline::Headline(StoryInfoPointer story_info,
                    const QString& headline,
                    AnimEntryType entry_type,
                    Qt::Alignment alignment,
                    QWidget* parent)
-    : story(story),
+    : story_info(story_info),
       headline(headline),
       entry_type(entry_type),
       stay_visible(false),
@@ -150,7 +150,7 @@ void Headline::zoom_out()
     animation->setDuration(200);
     animation->setStartValue(target_geometry);
     animation->setEndValue(starting_geometry);
-    animation->setEasingCurve(QEasingCurve::OutCubic);
+    animation->setEasingCurve(story_info->motion_curve);
     connect(animation, &QPropertyAnimation::finished, this, &Headline::slot_turn_on_compact_mode);
     animation->start(QAbstractAnimation::DeleteWhenStopped);
 
@@ -238,7 +238,7 @@ void Headline::slot_zoom_in()
     animation->setDuration(200);
     animation->setStartValue(starting_geometry);
     animation->setEndValue(target_geometry);
-    animation->setEasingCurve(QEasingCurve::OutCubic);
+    animation->setEasingCurve(story_info->motion_curve);
     connect(animation, &QPropertyAnimation::finished, this, &Headline::slot_turn_off_compact_mode);
     animation->start(QAbstractAnimation::DeleteWhenStopped);
 
@@ -297,14 +297,14 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
 
 //-----------------------------------------------------------------------
 
-PortraitHeadline::PortraitHeadline(const QUrl& story,
+PortraitHeadline::PortraitHeadline(StoryInfoPointer story_info,
                                    const QString& headline,
                                    AnimEntryType entry_type,
                                    Qt::Alignment alignment,
                                    bool configure_for_left,
                                    QWidget *parent)
     : configure_for_left(configure_for_left),
-      Headline(story, headline, entry_type, alignment, parent)
+      Headline(story_info, headline, entry_type, alignment, parent)
 {
 }
 
@@ -421,13 +421,13 @@ void PortraitHeadline::initialize(bool stay_visible, FixedText fixed_text, int w
 
 //-----------------------------------------------------------------------
 
-LandscapeHeadline::LandscapeHeadline(const QUrl& story,
+LandscapeHeadline::LandscapeHeadline(StoryInfoPointer story_info,
                                      const QString& headline,
                                      AnimEntryType entry_type,
                                      Qt::Alignment alignment,
                                      QWidget* parent)
     : detect_progress(false),
-      Headline(story, headline, entry_type, alignment, parent)
+      Headline(story_info, headline, entry_type, alignment, parent)
 {
     QPalette p = palette();
     progress_color = p.color(QPalette::Active, QPalette::Mid).lighter(75);
@@ -497,7 +497,7 @@ void LandscapeHeadline::paintEvent(QPaintEvent* /*event*/)
             for(;;)
             {
                 doc_size = td.documentLayout()->documentSize();
-                if(doc_size.width() < s.width())
+                if(doc_size.width() < s.width() && doc_size.height() < s.height())
                     break;
 
                 if((f.pointSizeF() - .1) < 6.0f)
@@ -639,14 +639,14 @@ void LandscapeHeadline::zoomed_out()
 //-----------------------------------------------------------------------
 
 HeadlineGenerator::HeadlineGenerator(int w, int h,
-                                     const QUrl &story,
+                                     StoryInfoPointer story_info,
                                      const QString& headline,
                                      AnimEntryType entry_type,
                                      Qt::Alignment alignment,
                                      QWidget* parent)
 {
     if(w < h)
-        this->headline = HeadlinePointer(new PortraitHeadline(story, headline, entry_type, alignment, parent));
+        this->headline = HeadlinePointer(new PortraitHeadline(story_info, headline, entry_type, alignment, parent));
     else
-        this->headline = HeadlinePointer(new LandscapeHeadline(story, headline, entry_type, alignment, parent));
+        this->headline = HeadlinePointer(new LandscapeHeadline(story_info, headline, entry_type, alignment, parent));
 }

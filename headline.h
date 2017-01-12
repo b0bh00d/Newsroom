@@ -10,6 +10,7 @@
 
 #include "types.h"
 #include "specialize.h"
+#include "storyinfo.h"
 
 class QPropertyAnimation;
 
@@ -26,24 +27,25 @@ class Headline : public QLabel
 {
     Q_OBJECT
 public:
-    explicit Headline(const QUrl& story,
+    explicit Headline(StoryInfoPointer story_info,
                       const QString& headline,
                       AnimEntryType entry_type = AnimEntryType::PopCenter,
                       Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
                       QWidget* parent = nullptr);
     explicit Headline(const Headline& source)
     {
-        story = source.story;
+        story_info = source.story_info;
         headline = source.headline;
         entry_type = source.entry_type;
     }
     virtual ~Headline();
 
-    void    set_shrink_to_fit(bool shrink = true) { shrink_text_to_fit = shrink; }
+    void    set_shrink_to_fit(bool shrink = true)       { shrink_text_to_fit = shrink; }
     void    set_compact_mode(bool compact, int original_width, int original_height);
+    void    set_margin(int margin = 5)                  { this->margin = margin; }
 
-    void    set_font(const QFont& font)                         { this->font = font; }
-    void    set_stylesheet(const QString& stylesheet)           { this->stylesheet = stylesheet; }
+    void    set_font(const QFont& font)                 { this->font = font; }
+    void    set_stylesheet(const QString& stylesheet)   { this->stylesheet = stylesheet; }
 
 signals:
     void    signal_mouse_enter();
@@ -115,7 +117,7 @@ protected:  // data members
     bool            mouse_in_widget;
     bool            is_zoomed;
     int             margin;
-    QUrl            story;
+    StoryInfoPointer story_info;
     QString         headline;
     QFont           font;
     QString         stylesheet;
@@ -161,7 +163,7 @@ class PortraitHeadline : public Headline
 {
     Q_OBJECT
 public:
-    explicit PortraitHeadline(const QUrl& story,
+    explicit PortraitHeadline(StoryInfoPointer story_info,
                               const QString& headline,
                               AnimEntryType entry_type = AnimEntryType::PopCenter,
                               Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
@@ -198,7 +200,7 @@ class LandscapeHeadline : public Headline
 {
     Q_OBJECT
 public:
-    explicit LandscapeHeadline(const QUrl& story,
+    explicit LandscapeHeadline(StoryInfoPointer story_info,
                                const QString& headline,
                                AnimEntryType entry_type = AnimEntryType::PopCenter,
                                Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
@@ -269,7 +271,7 @@ class HeadlineGenerator
 {
 public:
     explicit HeadlineGenerator(int w, int h,
-                               const QUrl& story,
+                               StoryInfoPointer story_info,
                                const QString& headline,
                                AnimEntryType entry_type = AnimEntryType::PopCenter,
                                Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,

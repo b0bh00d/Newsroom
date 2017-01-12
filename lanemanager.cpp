@@ -65,14 +65,14 @@ void LaneManager::subscribe(Chyron* chyron)
             dashboard_group = DashboardPointer(new DashboardData());
             dashboard_group->id = story_info->dashboard_group_id;
             HeadlineGenerator generator(w, h,
-                                        QUrl(),
+                                        story_info,
                                         QString("<h2><center>%1</center></h2>").arg(story_info->dashboard_group_id),
                                         story_info->entry_type,
                                         Qt::AlignHCenter|Qt::AlignVCenter);
             dashboard_group->lane_header = generator.get_headline();
             dashboard_group->lane_header->set_font(headline_font);
             dashboard_group->lane_header->set_stylesheet(headline_stylesheet);
-            dashboard_group->lane_header->set_shrink_to_fit(true);
+            dashboard_group->lane_header->set_margin(0);
 
             if(story_info->dashboard_compact_mode)
             {
@@ -277,7 +277,7 @@ void LaneManager::unsubscribe(Chyron* chyron)
                 dashboard->lane_header->animation = new QPropertyAnimation(dashboard->lane_header.data(), "geometry");
                 dashboard->lane_header->animation->setDuration(data_story_info->anim_motion_duration);
                 dashboard->lane_header->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-                dashboard->lane_header->animation->setEasingCurve(QEasingCurve::InCubic);
+                dashboard->lane_header->animation->setEasingCurve(data_story_info->motion_curve);
 
                 switch(entry_type)
                 {
@@ -338,7 +338,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
     DashboardPointer dashboard_group;
     int r_lane_x = left, r_lane_y = top;    // keeps track of where the next Dashboard should be placed
     int r_header_x, r_header_y, r_header_w, r_header_h;
-    int dashboard_position = 0;             // higher == lower priority
+    uint dashboard_position = 0;            // higher == lower priority
     if(IS_DASHBOARD(story_info->entry_type))
     {
         foreach(DashboardPointer dashboard, dashboard_map[story_info->entry_type])
@@ -775,7 +775,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
 
     if(IS_DASHBOARD(story_info->entry_type))
     {
-        int chyron_position = 0; // higher == lower priority
+        uint chyron_position = 0;   // higher == lower priority
         foreach(LaneDataPointer lane, dashboard_group->chyrons)
         {
             if(lane->owner == data->owner)
@@ -802,7 +802,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
             case AnimEntryType::DashboardDownLeftTop:
                 top = r_header_y;
                 bottom = top + r_header_h;
-                i = bottom + story_info->margin + (chyron_position ? (chyron_position * (headline_h + story_info->margin)) : 0);
+                i = bottom + story_info->margin + (chyron_position * (headline_h + story_info->margin));
                 lane_position.setTopLeft(QPoint(left, i));
                 lane_position.setBottomRight(QPoint(left + r_header_w, i + r_header_h));
                 r_header_x += story_info->margin;
@@ -811,7 +811,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
             case AnimEntryType::DashboardDownRightTop:
                 top = r_header_y;
                 bottom = top + r_header_h;
-                i = bottom + story_info->margin + (chyron_position ? (chyron_position * (headline_h + story_info->margin)) : 0);
+                i = bottom + story_info->margin + (chyron_position * (headline_h + story_info->margin));
                 lane_position.setTopLeft(QPoint(right - r_header_w, i));
                 lane_position.setBottomRight(QPoint(right, i + r_header_h));
                 r_header_x -= story_info->margin;
@@ -819,7 +819,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
                 break;
             case AnimEntryType::DashboardUpLeftBottom:
                 top = r_header_y;
-                i = top - story_info->margin - (chyron_position ? (chyron_position * (headline_h + story_info->margin)) : 0);
+                i = top - story_info->margin - (chyron_position * (headline_h + story_info->margin));
                 lane_position.setTopLeft(QPoint(left, i));
                 lane_position.setBottomRight(QPoint(left + r_header_w, i));
                 r_header_x += story_info->margin;
@@ -827,7 +827,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
                 break;
             case AnimEntryType::DashboardUpRightBottom:
                 top = r_header_y;
-                i = top - story_info->margin - (chyron_position ? (chyron_position * (headline_h + story_info->margin)) : 0);
+                i = top - story_info->margin - (chyron_position * (headline_h + story_info->margin));
                 lane_position.setTopLeft(QPoint(right - r_header_w, i));
                 lane_position.setBottomRight(QPoint(right, i));
                 r_header_x -= story_info->margin;
@@ -837,7 +837,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
             case AnimEntryType::DashboardInLeftTop:
                 left = r_header_x;
                 right = left + r_header_w;
-                i = right + story_info->margin + (chyron_position ? (chyron_position * (headline_w + story_info->margin)) : 0);
+                i = right + story_info->margin + (chyron_position * (headline_w + story_info->margin));
                 lane_position.setTopLeft(QPoint(i, r_header_y));
                 lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
                 r_header_x += story_info->margin;
@@ -847,7 +847,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
             case AnimEntryType::DashboardInLeftBottom:
                 left = r_header_x;
                 right = left + r_header_w;
-                i = right + story_info->margin + (chyron_position ? (chyron_position * (headline_w + story_info->margin)) : 0);
+                i = right + story_info->margin + (chyron_position * (headline_w + story_info->margin));
                 lane_position.setTopLeft(QPoint(i, r_header_y));
                 lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
                 r_header_x += story_info->margin;
@@ -856,7 +856,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
 
             case AnimEntryType::DashboardInRightTop:
                 left = r_header_x - r_header_w;
-                i = left - story_info->margin - (chyron_position ? (chyron_position * (headline_w + story_info->margin)) : 0);
+                i = left - story_info->margin - (chyron_position * (headline_w + story_info->margin));
                 lane_position.setTopLeft(QPoint(i, r_header_y));
                 lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
                 r_header_x -= story_info->margin;
@@ -865,7 +865,7 @@ void LaneManager::calculate_base_lane_position(LaneDataPointer data)
 
             case AnimEntryType::DashboardInRightBottom:
                 left = r_header_x - r_header_w;
-                i = left - story_info->margin - (chyron_position ? (chyron_position * (headline_w + story_info->margin)) : 0);
+                i = left - story_info->margin - (chyron_position * (headline_w + story_info->margin));
                 lane_position.setTopLeft(QPoint(i, r_header_y));
                 lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
                 r_header_x -= story_info->margin;
