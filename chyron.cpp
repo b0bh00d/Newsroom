@@ -270,7 +270,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             headline->animation = new QPropertyAnimation(headline.data(), "geometry");
             headline->animation->setDuration(speed);
             headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-            headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+            headline->animation->setEasingCurve(story_info->motion_curve);
             connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
             prop_anim_map[headline->animation] = headline;
 
@@ -309,7 +309,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             headline->animation->setDuration(speed);
             headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
             headline->animation->setEndValue(QRect(r.x(), r.y(), r.width(), r.height()));
-            headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+            headline->animation->setEasingCurve(story_info->motion_curve);
             connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
             prop_anim_map[headline->animation] = headline;
             entering_map[headline] = true;
@@ -327,18 +327,18 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(0.0);
                 headline->animation->setEndValue(1.0);
-                headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+                headline->animation->setEasingCurve(story_info->motion_curve);
                 connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
                 prop_anim_map[headline->animation] = headline;
             }
             break;
     }
 
-    auto configure_group_item = [](QPropertyAnimation* anim, int speed, const QRect& start, const QRect& end) {
+    auto configure_group_item = [](QPropertyAnimation* anim, int speed, const QRect& start, const QRect& end, QEasingCurve curve) {
         anim->setDuration(speed);
         anim->setStartValue(start);
         anim->setEndValue(end);
-        anim->setEasingCurve(QEasingCurve::OutCubic);
+        anim->setEasingCurve(curve);
     };
 
     switch(story_info->entry_type)
@@ -357,7 +357,8 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x(), posted_r.y() + r.height() + story_info->margin, posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x(), posted_r.y() + r.height() + story_info->margin, posted_r.width(), posted_r.height()),
+                                         story_info->motion_curve);
                 }
             }
             break;
@@ -371,7 +372,8 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x() + r.width() + story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x() + r.width() + story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()),
+                                         story_info->motion_curve);
                 }
             }
             break;
@@ -385,7 +387,8 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x() - r.width() - story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x() - r.width() - story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()),
+                                         story_info->motion_curve);
                 }
             }
             break;
@@ -399,7 +402,8 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x() + r.width() + story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x() + r.width() + story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()),
+                                         story_info->motion_curve);
                 }
             }
             break;
@@ -413,7 +417,8 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x() - r.width() - story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x() - r.width() - story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()),
+                                         story_info->motion_curve);
                 }
             }
             break;
@@ -431,7 +436,8 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation, speed, posted_r,
-                                         QRect(posted_r.x(), posted_r.y() - r.height() - story_info->margin, posted_r.width(), posted_r.height()));
+                                         QRect(posted_r.x(), posted_r.y() - r.height() - story_info->margin, posted_r.width(), posted_r.height()),
+                                         story_info->motion_curve);
                 }
             }
             break;
@@ -493,7 +499,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(1.0);
                 headline->animation->setEndValue(story_info->train_age_percent / 100.0);
-                headline->animation->setEasingCurve(QEasingCurve::InCubic);
+                headline->animation->setEasingCurve(story_info->fading_curve);
                 connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
                 headline->animation->start();
@@ -512,7 +518,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(1.0);
                 headline->animation->setEndValue(story_info->dashboard_age_percent / 100.0);
-                headline->animation->setEasingCurve(QEasingCurve::InCubic);
+                headline->animation->setEasingCurve(story_info->fading_curve);
                 connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
                 headline->animation->start();
@@ -536,7 +542,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 headline->animation = new QPropertyAnimation(headline.data(), "geometry");
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-                headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+                headline->animation->setEasingCurve(story_info->motion_curve);
                 connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
                 prop_anim_map[headline->animation] = headline;
                 break;
@@ -547,7 +553,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                     headline->animation->setDuration(speed);
                     headline->animation->setStartValue(1.0);
                     headline->animation->setEndValue(0.0);
-                    headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+                    headline->animation->setEasingCurve(story_info->motion_curve);
                     connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
                     prop_anim_map[headline->animation] = headline;
                 }
@@ -604,7 +610,7 @@ void Chyron::shift_left(int amount)
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
         headline->animation->setDuration(story_info->anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+        headline->animation->setEasingCurve(story_info->motion_curve);
         headline->animation->setEndValue(QRect(r.x() - amount, r.y(), r.width(), r.height()));
 
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
@@ -628,7 +634,7 @@ void Chyron::shift_right(int amount)
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
         headline->animation->setDuration(story_info->anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+        headline->animation->setEasingCurve(story_info->motion_curve);
         headline->animation->setEndValue(QRect(r.x() + amount, r.y(), r.width(), r.height()));
 
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
@@ -652,7 +658,7 @@ void Chyron::shift_up(int amount)
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
         headline->animation->setDuration(story_info->anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+        headline->animation->setEasingCurve(story_info->motion_curve);
         headline->animation->setEndValue(QRect(r.x(), r.y() - amount, r.width(), r.height()));
 
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
@@ -676,7 +682,7 @@ void Chyron::shift_down(int amount)
         headline->animation = new QPropertyAnimation(headline.data(), "geometry");
         headline->animation->setDuration(story_info->anim_motion_duration);
         headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+        headline->animation->setEasingCurve(story_info->motion_curve);
         headline->animation->setEndValue(QRect(r.x(), r.y() + amount, r.width(), r.height()));
 
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
@@ -713,7 +719,7 @@ void Chyron::dashboard_expire_headlines()
 
 void Chyron::slot_file_headline(HeadlinePointer headline)
 {
-    Q_ASSERT(headline->story.toString().compare(story_info->story.toString()) == 0);
+    Q_ASSERT(headline->story_info->story == story_info->story);
 
     // for some reason, the Producer signal 'signal_new_headline' is
     // coming in here twice on the same call to QMetaObject::activate(),
@@ -889,7 +895,7 @@ void Chyron::slot_headline_mouse_enter()
         headline->animation->setDuration(150);
         headline->animation->setStartValue(headline->windowOpacity());
         headline->animation->setEndValue(1.0);
-        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+        headline->animation->setEasingCurve(story_info->motion_curve);
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
         headline->animation->start();
@@ -905,7 +911,7 @@ void Chyron::slot_headline_mouse_exit()
         headline->animation->setDuration(150);
         headline->animation->setStartValue(1.0);
         headline->animation->setEndValue(opacity_map[headline]);
-        headline->animation->setEasingCurve(QEasingCurve::OutCubic);
+        headline->animation->setEasingCurve(story_info->motion_curve);
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
 
         headline->animation->start();

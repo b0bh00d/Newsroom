@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QtCore/QUrl>
+#include <QtCore/QEasingCurve>
 
 #include "types.h"
 #include "specialize.h"
@@ -75,6 +76,9 @@ struct StoryInfo
                     // Producer settings (reference only; not saved)
     QFont           font;
 
+    QEasingCurve    motion_curve;
+    QEasingCurve    fading_curve;
+
     StoryInfo()
         : ttl(5),
           primary_screen(0),
@@ -99,7 +103,9 @@ struct StoryInfo
           dashboard_age_percent(60),
           margin(5),
           dashboard_compact_mode(false),
-          dashboard_compression(25) {}
+          dashboard_compression(25),
+          motion_curve(QEasingCurve::OutCubic),
+          fading_curve(QEasingCurve::InCubic) {}
     StoryInfo(const StoryInfo& source) { *this = source; }
 
     void get_dimensions(int& w, int& h)
