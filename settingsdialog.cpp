@@ -76,6 +76,8 @@ void SettingsDialog::set_compact_mode(bool compact_mode, int zoom_percent)
 
 void SettingsDialog::set_font(const QFont& font)
 {
+    QSignalBlocker blocker(ui->combo_FontFamily);
+
     ui->combo_FontFamily->setCurrentFont(font);
     slot_update_font(font);
 }
@@ -213,6 +215,8 @@ SeriesInfoList SettingsDialog::get_series()
 // font selection changed
 void SettingsDialog::slot_update_font(const QFont& font)
 {
+    QSignalBlocker blocker(ui->combo_FontSize);
+
     ui->combo_FontSize->clear();
 
     QFontDatabase font_db;
