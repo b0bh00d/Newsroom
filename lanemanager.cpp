@@ -72,6 +72,7 @@ void LaneManager::subscribe(Chyron* chyron)
             dashboard_group->lane_header = generator.get_headline();
             dashboard_group->lane_header->set_font(headline_font);
             dashboard_group->lane_header->set_stylesheet(headline_stylesheet);
+            dashboard_group->lane_header->set_shrink_to_fit(true);
 
             if(story_info->dashboard_compact_mode)
             {
@@ -186,6 +187,8 @@ void LaneManager::unsubscribe(Chyron* chyron)
             case AnimEntryType::DashboardInLeftTop:
             case AnimEntryType::DashboardInLeftBottom:
                 lane_data->owner->shift_left(shift);
+                lane_data->lane.moveLeft(lane_data->lane.x() - shift);
+                lane_data->lane_boundaries.moveLeft(lane_data->lane_boundaries.x() - shift);
                 break;
             case AnimEntryType::SlideDownRightTop:
             case AnimEntryType::TrainDownRightTop:
@@ -194,6 +197,8 @@ void LaneManager::unsubscribe(Chyron* chyron)
             case AnimEntryType::DashboardInRightTop:
             case AnimEntryType::DashboardInRightBottom:
                 lane_data->owner->shift_right(shift);
+                lane_data->lane.moveRight(lane_data->lane.x() + lane_data->lane.width() + shift);
+                lane_data->lane_boundaries.moveRight(lane_data->lane_boundaries.x() + lane_data->lane_boundaries.width() + shift);
                 break;
             case AnimEntryType::SlideInLeftTop:
             case AnimEntryType::TrainInLeftTop:
@@ -202,6 +207,8 @@ void LaneManager::unsubscribe(Chyron* chyron)
             case AnimEntryType::DashboardDownLeftTop:
             case AnimEntryType::DashboardDownRightTop:
                 lane_data->owner->shift_up(shift);
+                lane_data->lane.moveTop(lane_data->lane.y() - shift);
+                lane_data->lane_boundaries.moveTop(lane_data->lane_boundaries.y() - shift);
                 break;
             case AnimEntryType::SlideInLeftBottom:
             case AnimEntryType::TrainInLeftBottom:
@@ -210,6 +217,8 @@ void LaneManager::unsubscribe(Chyron* chyron)
             case AnimEntryType::DashboardUpLeftBottom:
             case AnimEntryType::DashboardUpRightBottom:
                 lane_data->owner->shift_down(shift);
+                lane_data->lane.moveBottom(lane_data->lane.y() + lane_data->lane.height() + shift);
+                lane_data->lane_boundaries.moveBottom(lane_data->lane_boundaries.y() + lane_data->lane_boundaries.height() + shift);
         }
     }
 
