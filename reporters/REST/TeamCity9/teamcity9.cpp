@@ -56,7 +56,7 @@ bool TeamCity9::SetRequirements(const QStringList& parameters)
     }
 
     username     = parameters[0];
-    password     = parameters[1];
+    password     = QString(QByteArray::fromHex(parameters[1].toUtf8()));
     project_name = parameters[2];
     if(parameters.count() > 3)
         builder_name = parameters[3];
@@ -137,6 +137,20 @@ bool TeamCity9::FinishStory()
     release_poller(story);
 
     return true;
+}
+
+void TeamCity9::Secure(QStringList& parameters) const
+{
+    if(parameters.count() < 2 || parameters[1].isEmpty())
+        return;
+    parameters[1] = QString(QByteArray(parameters[1].toUtf8()).toHex());
+}
+
+void TeamCity9::Unsecure(QStringList& parameters) const
+{
+    if(parameters.count() < 2 || parameters[1].isEmpty())
+        return;
+    parameters[1] = QString(QByteArray::fromHex(parameters[1].toUtf8()));
 }
 
 // TeamCity9

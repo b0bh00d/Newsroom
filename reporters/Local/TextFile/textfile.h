@@ -34,6 +34,9 @@ public:
     void SetStory(const QUrl& story) Q_DECL_OVERRIDE;
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
+    // we have no secure data
+    void Secure(QStringList& /*params*/) const Q_DECL_OVERRIDE {}
+    void Unsecure(QStringList& /*params*/) const Q_DECL_OVERRIDE {}
 
 private slots:
     void            slot_poll();
