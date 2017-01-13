@@ -222,7 +222,7 @@ void TeamCity9::build_progress(const QJsonObject& status)
             // check for hung build if no progress after 5 minutes
             if((now - eta[build_id].last_changed) > 300)
             {
-                eta_str = QString("<font color=\"#960000\">%1</font>").arg(eta_str);
+                eta_str = QString("%1 (possibly hung)").arg(eta_str);
                 send_update = true;
             }
         }
