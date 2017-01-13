@@ -7,13 +7,29 @@
     <x>0</x>
     <y>0</y>
     <width>476</width>
-    <height>437</height>
+    <height>444</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_10">
+   <item>
+    <widget class="QLabel" name="label_2">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="pixmap">
+      <pixmap resource="Newsroom.qrc">:/images/SettingsBanner.png</pixmap>
+     </property>
+    </widget>
+   </item>
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
@@ -478,7 +494,9 @@
   <tabstop>combo_FontSize</tabstop>
   <tabstop>button_RemoveStory</tabstop>
  </tabstops>
- <resources/>
+ <resources>
+  <include location="Newsroom.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBox</sender>

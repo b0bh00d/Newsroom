@@ -20,5 +20,8 @@
   <file>images/Angle.png</file>
   <file>images/Covering.png</file>
   <file>images/NotCovering.png</file>
+  <file>images/SettingsBanner.png</file>
+  <file>images/AddStoryBanner.png</file>
+  <file>images/EditHeadlineBanner.png</file>
 </qresource>
 </RCC>
