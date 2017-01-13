@@ -142,6 +142,26 @@ public:     // methods
      */
     virtual bool FinishStory() = 0;
 
+    /*!
+      This method gives the Reporter plug-in the opportunity to secure any sensitive
+      data (e.g., passwords) before it gets stored to disc.  The method of securing is
+      left entirely up to the plug-in, and it is is the plug-ins responisiblity to
+      unsecure such data when it is provided to the Unsecure() or SetRequirements()
+      methods.
+
+      Data should be modified in-place.
+     */
+    virtual void Secure(QStringList& parameters) const = 0;
+
+    /*!
+      Any parameters secured by a previous invocation of the Secure() method should
+      be unsecured by this call.  This will allow the data to be modified by the
+      user.
+
+      Data should be modified in-place.
+     */
+    virtual void Unsecure(QStringList& parameters) const = 0;
+
 signals:
     void        signal_new_data(const QByteArray& data);
 

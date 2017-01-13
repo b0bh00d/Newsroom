@@ -157,7 +157,6 @@ void AddStoryDialog::save_settings()
 
     story_info->reporter_id = plugin_reporter->PluginID();
 
-    get_reporter_parameters();
     store_reporter_parameters();
 
     if(!ui->edit_TTL->text().isEmpty())
@@ -257,9 +256,7 @@ void AddStoryDialog::load_settings()
         ui->edit_Source->setEnabled(false);
     }
     else
-    {
         ui->edit_Source->setText(story_info->story.toString());
-    }
 
     if(story_info->identity.isEmpty())
         ui->edit_Angle->setPlaceholderText(ui->edit_Source->text());
@@ -517,6 +514,8 @@ void AddStoryDialog::store_reporter_parameters()
 
     get_reporter_parameters();
 
+    plugin_reporter->Secure(story_info->reporter_parameters);
+
     QStringList params = plugin_reporter->Requires();
     int params_count = params.count() / 2;
     if(params_count && (params_count == story_info->reporter_parameters.count()))
@@ -736,6 +735,8 @@ void AddStoryDialog::slot_configure_reporter_configure()
         ui->group_ReporterConfig->setHidden(true);
         return;
     }
+
+    plugin_reporter->Unsecure(story_info->reporter_parameters);
 
     QVector<QWidget*> edit_fields;
     required_fields.resize(params.length() / 2);

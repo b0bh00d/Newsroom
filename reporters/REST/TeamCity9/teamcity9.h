@@ -48,6 +48,8 @@ public:
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
     bool CoverStory() Q_DECL_OVERRIDE;
     bool FinishStory() Q_DECL_OVERRIDE;
+    void Secure(QStringList& parameters) const Q_DECL_OVERRIDE;
+    void Unsecure(QStringList& parameters) const Q_DECL_OVERRIDE;
 
 private:    // classes
     struct ETAData
