@@ -131,7 +131,7 @@ background-color: rgb(0, 0, 127);</string>
      <normaloff>:/images/Options.png</normaloff>:/images/Options.png</iconset>
    </property>
    <property name="text">
-    <string>Settings...</string>
+    <string>Edit Settings...</string>
    </property>
    <property name="shortcut">
     <string>Alt+S</string>

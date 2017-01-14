@@ -441,7 +441,7 @@ void MainWindow::build_tray_menu()
         delete trayIconMenu;
     }
 
-    settings_action = new QAction(QIcon(":/images/Options.png"), tr("&Settings..."), this);
+    settings_action = new QAction(QIcon(":/images/Options.png"), tr("&Edit Settings..."), this);
     about_action    = new QAction(QIcon(":/images/About.png"), tr("&About"), this);
     quit_action     = new QAction(QIcon(":/images/Quit.png"), tr("&Quit"), this);
 
