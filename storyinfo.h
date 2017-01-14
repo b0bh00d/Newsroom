@@ -6,6 +6,12 @@
 #include "types.h"
 #include "specialize.h"
 
+/// @class StoryInfo
+/// @brief Container class for Story information
+///
+/// This class is intended as a container for all the information needed
+/// for a given Story.
+
 struct StoryInfo
 {
     QUrl            story;
@@ -110,6 +116,13 @@ struct StoryInfo
           fading_curve(QEasingCurve::InCubic) {}
     StoryInfo(const StoryInfo& source) { *this = source; }
 
+    /*!
+      Retrieves the dimensions of a Headline that will display information
+      about this particular Story.  It uses the 'Size' parameters.
+
+      \param w The calculated width value
+      \param h The calculated height value
+     */
     void get_dimensions(int& w, int& h)
     {
         w = 0;

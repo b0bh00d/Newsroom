@@ -12,6 +12,13 @@
 
 class Chyron;
 
+/// @class LaneManager
+/// @brief Manages lane positions for Chyrons
+///
+/// The LaneManager is responsible for positioning Chyrons on the screen.
+/// It will account for Chyrons of the same type, and stack lanes
+/// intelligently.
+
 class LaneManager : public QObject
 {
     Q_OBJECT

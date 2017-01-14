@@ -3,6 +3,12 @@
 #include <QWidget>
 #include <QPaintEvent>
 
+/// @class HighlightWidget
+/// @brief Visual display of a Chyron lane
+///
+/// This class is used for debugging purposes to visually indicate the lane
+/// boundaries of a Chyron.
+
 class HighlightWidget : public QWidget
 {
     Q_OBJECT
