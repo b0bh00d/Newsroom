@@ -87,6 +87,12 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     while(ui->tree_Styles->topLevelItemCount())
         delete ui->tree_Styles->takeTopLevelItem(0);
 
+    ui->tree_Styles->setDragEnabled(true);
+    ui->tree_Styles->viewport()->setAcceptDrops(true);
+    ui->tree_Styles->setDropIndicatorShown(true);
+    ui->tree_Styles->setDefaultDropAction(Qt::TargetMoveAction);
+    ui->tree_Styles->setDragDropMode(QAbstractItemView::InternalMove);
+
     foreach(const HeadlineStyle& style, style_list)
     {
         QList<QTreeWidgetItem*> items = ui->tree_Styles->findItems(style.name, Qt::MatchExactly, 0);

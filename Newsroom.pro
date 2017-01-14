@@ -56,7 +56,8 @@ SOURCES += main.cpp \
            addstorydialog.cpp \
            editheadlinedialog.cpp \
            settings.cpp \
-           seriestree.cpp
+           seriestree.cpp \
+    stylestree.cpp
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -74,7 +75,8 @@ HEADERS  += mainwindow.h \
             editheadlinedialog.h \
             settings.h \
             seriesinfo.h \
-            seriestree.h
+            seriestree.h \
+    stylestree.h
 
 # Plug-in interface
 HEADERS += \

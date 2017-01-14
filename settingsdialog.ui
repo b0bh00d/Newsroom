@@ -268,7 +268,7 @@
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_2">
             <item>
-             <widget class="QTreeWidget" name="tree_Styles">
+             <widget class="StylesTree" name="tree_Styles">
               <property name="autoScroll">
                <bool>false</bool>
               </property>
@@ -487,6 +487,11 @@
    <class>SeriesTree</class>
    <extends>QTreeWidget</extends>
    <header>seriestree.h</header>
+  </customwidget>
+  <customwidget>
+   <class>StylesTree</class>
+   <extends>QTreeWidget</extends>
+   <header location="global">stylestree.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
