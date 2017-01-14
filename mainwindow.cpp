@@ -691,6 +691,8 @@ void MainWindow::save_series(const SeriesInfo &series_info)
 
     series_settings->begin_section("/Series");
 
+    series_settings->clear_section("Stories");
+
     if(!series_info.producers.isEmpty())
     {
         series_settings->begin_array("Stories");
@@ -709,8 +711,6 @@ void MainWindow::save_series(const SeriesInfo &series_info)
 
         series_settings->set_item("active", active.join(","));
     }
-    else
-        series_settings->clear_section("Stories");
 
     series_settings->end_section();
 
