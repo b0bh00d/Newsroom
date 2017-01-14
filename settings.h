@@ -19,7 +19,7 @@ class QDomNode;
 ///
 /// <aside>
 /// Why not just use QSettings?  For some reason, QSettings in the INI
-/// format was not handling my application data in a predictiable way.
+/// format was not handling my application data in a predictable way.
 /// Array names were becoming section names, and settings were becoming
 /// obscured and inaccessible.  I wrote this class to provide a wrapper
 /// around a more structured backend (e.g., XML) for more predictable

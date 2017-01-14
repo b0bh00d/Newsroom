@@ -1,5 +1,11 @@
 #pragma once
 
+// This header provides a cleaner mechanism for declaring template
+// specializations via typedefs without lots of code clutter.
+//
+// Note:  If std::tuple is not used (because Qt does not provide an
+// equivalent), then these macros are interchangeable.
+
 //#ifdef Q_OBJECT
 //#define USE_QT_CONTAINERS
 ////#include <QtGlobal>
@@ -102,5 +108,7 @@
     typedef std::tuple<type1, type2, type3, type4>   name##Tuple4;
 #define SPECIALIZE_TUPLE5(type1, type2, type3, type4, type5, name) \
     typedef std::tuple<type1, type2, type3, type4, type5>   name##Tuple5;
-#endif
-#endif
+
+#endif  // QT_VERSION
+
+#endif  // __cplusplus

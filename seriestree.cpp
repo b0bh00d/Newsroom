@@ -5,9 +5,11 @@ SeriesTree::SeriesTree(QWidget *parent)
 {
 }
 
-// https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwib3YPAyrHRAhXqslQKHeo1AAoQFggaMAA&url=http%3A%2F%2Fwww.qtcentre.org%2Fthreads%2F56247-Moving-QTreeWidgetItem-Up-and-Down-in-a-QTreeWidget&usg=AFQjCNHKKC_phZ52t_YmnO-dtZRKqP6WpQ&bvm=bv.142059868,d.cGw&cad=rja
+// R&D:
+// http://www.qtcentre.org/threads/56247-Moving-QTreeWidgetItem-Up-and-Down-in-a-QTreeWidget
 // https://stackoverflow.com/questions/17709221/how-can-i-get-notified-of-internal-item-moves-inside-a-qtreewidget
 // https://stackoverflow.com/questions/30291628/internalmove-in-qlistwidget-makes-item-disappear
+
 void SeriesTree::dropEvent(QDropEvent* event)
 {
     QModelIndex index = indexAt(event->pos());
