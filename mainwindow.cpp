@@ -469,6 +469,8 @@ void MainWindow::save_application_settings()
     settings->set_item("dashboard.compact_compression", compact_compression);
     settings->set_item("chyron.font", headline_font.toString());
 
+    settings->clear_section("HeadlineStyles");
+
     settings->begin_array("HeadlineStyles");
     quint32 index = 0;
     foreach(const HeadlineStyle& style, *(headline_style_list.data()))
@@ -482,6 +484,7 @@ void MainWindow::save_application_settings()
 
     settings->end_array();
 
+    settings->clear_section("WindowData");
     if(window_data.size())
     {
         settings->begin_array("WindowData");
