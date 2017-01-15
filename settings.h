@@ -36,7 +36,10 @@ public:
     virtual bool flush()    { return false; }
     virtual bool remove()   { return false; }
 
-    QString     get_error_string()  const { return error_string; }
+    void        set_version(int version)    { this->version = version; }
+    int         get_version()       const   { return version; }
+
+    QString     get_error_string()  const   { return error_string; }
 
     void        begin_section(const QString& path);
     void        clear_section(const QString& path);
@@ -89,6 +92,8 @@ protected:      // data members
     QStringList     default_array;
 
     QList<int>      current_array_index;
+
+    int             version;
 };
 
 SPECIALIZE_SHAREDPTR(Settings, Settings)        // "SettingsPointer"
