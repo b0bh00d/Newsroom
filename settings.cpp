@@ -7,6 +7,7 @@
 
 #include "settings.h"
 
+// R&D:
 // https://doc.qt.io/qt-5/qtwidgets-itemviews-simpletreemodel-example.html
 
 const int ItemType = 0;
@@ -448,7 +449,7 @@ bool SettingsXML::cache()
 
     QDomDocument note_database(application);
     QDomElement root = note_database.createElement(application);
-    root.setAttribute("version", "1.0");
+    root.setAttribute("version", "1");
 
     note_database.appendChild(root);
 
@@ -462,7 +463,7 @@ bool SettingsXML::cache()
         return false;
     }
 
-    QString errorStr, versionStr = "1.0";
+    QString errorStr, versionStr = "1";
     int errorLine;
     int errorColumn;
 
@@ -480,6 +481,8 @@ bool SettingsXML::cache()
     }
     else if(root.hasAttribute("version"))
         versionStr = root.attribute("version");
+
+    version = versionStr.toInt();
 
     QStringList current_path;
     current_path << "/";
@@ -656,7 +659,7 @@ bool SettingsXML::flush()
 
     QDomDocument settings(application);
     QDomElement root = settings.createElement(application);
-    root.setAttribute("version", "1.0");
+    root.setAttribute("version", QString::number(version));
 
     settings.appendChild(root);
 

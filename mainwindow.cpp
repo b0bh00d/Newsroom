@@ -20,6 +20,9 @@
 
 #include "chyron.h"
 
+const int application_settings_version = 1;
+const int series_settings_version = 1;
+
 MainWindow* mainwindow;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -459,6 +462,8 @@ void MainWindow::build_tray_menu()
 
 void MainWindow::save_application_settings()
 {
+    settings->set_version(application_settings_version);
+
     settings->clear_section("/Application");
 
     settings->begin_section("/Application");
@@ -690,7 +695,9 @@ void MainWindow::save_series(const SeriesInfo &series_info)
 
     QStringList active;
 
-    series_settings->cache();
+//    series_settings->cache();
+
+    series_settings->set_version(series_settings_version);
 
     series_settings->begin_section("/Series");
 
