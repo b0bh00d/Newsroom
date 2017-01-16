@@ -73,7 +73,7 @@ void Producer::file_headline(const QString& data)
     {
         if(!style.name.compare("Default"))
             default_stylesheet = style.stylesheet;
-        else
+        else if(stylesheet.isEmpty())
         {
             foreach(const QString& trigger, style.triggers)
             {
