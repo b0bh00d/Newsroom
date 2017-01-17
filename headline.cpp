@@ -20,12 +20,10 @@
 
 Headline::Headline(StoryInfoPointer story_info,
                    const QString& headline,
-                   AnimEntryType entry_type,
                    Qt::Alignment alignment,
                    QWidget* parent)
     : story_info(story_info),
       headline(headline),
-      entry_type(entry_type),
       stay_visible(false),
       mouse_in_widget(false),
       is_zoomed(false),
@@ -46,6 +44,8 @@ Headline::Headline(StoryInfoPointer story_info,
     hover_timer = new QTimer(this);
     if(hover_timer)
         connect(hover_timer, &QTimer::timeout, this, &Headline::slot_zoom_in);
+
+    set_font(story_info->font);
 }
 
 Headline::~Headline()
@@ -183,7 +183,7 @@ void Headline::slot_zoom_in()
 
     // we need to figure out a direction to expand.
 
-    switch(entry_type)
+    switch(story_info->entry_type)
     {
         case AnimEntryType::DashboardDownLeftTop:
         case AnimEntryType::DashboardInLeftTop:
@@ -299,12 +299,11 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
 
 PortraitHeadline::PortraitHeadline(StoryInfoPointer story_info,
                                    const QString& headline,
-                                   AnimEntryType entry_type,
                                    Qt::Alignment alignment,
                                    bool configure_for_left,
                                    QWidget *parent)
     : configure_for_left(configure_for_left),
-      Headline(story_info, headline, entry_type, alignment, parent)
+      Headline(story_info, headline, alignment, parent)
 {
 }
 
@@ -416,22 +415,25 @@ QSize PortraitHeadline::sizeHint() const
 void PortraitHeadline::initialize(bool stay_visible, FixedText fixed_text, int width, int height)
 {
     Headline::initialize(stay_visible, fixed_text, width, height);
-    set_for_left(entry_type != AnimEntryType::DashboardInRightTop && entry_type != AnimEntryType::DashboardInRightBottom);
+    set_for_left(story_info->entry_type != AnimEntryType::DashboardInRightTop &&
+                 story_info->entry_type != AnimEntryType::DashboardInRightBottom);
 }
 
 //-----------------------------------------------------------------------
 
 LandscapeHeadline::LandscapeHeadline(StoryInfoPointer story_info,
                                      const QString& headline,
-                                     AnimEntryType entry_type,
                                      Qt::Alignment alignment,
                                      QWidget* parent)
     : detect_progress(false),
-      Headline(story_info, headline, entry_type, alignment, parent)
+      Headline(story_info, headline, alignment, parent)
 {
     QPalette p = palette();
     progress_color = p.color(QPalette::Active, QPalette::Mid).lighter(75);
     progress_highlight = progress_color.lighter(135);
+
+    if(story_info->include_progress_bar)
+        enable_progress_detection(story_info->progress_text_re, story_info->progress_on_top);
 }
 
 LandscapeHeadline::~LandscapeHeadline()
@@ -641,12 +643,11 @@ void LandscapeHeadline::zoomed_out()
 HeadlineGenerator::HeadlineGenerator(int w, int h,
                                      StoryInfoPointer story_info,
                                      const QString& headline,
-                                     AnimEntryType entry_type,
                                      Qt::Alignment alignment,
                                      QWidget* parent)
 {
     if(w < h)
-        this->headline = HeadlinePointer(new PortraitHeadline(story_info, headline, entry_type, alignment, parent));
+        this->headline = HeadlinePointer(new PortraitHeadline(story_info, headline, alignment, parent));
     else
-        this->headline = HeadlinePointer(new LandscapeHeadline(story_info, headline, entry_type, alignment, parent));
+        this->headline = HeadlinePointer(new LandscapeHeadline(story_info, headline, alignment, parent));
 }

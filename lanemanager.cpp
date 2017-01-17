@@ -67,7 +67,6 @@ void LaneManager::subscribe(Chyron* chyron)
             HeadlineGenerator generator(w, h,
                                         story_info,
                                         QString("<h2><center>%1</center></h2>").arg(story_info->dashboard_group_id),
-                                        story_info->entry_type,
                                         Qt::AlignHCenter|Qt::AlignVCenter);
             dashboard_group->lane_header = generator.get_headline();
             dashboard_group->lane_header->set_font(headline_font);

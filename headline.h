@@ -29,14 +29,12 @@ class Headline : public QLabel
 public:
     explicit Headline(StoryInfoPointer story_info,
                       const QString& headline,
-                      AnimEntryType entry_type = AnimEntryType::PopCenter,
                       Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
                       QWidget* parent = nullptr);
     explicit Headline(const Headline& source)
     {
         story_info = source.story_info;
         headline = source.headline;
-        entry_type = source.entry_type;
     }
     virtual ~Headline();
 
@@ -133,8 +131,6 @@ protected:  // data members
 
     QLabel*         label;
 
-    AnimEntryType   entry_type;
-
     bool            include_progress_bar;
     QString         progress_text_re;
     bool            progress_on_top;
@@ -165,7 +161,6 @@ class PortraitHeadline : public Headline
 public:
     explicit PortraitHeadline(StoryInfoPointer story_info,
                               const QString& headline,
-                              AnimEntryType entry_type = AnimEntryType::PopCenter,
                               Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
                               bool configure_for_left = true,
                               QWidget *parent = nullptr);
@@ -202,26 +197,9 @@ class LandscapeHeadline : public Headline
 public:
     explicit LandscapeHeadline(StoryInfoPointer story_info,
                                const QString& headline,
-                               AnimEntryType entry_type = AnimEntryType::PopCenter,
                                Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
                                QWidget *parent = nullptr);
     ~LandscapeHeadline();
-
-    /*!
-      The LandscapeHeadline can be configured to detect a progress indicator within
-      the Headline text.  This indicator is usually a numeric value followed by a
-      percent sign (%), but the user can configure whatever regular expression they
-      wish to retrieve a numeric value for this purpose.
-
-      If detected, the LandscapeHeadline will include a progress bar somewhere on
-      the Headline itself.  The user can place the progress bar on the top or the
-      bottom, or if 'compact mode' is active, the entire Headline window itself will
-      display the progress bar.
-
-      @param re The regular expression to use in attempts to detect progress indicator within the Headline text.
-      @param on_top A Boolean indicating the position of the progress bar: true places it on the top of the Headline, false on the bottom.
-     */
-    void    enable_progress_detection(const QString& re, bool on_top);
 
 protected:      // methods
     void    changeEvent(QEvent* event) Q_DECL_OVERRIDE;
@@ -244,6 +222,22 @@ protected:      // methods
     /*!
       @}
      */
+
+    /*!
+      The LandscapeHeadline can be configured to detect a progress indicator within
+      the Headline text.  This indicator is usually a numeric value followed by a
+      percent sign (%), but the user can configure whatever regular expression they
+      wish to retrieve a numeric value for this purpose.
+
+      If detected, the LandscapeHeadline will include a progress bar somewhere on
+      the Headline itself.  The user can place the progress bar on the top or the
+      bottom, or if 'compact mode' is active, the entire Headline window itself will
+      display the progress bar.
+
+      @param re The regular expression to use in attempts to detect progress indicator within the Headline text.
+      @param on_top A Boolean indicating the position of the progress bar: true places it on the top of the Headline, false on the bottom.
+     */
+    void    enable_progress_detection(const QString& re, bool on_top);
 
 protected:      // data members
     bool    detect_progress, old_detect_progress;
@@ -273,7 +267,6 @@ public:
     explicit HeadlineGenerator(int w, int h,
                                StoryInfoPointer story_info,
                                const QString& headline,
-                               AnimEntryType entry_type = AnimEntryType::PopCenter,
                                Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
                                QWidget* parent = nullptr);
 
