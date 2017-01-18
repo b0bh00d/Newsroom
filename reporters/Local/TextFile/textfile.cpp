@@ -41,15 +41,15 @@ bool TextFile::SetRequirements(const QStringList& parameters)
 {
     error_message.clear();
 
-    if(parameters.count() < 3)
+    if(parameters.count() < Param::Count)
     {
         error_message = QStringLiteral("TextFile: Not enough parameters provided.");
         return false;
     }
 
-    trigger = static_cast<LocalTrigger>(parameters[0].toInt());
-    left_strip = parameters[1].toInt();
-    right_strip = parameters[2].toInt();
+    trigger = static_cast<LocalTrigger>(parameters[Param::Trigger].toInt());
+    left_strip = parameters[Param::LeftStrip].toInt();
+    right_strip = parameters[Param::RightStrip].toInt();
 
     return true;
 }

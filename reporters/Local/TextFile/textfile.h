@@ -42,6 +42,14 @@ private slots:
     void            slot_poll();
 
 private:    // typedefs and enums
+    typedef enum
+    {
+        Trigger,
+        LeftStrip,
+        RightStrip,
+        Count,
+    } Param;
+
     enum class LocalTrigger
     {
         NewContent,

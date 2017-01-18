@@ -56,8 +56,9 @@ private:    // typedefs and enums
         None,
         GettingProjects,
         GettingBuilders,
-        GettingStatus,
-        GettingFinal,
+        GettingBuilderStatus,
+        GettingBuildStatus,
+        GettingBuildFinal,
     };
 
     enum class Priorities
@@ -71,23 +72,24 @@ private:    // typedefs and enums
 private:    // classes
     struct RequestData
     {
-        ReplyStates      state;
+        ReplyStates state;
         QString     url;
         QStringList data;
     };
 
     struct ReplyData
     {
-        ReplyStates      state;
+        ReplyStates state;
         QByteArray  buffer;
         QStringList data;       // project + builder names and ids
     };
 
     struct BuilderData
     {
-        bool        first_update;
-        QJsonObject builder_data;
-        StatusMap   build_status;
+        bool            first_update;
+        QJsonObject     builder_data;
+        StatusMap       build_status;
+        BuilderEvents   build_event;
     };
     SPECIALIZE_LIST(BuilderData, Builders)              // "BuildersList"
 
@@ -113,8 +115,9 @@ private:    // methods
     void            enqueue_request_unique(const QString& url_str, ReplyStates state, const QStringList& request_data = QStringList());
     void            create_request(const QString& url_str, ReplyStates state, const QStringList& request_data = QStringList());
     void            process_reply(QNetworkReply *reply);
-    void            process_status(const QJsonObject& status, const QStringList &status_data);
-    void            process_final(const QJsonObject& status, const QStringList &status_data);
+    void            process_builder_status(const QJsonObject& status, const QStringList &status_data);
+    void            process_build_status(const QJsonObject& status, const QStringList &status_data);
+    void            process_build_final(const QJsonObject& status, const QStringList &status_data);
 
 private:    // data members
     int         replies_expected;   // how many initial replies before we start the timer?
