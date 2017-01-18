@@ -258,22 +258,29 @@ void TeamCity9Poller::process_reply(QNetworkReply *reply)
             }
         }
     }
-    else if(data.state == ReplyStates::GettingStatus)
+    else if(data.state == ReplyStates::GettingBuilderStatus)
     {
         // got a status update for a specific Project::Builder
         QJsonDocument d = QJsonDocument::fromJson(data.buffer);
         QJsonObject sett2 = d.object();
-        process_status(sett2, data.data);
+        process_builder_status(sett2, data.data);
     }
-    else if(data.state == ReplyStates::GettingFinal)
+    else if(data.state == ReplyStates::GettingBuildStatus)
+    {
+        // got a status update for a specific build id
+        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
+        QJsonObject sett2 = d.object();
+        process_build_status(sett2, data.data);
+    }
+    else if(data.state == ReplyStates::GettingBuildFinal)
     {
         QJsonDocument d = QJsonDocument::fromJson(data.buffer);
         QJsonObject sett2 = d.object();
-        process_final(sett2, data.data);
+        process_build_final(sett2, data.data);
     }
 }
 
-void TeamCity9Poller::process_status(const QJsonObject& status, const QStringList& status_data)
+void TeamCity9Poller::process_builder_status(const QJsonObject& status, const QStringList& status_data)
 {
     // 'status' will be about any builds running on a specific builder
     // (builders can have more than one build), something like this:
@@ -345,7 +352,10 @@ void TeamCity9Poller::process_status(const QJsonObject& status, const QStringLis
         if(new_builds.contains(build_id))
         {
             builder_data->build_status[build_id] = build;
-            notify_interested_parties(BuilderEvents::BuildStarted, pd.project_data["name"].toString(), builder_data->builder_data["name"].toString(), status);
+            builder_data->build_event = BuilderEvents::BuildStarted;
+
+            QString url = QString("%1/httpAuth/app/rest/buildQueue/id:%2").arg(target.toString()).arg(build_id);
+            enqueue_request_unique(url, ReplyStates::GettingBuildStatus, QStringList() << status_data[0] << QString::number(build_id));
         }
         else if(!finished_builds.contains(build_id))
         {
@@ -355,8 +365,12 @@ void TeamCity9Poller::process_status(const QJsonObject& status, const QStringLis
             if(cached_json != build)
             {
                 // yes
+
                 builder_data->build_status[build_id] = build;
-                notify_interested_parties(BuilderEvents::BuildProgress, pd.project_data["name"].toString(), builder_data->builder_data["name"].toString(), status);
+                builder_data->build_event = BuilderEvents::BuildProgress;
+
+                QString url = QString("%1/httpAuth/app/rest/buildQueue/id:%2").arg(target.toString()).arg(build_id);
+                enqueue_request_unique(url, ReplyStates::GettingBuildStatus, QStringList() << status_data[0] << QString::number(build_id));
             }
         }
     }
@@ -376,12 +390,28 @@ void TeamCity9Poller::process_status(const QJsonObject& status, const QStringLis
     {
         foreach(int build_id, finals)
             create_request(QString("%1/httpAuth/app/rest/builds/id:%2").arg(target.toString()).arg(build_id),
-                            ReplyStates::GettingFinal,
+                            ReplyStates::GettingBuildFinal,
                             status_data);
     }
 }
 
-void TeamCity9Poller::process_final(const QJsonObject& status, const QStringList &status_data)
+void TeamCity9Poller::process_build_status(const QJsonObject& status, const QStringList& status_data)
+{
+    // 'status' will be a detailed listing about a specific build
+
+    ProjectData& pd = projects[status_data[0]];
+    BuildersList::iterator builder_data;
+    for(builder_data = pd.builders.begin();builder_data != pd.builders.end();++builder_data)
+    {
+        if(builder_data->build_status.contains(status_data[1].toInt()))
+            break;
+    }
+    Q_ASSERT(builder_data != pd.builders.end());
+
+    notify_interested_parties(builder_data->build_event, pd.project_data["name"].toString(), builder_data->builder_data["name"].toString(), status);
+}
+
+void TeamCity9Poller::process_build_final(const QJsonObject& status, const QStringList &status_data)
 {
     // 'status' will be a detailed (result) report for a single build, something like:
     // {
@@ -516,7 +546,7 @@ void TeamCity9Poller::slot_poll()
                 QString url = QString("%1/httpAuth/app/rest/builds?locator=buildType:(id:%2),running:true,defaultFilter:false")
                                         .arg(target.toString())
                                         .arg(builder_id);
-                enqueue_request_unique(url, ReplyStates::GettingStatus, QStringList() << key << builder_id);
+                enqueue_request_unique(url, ReplyStates::GettingBuilderStatus, QStringList() << key << builder_id);
             }
         }
     }

@@ -63,6 +63,17 @@ private:    // classes
     };
 
 private:    // typedefs and enums
+    typedef enum
+    {
+        Username,
+        Password,
+        Project,
+        Builder,
+        Poll,
+        Template,
+        Count,
+    } Param;
+
     SPECIALIZE_MAP(int, ETAData, ETA)                   // "ETAMap"
     SPECIALIZE_MAP(QString, QString, Report)            // "ReportMap"
     SPECIALIZE_MAP(int, QJsonObject, Status)            // "StatusMap"
@@ -73,6 +84,7 @@ private:    // methods
                                         const QString& builder_id = QString(),
                                         const QString& eta_str = QString());
     QString         render_report(const ReportMap& report_map);
+    QString         capitalize(const QString& str);
 
 private:    // data members
     QString     username;
