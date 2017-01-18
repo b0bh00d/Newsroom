@@ -36,6 +36,10 @@
       <number>0</number>
      </property>
      <widget class="QWidget" name="tab_Global">
+      <attribute name="icon">
+       <iconset resource="Newsroom.qrc">
+        <normaloff>:/images/Global.png</normaloff>:/images/Global.png</iconset>
+      </attribute>
       <attribute name="title">
        <string>Global</string>
       </attribute>
@@ -179,6 +183,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_Headlines">
+      <attribute name="icon">
+       <iconset resource="Newsroom.qrc">
+        <normaloff>:/images/Headlines.png</normaloff>:/images/Headlines.png</iconset>
+      </attribute>
       <attribute name="title">
        <string>Headlines</string>
       </attribute>
@@ -345,6 +353,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_Series">
+      <attribute name="icon">
+       <iconset resource="Newsroom.qrc">
+        <normaloff>:/images/Series.png</normaloff>:/images/Series.png</iconset>
+      </attribute>
       <attribute name="title">
        <string>Series</string>
       </attribute>
