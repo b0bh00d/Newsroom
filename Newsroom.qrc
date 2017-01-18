@@ -23,5 +23,7 @@
   <file>images/SettingsBanner.png</file>
   <file>images/AddStoryBanner.png</file>
   <file>images/EditHeadlineBanner.png</file>
+  <file>images/Series.png</file>
+  <file>images/Global.png</file>
 </qresource>
 </RCC>
