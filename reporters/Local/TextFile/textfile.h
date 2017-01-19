@@ -28,7 +28,7 @@ public:
     QStringList DisplayName() const Q_DECL_OVERRIDE;
     QString PluginClass() const                 { return "Local"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
-    bool Supports(const QString& file) const Q_DECL_OVERRIDE;
+    bool Supports(const QUrl &entity) const Q_DECL_OVERRIDE;
     QStringList Requires() const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& story) Q_DECL_OVERRIDE;

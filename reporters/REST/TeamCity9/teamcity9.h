@@ -42,7 +42,7 @@ public:
     QStringList DisplayName() const Q_DECL_OVERRIDE;
     QString PluginClass() const Q_DECL_OVERRIDE { return "REST"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
-    bool Supports(const QString& /*file*/) const Q_DECL_OVERRIDE { return false; }
+    bool Supports(const QUrl& entity) const Q_DECL_OVERRIDE;
     QStringList Requires() const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;

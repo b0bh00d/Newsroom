@@ -360,17 +360,32 @@ void MainWindow::dropEvent(QDropEvent* event)
         story_info->dashboard_compression = compact_compression;
 
         // Provide a 'hint' as to which beat is appropriate for this Story
-        if(story.isLocalFile())
-            story_info->reporter_beat = "Local";
-        else
-            story_info->reporter_beat = "REST";
 
-        if(!beats.contains(story_info->reporter_beat))
+        story_info->reporter_beat.clear();
+        foreach(const QString& key, beats.keys())
+        {
+            foreach(const ReporterInfo& pi_info, beats[key])
+            {
+                QObject* instance = pi_info.factory->instance();
+                IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+                Q_ASSERT(ireporterfactory);
+                IReporterPointer plugin_reporter = ireporterfactory->newInstance();
+                if(plugin_reporter->Supports(story))
+                {
+                    story_info->reporter_beat = key;
+                    break;
+                }
+            }
+
+            if(!story_info->reporter_beat.isEmpty())
+                break;
+        }
+
+        if(story_info->reporter_beat.isEmpty())
         {
             QMessageBox::critical(0,
                                   tr("Newsroom: Error"),
-                                  tr("No Reporters are available to cover the \"%1\" beat!")
-                                        .arg(story_info->reporter_beat));
+                                  tr("No Reporters are available to cover this Story's beat!"));
             return;
         }
 
@@ -655,7 +670,7 @@ void MainWindow::load_series(SeriesInfo &series_info)
                 CoverageStart coverage_start = CoverageStart::None;
                 if(continue_coverage && is_active.testBit(i))
                 {
-                    if(story_info->reporter_beat.compare("Local"))
+                    if(story_info->story.isLocalFile() && QFile::exists(story_info->story.toLocalFile()))
                         coverage_start = CoverageStart::Immediate;
                     else
                         // prevent non-local Reporters from potentially hammering servers all at once
