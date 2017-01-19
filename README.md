@@ -69,6 +69,9 @@ being incompatible with your established Stories.
 
 Some things are not yet hooked up.  For example, auto-start does not yet work.
 
+I've not tweaked this for, or even compiled under, operating systems other than
+Windows so far.  All development has taken place there to this point.
+
 ## Usage
 Run the main application, and then drop either a local text file, or a Web URL
 (assumed to be a REST API node), onto the main window.  This will launch the
