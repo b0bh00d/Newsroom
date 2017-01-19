@@ -2,19 +2,6 @@
 
 // This header provides a cleaner mechanism for declaring template
 // specializations via typedefs without lots of code clutter.
-//
-// Note:  If std::tuple is not used (because Qt does not provide an
-// equivalent), then these macros are interchangeable.
-
-//#ifdef Q_OBJECT
-//#define USE_QT_CONTAINERS
-////#include <QtGlobal>
-////#if QT_VERSION >= 0x050000
-////// Qt containers are deprecated as of 5.0
-////// https://stackoverflow.com/questions/35525588/is-there-a-qpair-class-but-for-three-items-instead-of-two
-////#undef USE_QT_CONTAINERS
-////#endif
-//#endif
 
 #ifdef __cplusplus
 #define SPECIALIZE_ITER(name) \
@@ -99,15 +86,6 @@
 #include <utility>
 #define SPECIALIZE_PAIR(type1, type2, name) \
     typedef std::pair<type1, type2>   name##Pair;
-
-#include <tuple>
-// for a 2-tuple, use Pair
-#define SPECIALIZE_TUPLE3(type1, type2, type3, name) \
-    typedef std::tuple<type1, type2, type3>   name##Tuple3;
-#define SPECIALIZE_TUPLE4(type1, type2, type3, type4, name) \
-    typedef std::tuple<type1, type2, type3, type4>   name##Tuple4;
-#define SPECIALIZE_TUPLE5(type1, type2, type3, type4, type5, name) \
-    typedef std::tuple<type1, type2, type3, type4, type5>   name##Tuple5;
 
 #endif  // QT_VERSION
 
