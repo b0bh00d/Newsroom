@@ -1,3 +1,5 @@
+#include <QtCore/QFile>
+
 #include "teamcity9.h"
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
@@ -26,6 +28,29 @@ QStringList TeamCity9::DisplayName() const
 QByteArray TeamCity9::PluginID() const
 {
     return "{A34020FD-80CC-48D4-9EC0-DFD52B912B2D}";
+}
+
+bool TeamCity9::Supports(const QUrl& entity) const
+{
+    // QUrl::isLocalFile() will return true if the URL ends with
+    // an HTML file reference (making it kind of useless by itself,
+    // actually).
+
+    if(entity.isLocalFile() && QFile::exists(entity.toLocalFile()))
+        return false;
+
+    // There's no actual way to determine, just from the URL,
+    // if this is indeed pointing at a TeamCity v9 REST API
+    // node.  About all we can do is ensure they aren't
+    // handing us an incorrect path...
+
+    QString entity_str = entity.toString().toLower();
+    if(entity_str.endsWith(".htm") || entity_str.endsWith(".html"))
+        return false;
+
+    // Assume it's a URL to a TeamCity v9 server.  If it isn't,
+    // the user will get a network error for a Headline.
+    return true;
 }
 
 QStringList TeamCity9::Requires() const

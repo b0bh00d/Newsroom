@@ -23,16 +23,16 @@ public:     // methods
 
     /*!
       If a method returns an unexpected value, the host may retrieve any
-      associated erorr string by calling this method.
+      associated error string by calling this method.
 
       \returns A string contains some kind of explanation of the unexpected result.
      */
     virtual QString ErrorString() const = 0;
 
     /*!
-      This method returns a displayable name for the REST plug-in, something
+      This method returns a displayable name for the Reporter plug-in, something
       meaningful to the user for when they are selecting plug-ins to handle a
-      URL.  It can also optionally return a tooltip value that the host can
+      Story.  It can also optionally return a tooltip value that the host can
       display to help clarify the support provided by the plug-in.
 
       The tooltip should be a brief but informative description of the plug-in,
@@ -54,28 +54,30 @@ public:     // methods
     /*!
       This method returns a unique identifier for the plug-in.  This identifier
       should be guaranteed to be globally unique (hint: GUID).  It will not be
-      shown to the user.
+      shown to the user, but will be used internally to identify the plug-in and
+      any data associated with it.
 
-      \returns A unique identifier for the plug-in.
+      \returns A unique identifier for the plug-in (among all other plug-ins).
      */
     virtual QByteArray PluginID() const = 0;
 
     /*!
-      This method tells the host if it can process the indicated file.  It is
-      up to the plug-in to determine if it is a file format whose contents it
-      can monitor, and from which provide meaningful Headlines.
+      This method tells the host if it can process the indicated entity.  It is
+      up to the plug-in to determine if it is contains content it can monitor,
+      and from which file meaningful reports.
 
-      \param file A fully qualify path to an entity on the local file system.
-      \returns A Boolean true if the plug-in can provide meaningful Headlines for this file, otherwise false.
+      \param file An entity of some kind (typically a local file path or URL-formatted resource).
+      \returns A Boolean true if the plug-in can provide meaningful reports for this entity, otherwise false.
      */
-    virtual bool Supports(const QString& file) const = 0;
+    virtual bool Supports(const QUrl& story) const = 0;
 
     /*!
-      This method returns a list of parameter names that the plug-in requires in
-      order to perform its function.
+      This method returns a list of names identifying parameters that the
+      plug-in requires in order to perform its function.
 
       Parameter names that end with an asterisk (*) indicate a required value,
-      all others are considered optional.  Required fields will be highlighted.
+      all others are considered optional.  Required fields will be highlighted
+      and enforced.
 
       Each parameter should specify one of the following types:
 
@@ -94,20 +96,20 @@ public:     // methods
 
       Parameter types can specify default values by adding a colon (:) followed
       by a value as a suffix (e.g., "integer:10").  This default value will
-      become the placeholder value in single-line edit fields.
+      become the place holder value in single-line edit fields.
 
-      In the case of "multiline" editing, the default vlaue (if any) will be
-      inserted into the edit field for the user to modify.
+      In the case of "multiline" editing, the default valaue (if any) will be
+      inserted into the edit field for the user to directly modify.
 
       For "combo", combo box values are provided in a comma-separated list.
       The default index can be specified by following an item with an asterisk,
       otherwise the first item in the list will be selected by default.
 
-      Newroom will post a dialog requesting these parameters and types from
-      the user, and then provide them back to the plug-in via the SetRequirements()
-      method.
+      The host application will post a dialog requesting these parameters and
+      types from the user, and then provide them back to the plug-in via the
+      SetRequirements() method.
 
-      \returns A list of string pairs representing parameter names and types.
+      \returns A list of string pairs representing parameter names and types with optional defaults.
      */
     virtual QStringList Requires() const = 0;
 
@@ -120,7 +122,8 @@ public:     // methods
     virtual bool SetRequirements(const QStringList& parameters) = 0;
 
     /*!
-      Sets the Story (QUrl) for the plug-in to cover.
+      Sets the Story (QUrl) for the plug-in to cover.  This method will only
+      be called if the Supports() method returned true.
 
       \param story A QUrl that indicates the target of the coverage to be performed.
      */
@@ -128,7 +131,8 @@ public:     // methods
 
     /*!
       Start covering the Story.  The plug-in should begin any actions required
-      to retrieve status information from the REST API when this method is invoked.
+      to retrieve report information from the entity provided to SetStory()
+      when this method is invoked.
 
       \returns A true value if Story coverage began, otherwise false.
      */
@@ -143,20 +147,21 @@ public:     // methods
     virtual bool FinishStory() = 0;
 
     /*!
-      This method gives the Reporter plug-in the opportunity to secure any sensitive
-      data (e.g., passwords) before it gets stored to disc.  The method of securing is
-      left entirely up to the plug-in, and it is is the plug-ins responisiblity to
-      unsecure such data when it is provided to the Unsecure() or SetRequirements()
-      methods.
+      This method gives the Reporter plug-in the opportunity to secure any
+      sensitive data provided to it by SetRequirements() (e.g., passwords)
+      before it gets stored to disc.  The method of securing is left entirely
+      up to the plug-in, and it is is the plug-ins responsibility to undo any
+      security actions when such data is provided to the Unsecure() or
+      SetRequirements() methods.
 
       Data should be modified in-place.
      */
     virtual void Secure(QStringList& parameters) const = 0;
 
     /*!
-      Any parameters secured by a previous invocation of the Secure() method should
-      be unsecured by this call.  This will allow the data to be modified by the
-      user.
+      Any parameters secured by a previous invocation of the Secure() method
+      should be released by this call.  This will allow the data to be modified
+      by the user.
 
       Data should be modified in-place.
      */
@@ -175,8 +180,8 @@ typedef QSharedPointer<IReporter> IReporterPointer;
 /// @class IReporterFactory
 /// @brief A factory interface for generating IPlugin-based plug-ins
 ///
-/// All Newsroom Reporter plug-ins must provide this factory interface.
-/// This interface is the actual Qt interface employed by Newsroom.
+/// All Reporter plug-ins must provide this factory interface.  This interface
+/// is the actual Qt interface employed by the host application.
 
 class IReporterFactory : public QObject
 {
@@ -186,5 +191,5 @@ public:
 };
 
 QT_BEGIN_NAMESPACE
-Q_DECLARE_INTERFACE(IReporterFactory, "org.lucidgears.Newsroom.IReporterFactory")
+Q_DECLARE_INTERFACE(IReporterFactory, "org.Newsroom.IReporterFactory")
 QT_END_NAMESPACE

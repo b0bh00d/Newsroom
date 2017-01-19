@@ -25,8 +25,15 @@ QByteArray TextFile::PluginID() const
     return "{F1949758-2A08-4E8A-8290-90DCD270A8B9}";
 }
 
-bool TextFile::Supports(const QString& /*file*/) const
+bool TextFile::Supports(const QUrl& entity) const
 {
+    if(!entity.isLocalFile() || !QFile::exists(entity.toLocalFile()))
+        return false;
+
+    // Here we should peek at the file contents to make sure
+    // it is a format we can grok, but for now, we'll just
+    // assume and hope for the best...
+
     return true;
 }
 
