@@ -345,7 +345,7 @@ void TeamCity9::populate_report_map(ReportMap& report_map,
         report_map["STATUS"] = capitalize(build["status"].toString());
     if(!report_map.contains("COMPLETED"))
         report_map["COMPLETED"] = QString("%1%").arg(QString::number(build["percentageComplete"].toInt()));
-    if(eta_str.isEmpty() && !report_map["STATE"].compare("running"))
+    if(eta_str.isEmpty() && !report_map["STATE"].compare("Running"))
         report_map["ETA"] = "(pending)";
     else
         report_map["ETA"] = eta_str;
