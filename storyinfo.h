@@ -16,18 +16,26 @@ struct StoryInfo
 {
     QUrl            story;
 
-    // The 'story identity' is something that will uniquely identify this
-    // story.  In the case of a local file system entity, the full path to
-    // that entity will suffice.  However, in the case of a REST URL, the
-    // URL itself will not be unique enough as it will simply be the base
-    // value for addition API selectors.  So, this string value should
-    // most uniquely represents that particular story type.
+    // This value is an internal identify for a Story.  It uniquely
+    // identifies a Story within the system, regardless of any other
+    // of its settings.  The user never sees this value.
 
     QString         identity;
+
+    // The Story 'angle' is something that will uniquely identify this
+    // Story for the user.  In the case of a local file system entity,
+    // the full path to that entity will suffice.  However, in the case
+    // of a REST URL, the URL itself may not be unique enough as it will
+    // simply be the entry point for addition API selectors.  So, this
+    // string value should most uniquely represent that particular story
+    // type.
+
+    QString         angle;
 
                     // Reporter
     QString         reporter_beat;      // what special genre knowledge do this Reporter possess?
     QString         reporter_id;        // unique identity for thie Reporter
+    int             reporter_parameters_version;
     QStringList     reporter_parameters;// what up-front information does the Reporter need to cover the Story?
 
                     // Notifications

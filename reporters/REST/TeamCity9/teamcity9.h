@@ -32,6 +32,7 @@ public:
 
     // these methods are directly invoked by TeamCity9Poller since we cannot
     // create dynamic run-time signals and slots in a canonical fashion
+    void    build_pending(const QJsonObject& status);
     void    build_started(const QJsonObject& status);
     void    build_progress(const QJsonObject& status);
     void    build_final(const QJsonObject& status);
@@ -42,8 +43,11 @@ public:
     QStringList DisplayName() const Q_DECL_OVERRIDE;
     QString PluginClass() const Q_DECL_OVERRIDE { return "REST"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
-    bool Supports(const QUrl& entity) const Q_DECL_OVERRIDE;
-    QStringList Requires() const Q_DECL_OVERRIDE;
+    float Supports(const QUrl& entity) const Q_DECL_OVERRIDE;
+    int RequiresVersion() const;
+    RequirementsFormats RequiresFormat() const;
+    bool RequiresUpgrade(int, QStringList&);
+    QStringList Requires(int = 0) const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
     bool CoverStory() Q_DECL_OVERRIDE;
@@ -69,6 +73,7 @@ private:    // typedefs and enums
         Password,
         Project,
         Builder,
+        Changes,
         Poll,
         Template,
         Count,
@@ -93,6 +98,9 @@ private:    // data members
     QString     builder_name;
 
     int         poll_timeout;
+    int         last_changes_count;
+
+    bool        check_for_changes;
 
     StatusMap   build_status;
     ETAMap      eta;

@@ -15,9 +15,9 @@ const int ItemType = 0;
 //----------------------------------------------------------------
 // Settings implementation
 
-Settings::Settings(const QString& application, const QString &filename)
+Settings::Settings(const QString& application, const QString &base_filename)
     : application(application),
-      filename(filename)
+      filename(base_filename)
 {
 }
 
@@ -105,9 +105,22 @@ Settings::Item* Settings::create_path(const QString& path)
     return section;
 }
 
-void Settings::begin_section(const QString& path)
+int Settings::begin_section(const QString& path)
 {
     default_section.append(path);
+
+    QStringList locator = construct_path();
+    QString section_path = locator.join("/");
+    section_path.replace("//", "/");
+
+    Item* section = nullptr;
+    if(section_path_map.contains(section_path))
+       section = section_path_map[section_path];
+
+    if(!section)
+        return 0;
+
+    return section->childCount();
 }
 
 void Settings::clear_section(const QString& path)
@@ -234,6 +247,27 @@ QVariant Settings::get_item(const QString& item_name, const QVariant& default_va
             Item* child = section->child(i);
             if(!child->text(1).compare(locator[1]))
                 return child->data(0, Qt::UserRole);
+        }
+    }
+
+    return default_value;
+}
+
+QVariant Settings::get_item(int index, const QVariant& default_value)
+{
+    if(default_array.isEmpty())
+    {
+        QStringList locator = construct_path();
+
+        Item* section = nullptr;
+
+        if(section_path_map.contains(locator[0]))
+            section = section_path_map[locator[0]];
+
+        if(section && index < section->childCount())
+        {
+            Item* child = section->child(index);
+            return child->data(0, Qt::UserRole);
         }
     }
 
@@ -420,14 +454,14 @@ void Settings::set_array_item(const QString& array_name, int index, const QStrin
 //----------------------------------------------------------------
 // SettingsXML implementation
 
-SettingsXML::SettingsXML(const QString& application, const QString& filename)
-    : Settings(application, filename)
+SettingsXML::SettingsXML(const QString& application, const QString& base_filename)
+    : Settings(application, base_filename)
 {
-    if(!this->filename.toLower().endsWith(".xml"))
-        this->filename += ".xml";
+    if(!filename.toLower().endsWith(".xml"))
+        filename += ".xml";
 }
 
-bool SettingsXML::cache()
+bool SettingsXML::init(bool clear)
 {
     if(!tree_root.isNull())
     {
@@ -436,6 +470,13 @@ bool SettingsXML::cache()
     }
 
     tree_root = ItemPointer(new Item(ItemType));
+
+    if(clear)
+    {
+        if(QFile::exists(filename))
+            return QFile::remove(filename);
+        return true;
+    }
 
     if(!QFile::exists(filename))
     {

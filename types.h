@@ -50,6 +50,8 @@ struct ReporterInfo
     QString         name;
     QString         tooltip;
     QString         id;
+    int             params_version;
+    QStringList     params_requires;
 };
 
 SPECIALIZE_VECTOR(ReporterInfo, ReportersInfo)          // "ReportersInfoVector"

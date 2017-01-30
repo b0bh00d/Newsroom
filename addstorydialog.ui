@@ -153,6 +153,22 @@
          <item>
           <widget class="QComboBox" name="combo_AvailableReporters"/>
          </item>
+         <item>
+          <widget class="QLabel" name="label_Success">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This display indicates the Reporter plug-in's &lt;span style=&quot; font-style:italic;&quot;&gt;best guess&lt;/span&gt; at its chances of successfully covering the indicated Story.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Success: 100%</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>

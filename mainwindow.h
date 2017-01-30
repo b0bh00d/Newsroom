@@ -54,6 +54,8 @@ public:     // methods
     void                save_window_data(QWidget* window);
     void                restore_window_data(QWidget* window);
 
+    inline QString      encode_for_filesystem(const QString& str) const;
+
 public:     // data members;
     QString             default_stylesheet;
 
@@ -78,6 +80,7 @@ private:    // typedefs and enums
     SPECIALIZE_SHAREDPTR(QPixmap, Pixmap)                   // "PixmapPointer"
     SPECIALIZE_LIST(StoryInfoPointer, Story)                // "StoryList"
     SPECIALIZE_MAP(QString, QString, String)                // "StringMap"
+    SPECIALIZE_MAP(QString, QStringList, StringList)        // "StringListMap"
 
 private slots:
     void                slot_quit();
@@ -89,17 +92,19 @@ private slots:
     void                slot_edit_story(const QString& story_id);
 
 private:    // methods
-    bool                load_reporters();
+    bool                configure_reporters();
     void                load_application_settings();
     void                save_application_settings();
     void                load_series(SeriesInfo &series_info);
     void                save_series(const SeriesInfo& series_info);
-    void                save_story(SettingsPointer settings, StoryInfoPointer story_info);
-    void                restore_story(SettingsPointer settings, StoryInfoPointer story_info);
+    void                save_story(SettingsPointer application_settings, StoryInfoPointer story_info);
+    void                restore_story(SettingsPointer application_settings, StoryInfoPointer story_info);
     void                restore_story_defaults(StoryInfoPointer story_info);
     void                save_story_defaults(StoryInfoPointer story_info);
     bool                cover_story(ProducerPointer& producer, StoryInfoPointer story_info, CoverageStart coverage_start, const ReportersInfoVector *reporters_info = nullptr);
-    void                fix_identity_duplication(StoryInfoPointer story_info);
+    void                fix_angle_duplication(StoryInfoPointer story_info);
+
+    const ReporterInfo* get_reporter_info(const QString& id) const;
 
     void                build_tray_menu();
 
@@ -136,8 +141,8 @@ private:    // data members
 
     BeatsMap            beats;
 
-    SettingsPointer     settings;
-    QString             settings_file_name;
+    SettingsPointer     application_settings;
+    QString             application_settings_file_name;
 
     StyleListPointer    headline_style_list;
 
@@ -146,4 +151,9 @@ private:    // data members
     PixmapPointer       background_image;
 
     SettingsDialog*     settings_dlg;
+
+    QString             series_folder;
+    QString             parameters_base_folder;
+    QString             parameters_defaults_folder;
+    QString             parameters_stories_folder;
 };

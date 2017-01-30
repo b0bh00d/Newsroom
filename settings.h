@@ -30,18 +30,19 @@ class QDomNode;
 class Settings
 {
 public:
-    Settings(const QString& application, const QString& filename);
+    Settings(const QString& application, const QString& base_filename);
 
-    virtual bool cache()    { return false; }
-    virtual bool flush()    { return false; }
-    virtual bool remove()   { return false; }
+    virtual bool init(bool = false) { return false; }
+    virtual bool flush()            { return false; }
+    virtual bool remove()           { return false; }
+    virtual QString get_filename()  { return filename; }
 
     void        set_version(int version)    { this->version = version; }
     int         get_version()       const   { return version; }
 
     QString     get_error_string()  const   { return error_string; }
 
-    void        begin_section(const QString& path);
+    int         begin_section(const QString& path);
     void        clear_section(const QString& path);
     void        clear_section();
     void        end_section();
@@ -51,6 +52,7 @@ public:
     bool        set_array_index(int index);
 
     QVariant    get_item(const QString& item_name, const QVariant& default_value = QVariant());
+    QVariant    get_item(int index, const QVariant& default_value = QVariant());
     QVariant    get_array_item(int index, const QString &element_name, const QVariant& default_value = QVariant());
     QVariant    get_array_item(const QString& array_name, int index, const QString &element_name, const QVariant& default_value = QVariant());
     void        set_item(const QString& item_name, const QVariant& value);
@@ -107,9 +109,9 @@ SPECIALIZE_SHAREDPTR(Settings, Settings)        // "SettingsPointer"
 class SettingsXML : public Settings
 {
 public:
-    SettingsXML(const QString& application, const QString& filename);
+    SettingsXML(const QString& application, const QString& base_filename);
 
-    bool        cache();
+    bool        init(bool clear = false);
     bool        flush();
     bool        remove();
 

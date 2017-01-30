@@ -25,23 +25,42 @@ QByteArray TextFile::PluginID() const
     return "{F1949758-2A08-4E8A-8290-90DCD270A8B9}";
 }
 
-bool TextFile::Supports(const QUrl& entity) const
+float TextFile::Supports(const QUrl& entity) const
 {
     if(!entity.isLocalFile() || !QFile::exists(entity.toLocalFile()))
-        return false;
+        return 0.0f;
 
     // Here we should peek at the file contents to make sure
     // it is a format we can grok, but for now, we'll just
     // assume and hope for the best...
 
-    return true;
+    return 1.0f;
 }
 
-QStringList TextFile::Requires() const
+int TextFile::RequiresVersion() const
 {
-    return QStringList() << "New headlines are triggered by" << "combo:new content,file changes" <<
-                            "Strip characters from left" << "integer:0" <<
-                            "Strip characters from right" << "integer:0";
+    return 1;
+}
+
+RequirementsFormats TextFile::RequiresFormat() const
+{
+    return RequirementsFormats::Simple;
+}
+
+bool TextFile::RequiresUpgrade(int /*version*/, QStringList& /*parameters*/)
+{
+    error_message.clear();
+    return false;
+}
+
+QStringList TextFile::Requires(int /*version*/) const
+{
+    QStringList definitions;
+    definitions << "New headlines are triggered by" << "combo:new content,file changes"
+                << "Strip characters from left" << "integer:0"
+                << "Strip characters from right" << "integer:0";
+
+    return definitions;
 }
 
 bool TextFile::SetRequirements(const QStringList& parameters)

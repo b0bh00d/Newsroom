@@ -7,3 +7,9 @@
 #else
 #  define TEAMCITY9SHARED_EXPORT Q_DECL_IMPORT
 #endif
+
+typedef enum
+{
+    None           = 0x0,
+    PendingChanges = 0x1,
+} Interest;

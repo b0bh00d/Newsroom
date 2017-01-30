@@ -32,7 +32,7 @@ public:
 
     // this filtering mechanism is used because Qt does not provide
     // a canonical means of creating runtime, dynamic signals/slots
-    void    add_interest(const QString& project_name, const QString& builder_name, QObject* me);
+    void    add_interest(const QString& project_name, const QString& builder_name, QObject* me, int flags = Interest::None);
     void    remove_interest(const QString& project_name, const QString& builder_name, QObject* me);
 
 private slots:
@@ -46,6 +46,7 @@ private:    // typedefs and enums
     enum class BuilderEvents
     {
         None,
+        BuildPending,
         BuildStarted,
         BuildProgress,
         BuildFinal,
@@ -57,6 +58,7 @@ private:    // typedefs and enums
         GettingProjects,
         GettingBuilders,
         GettingBuilderStatus,
+        GettingBuildPending,
         GettingBuildStatus,
         GettingBuildFinal,
     };
@@ -86,10 +88,20 @@ private:    // classes
 
     struct BuilderData
     {
-        bool            first_update;
+        bool            pause_pending_changes_check;
+        bool            limit_pending_changes_check;
+        int             pending_changes_check_count;
         QJsonObject     builder_data;
         StatusMap       build_status;
         BuilderEvents   build_event;
+
+        BuilderData() :
+            pause_pending_changes_check(false),
+            pending_changes_check_count(0),
+            limit_pending_changes_check(false),
+            build_event(BuilderEvents::None)
+        {}
+
     };
     SPECIALIZE_LIST(BuilderData, Builders)              // "BuildersList"
 
@@ -99,23 +111,31 @@ private:    // classes
         BuildersList    builders;
     };
 
+    struct InterestData
+    {
+        QObject*        party;
+        int             flags;
+    };
+
 private:    // typedefs and enums
     SPECIALIZE_MAP(QString, ProjectData, Projects)      // "ProjectsMap"
     SPECIALIZE_MAP(QNetworkReply*, ReplyData, Reply)    // "ReplyMap"
     SPECIALIZE_MAP(QString, BuilderData, BuilderData)   // "BuilderDataMap"
     SPECIALIZE_LIST(RequestData, Request)               // "RequestList"
     SPECIALIZE_MAP(QString, bool, PendingRequests)      // "PendingRequestsMap"
-    SPECIALIZE_LIST(QObject*, Interested)               // "InterestedList"
+    SPECIALIZE_LIST(InterestData, Interested)           // "InterestedList"
     SPECIALIZE_MAP(QString, InterestedList, Interested) // "InterestedMap"
 
 private:    // methods
-    void            notify_interested_parties(BuilderEvents event, const QString& project_name, const QString& builder_name, const QJsonObject& status);
+    void            notify_interested_parties(BuilderEvents event, const QString& project_name, const QString& builder_name, const QJsonObject& status = QJsonObject());
     void            notify_interested_parties(const QString& project_name, const QString& builder_name, const QString& message);
     void            enqueue_request(const QString& url_str, ReplyStates state, const QStringList& request_data = QStringList(), Priorities priority = Priorities::BackOfQueue);
     void            enqueue_request_unique(const QString& url_str, ReplyStates state, const QStringList& request_data = QStringList());
     void            create_request(const QString& url_str, ReplyStates state, const QStringList& request_data = QStringList());
     void            process_reply(QNetworkReply *reply);
+    bool            any_interest_in_changes_check(const QString& project_name, const QString& builder_name);
     void            process_builder_status(const QJsonObject& status, const QStringList &status_data);
+    void            process_build_pending(const QJsonObject& status, const QStringList &status_data);
     void            process_build_status(const QJsonObject& status, const QStringList &status_data);
     void            process_build_final(const QJsonObject& status, const QStringList &status_data);
 

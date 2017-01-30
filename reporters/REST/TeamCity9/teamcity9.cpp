@@ -1,4 +1,5 @@
 #include <QtCore/QFile>
+#include <QtCore/QJsonDocument>
 
 #include "teamcity9.h"
 
@@ -8,6 +9,8 @@ TeamCity9::PollerMap TeamCity9::poller_map;
 
 TeamCity9::TeamCity9(QObject *parent)
     : poll_timeout(60),
+      last_changes_count(0),
+      check_for_changes(true),
       IReporter(parent)
 {
     report_template << "Project \"<b>${PROJECT_NAME}</b>\" :: Builder \"<b>${BUILDER_NAME}</b>\" :: Build #<b>${BUILD_NUMBER}</b>";
@@ -30,45 +33,79 @@ QByteArray TeamCity9::PluginID() const
     return "{A34020FD-80CC-48D4-9EC0-DFD52B912B2D}";
 }
 
-bool TeamCity9::Supports(const QUrl& entity) const
+float TeamCity9::Supports(const QUrl& entity) const
 {
     // QUrl::isLocalFile() will return true if the URL ends with
     // an HTML file reference (making it kind of useless by itself,
     // actually).
 
     if(entity.isLocalFile() && QFile::exists(entity.toLocalFile()))
-        return false;
+        return 0.0f;
 
-    // There's no actual way to determine, just from the URL,
-    // if this is indeed pointing at a TeamCity v9 REST API
-    // node.  About all we can do is ensure they aren't
-    // handing us an incorrect path...
+    // ensure they aren't handing us an incorrect path...
 
     QString entity_str = entity.toString().toLower();
     if(entity_str.endsWith(".htm") || entity_str.endsWith(".html"))
-        return false;
+        return 0.0f;
 
-    // Assume it's a URL to a TeamCity v9 server.  If it isn't,
-    // the user will get a network error for a Headline.
-    return true;
+    // There's no actual way to determine, just from the URL,
+    // if this is indeed pointing at a TeamCity v9 REST API
+    // node...unless it actually SAYS it in the URL...
+
+    if(entity_str.contains("teamcity"))
+        return 0.9f;
+
+    // Let them know it might, or might not, be a Team City REST
+    // endpoint.  If it isn't, the user will get a network error
+    // for a Headline...and then there'll be no doubt.
+    return 0.5f;
 }
 
-QStringList TeamCity9::Requires() const
+int TeamCity9::RequiresVersion() const
 {
+    return 1;
+}
+
+RequirementsFormats TeamCity9::RequiresFormat() const
+{
+    return RequirementsFormats::Simple;
+}
+
+bool TeamCity9::RequiresUpgrade(int /*version*/, QStringList& /*parameters*/)
+{
+    error_message.clear();
+    return false;
+}
+
+QStringList TeamCity9::Requires(int /*version*/) const
+{
+    QStringList definitions;
+
+    // "simple" requirements format
+
     // parameter names ending with an asterisk are required
-    return QStringList() << "Username:*"     << "string" <<
-                            "Password:*"     << "password" <<
-                            "Project Name:*" << "string" <<
+    definitions << "Username:*"     << "string"
+                << "Password:*"     << "password"
+                << "Project Name:*" << "string"
 
-                            // if an explicit builder is not provided,
-                            // then all the builders of the project will
-                            // be monitored in the same Headline stream
-                            "Builder:"       << "string" <<
+                // if an explicit builder is not provided,
+                // then all the builders of the project will
+                // be monitored in the same Headline stream
+                << "Builder:"       << "string"
 
-                            // how many seconds between polls? (default: 60)
-                            "Polling (sec):" << QString("integer:%1").arg(poll_timeout) <<
+                // this option will check idle builders for
+                // pending changes, and include that information
+                // value in the Headline text, which can be used
+                // as a trigger (see build_pending() below).
 
-                            "Format:"        << QString("multiline:%1").arg(report_template.join("<br>\n"));
+                << "Check idle builders for pending changes" << QString("check:%1").arg(check_for_changes ? "true" : "false")
+
+                // how many seconds between polls? (default: 60)
+                << "Polling (sec):" << QString("integer:%1").arg(poll_timeout)
+
+                << "Format:"        << QString("multiline:%1").arg(report_template.join("<br>\n"));
+
+    return definitions;
 }
 
 bool TeamCity9::SetRequirements(const QStringList& parameters)
@@ -86,6 +123,9 @@ bool TeamCity9::SetRequirements(const QStringList& parameters)
     project_name = parameters[Param::Project];
     if(parameters.count() > Param::Builder)
         builder_name = parameters[Param::Builder];
+
+    if(parameters.count() > Param::Changes && !parameters[Param::Changes].isEmpty())
+        check_for_changes = !parameters[Param::Changes].toLower().compare("true");
 
     if(parameters.count() > Param::Poll && !parameters[Param::Poll].isEmpty())
     {
@@ -135,15 +175,20 @@ bool TeamCity9::CoverStory()
     if(poller.isNull())
         return false;
 
-    // this will filter messages to just those relating to this project
-    // and (optionally) builder.  the TeamCity9Poller will invoke our
-    // public methods for each event type (started, progress, etc.) since
-    // Qt does not provide a canonical way of creating dynamic signals and
-    // slots at runtime.
+    // this call to add_interest() will filter messages to just those
+    // relating to this project and (optionally) builder.  the TeamCity9Poller
+    // will invoke our public methods for each event type (started, progress,
+    // etc.) since Qt does not provide a canonical way of creating dynamic
+    // signals and slots at runtime--we can't construct signals/slots for
+    // specific project/builder combinations.
 
-    poller->add_interest(project_name, builder_name, this);
+    int flags = 0;
+    if(check_for_changes)
+        flags |= Interest::PendingChanges;
 
-    // do an initial Headline
+    poller->add_interest(project_name, builder_name, this, flags);
+
+    // do an initial "idle" Headline
     QString status = QString("Project \"<b>%1</b>\"").arg(project_name);
     if(!builder_name.isEmpty())
         status += QString(" :: Builder \"<b>%1</b>\"").arg(builder_name);
@@ -187,9 +232,30 @@ void TeamCity9::Unsecure(QStringList& parameters) const
 
 // TeamCity9
 
+void TeamCity9::build_pending(const QJsonObject& status)
+{
+    // an idle builder has changes pending that can be built
+
+    // only post an update if the changes count has...changed
+    if(last_changes_count != status["count"].toInt())
+    {
+        last_changes_count = status["count"].toInt();
+
+        // use the initial Headline format, and add 'Changes:'
+        QString status_str = QString("Project \"<b>%1</b>\"").arg(project_name);
+        if(!builder_name.isEmpty())
+            status_str += QString(" :: Builder \"<b>%1</b>\"").arg(builder_name);
+        status_str += "<br>State: idle";
+        status_str += QString("<br>Changes: %1%2 pending").arg(last_changes_count).arg(status.contains("nextHref") ? "+" : "");
+        emit signal_new_data(status_str.toUtf8());
+    }
+}
+
 void TeamCity9::build_started(const QJsonObject& status)
 {
     // a new build in which we may be interested has started
+
+    last_changes_count = 0;
 
     int build_id = status["id"].toInt();
 

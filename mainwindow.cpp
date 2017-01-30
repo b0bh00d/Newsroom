@@ -8,8 +8,10 @@
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QDir>
+#include <QtCore/QDirIterator>
 #include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
+#include <QtCore/QUuid>
 
 #include "types.h"
 #include "storyinfo.h"
@@ -55,17 +57,25 @@ MainWindow::MainWindow(QWidget *parent)
 
     headline_style_list = StyleListPointer(new HeadlineStyleList());
 
-    settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom").arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-    settings = SettingsPointer(new SettingsXML("Newsroom", settings_file_name));
-    settings->cache();
+    application_settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom")
+                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    application_settings = SettingsPointer(new SettingsXML("Newsroom", application_settings_file_name));
+    application_settings->init();
+
+    series_folder = QDir::toNativeSeparators(QString("%1/Series")
+                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    parameters_base_folder = QDir::toNativeSeparators(QString("%1/Parameters")
+                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    parameters_defaults_folder = QDir::toNativeSeparators(QString("%1/Defaults").arg(parameters_base_folder));
+    parameters_stories_folder = QDir::toNativeSeparators(QString("%1/Stories").arg(parameters_base_folder));
 
     // Load all the available Reporter plug-ins
-    if(!load_reporters())
+    if(!configure_reporters())
     {
         QMessageBox::critical(0,
                               tr("Newsroom: Error"),
-                              tr("No Reporter plug-ins were found!\n"
-                                 "Newsroom cannot function without Reporters."));
+                              tr("A critical error occurred while configuring Reporter\n"
+                                 "plug-ins!  Newsroom cannot function without Reporters."));
         QTimer::singleShot(100, qApp, &QApplication::quit);
         return;
     }
@@ -100,11 +110,69 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-bool MainWindow::load_reporters()
+QString MainWindow::encode_for_filesystem(const QString& str) const
+{
+    return QString(QUrl::toPercentEncoding(str, "{}", "?*$"));
+}
+
+const ReporterInfo* MainWindow::get_reporter_info(const QString& id) const
+{
+    const ReporterInfo* reporter_info = nullptr;
+    foreach(const QString& beat_key, beats.keys())
+    {
+        foreach(const ReporterInfo& reporter_ref, beats[beat_key])
+        {
+            if(!reporter_ref.id.compare(id))
+            {
+                reporter_info = &reporter_ref;
+                break;
+            }
+        }
+
+        if(reporter_info)
+            break;
+    }
+
+    return reporter_info;
+}
+
+bool MainWindow::configure_reporters()
 {
     QMap<QString, bool> id_filter;
 
     beats.clear();
+
+    // the Parameters folder in the config holds cached settings
+    // for a given reporter ID in different contexts
+
+    StringListMap parameter_files;
+
+    QDir parameters_dir(parameters_base_folder);
+    if(!parameters_dir.exists())
+    {
+        if(!parameters_dir.mkdir("."))
+            return false;
+        if(!parameters_dir.mkdir("Defaults"))
+            return false;
+        if(!parameters_dir.mkdir("Stories"))
+            return false;
+    }
+    else
+    {
+        QDirIterator it(parameters_base_folder, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
+        while(it.hasNext())
+        {
+            QString full_path = it.next();
+            if(!full_path.isNull())
+            {
+                QFileInfo info(full_path);
+                QString key = QString(QUrl::fromPercentEncoding(info.baseName().toUtf8()));
+                if(!parameter_files.contains(key))
+                    parameter_files[key] = QStringList();
+                parameter_files[key] << full_path;
+            }
+        }
+    }
 
     QDir plugins("reporters");
     QStringList plugins_list = plugins.entryList(QStringList() << "*.dll" << "*.so", QDir::Files);
@@ -128,9 +196,77 @@ bool MainWindow::load_reporters()
                 pi_info.name = display[0];
                 pi_info.tooltip = display[1];
                 pi_info.id = ireporter->PluginID();
+                pi_info.params_version = ireporter->RequiresVersion();
+                pi_info.params_requires = ireporter->Requires();
 
                 if(!id_filter.contains(pi_info.id))
                 {
+                    // ensure a sane operating state by upgrading or destroying our
+                    // cached Reporter data, as indicated
+
+                    if(parameter_files.contains(pi_info.id))
+                    {
+                        foreach(const QString& param_filename, parameter_files[pi_info.id])
+                        {
+                            SettingsPointer reporter_settings = SettingsPointer(new SettingsXML("ReporterData", param_filename));
+                            reporter_settings->init();
+
+                            int cached_version = reporter_settings->get_version();
+                            int current_version = ireporter->RequiresVersion();
+
+                            if(cached_version > current_version)
+                                // the Reporter instance is somehow older than the cached
+                                // data, so destroy the cached file
+                                QFile::remove(reporter_settings->get_filename());
+
+                            else if(cached_version < current_version)
+                            {
+                                // read back in the data in the previous version format
+                                QStringList requires_params = ireporter->Requires(cached_version);
+
+                                QStringList old_data;
+
+                                reporter_settings->begin_section("ReporterData");
+                                  for(int i = 0, j = 0;i < requires_params.length();i += 2, ++j)
+                                  {
+                                      old_data.append(QString());
+                                      old_data[j] = reporter_settings->get_item(requires_params[i], QString()).toString();
+                                  }
+                                reporter_settings->end_section();
+
+                                // data is upgraded in-place
+                                if(ireporter->RequiresUpgrade(reporter_settings->get_version(), old_data))
+                                {
+                                    // save it back out in the upgraded form
+
+                                    reporter_settings->clear_section("ReporterData");
+                                    reporter_settings->set_version(current_version);
+
+                                    requires_params = ireporter->Requires();
+
+                                    reporter_settings->begin_section("ReporterData");
+                                      for(int i = 0, j = 0;i < requires_params.length();i += 2, ++j)
+                                          reporter_settings->set_item(requires_params[i], old_data[j]);
+                                    reporter_settings->end_section();
+
+                                    reporter_settings->flush();
+                                }
+                                else if(!ireporter->ErrorString().isEmpty())
+                                {
+                                    // something went wrong in the upgrade.  bail.
+                                    QMessageBox::critical(0,
+                                                          tr("Newsroom: Error"),
+                                                          tr("The Reporter \"%1\" reported an error\n"
+                                                             "\"%1\"\n"
+                                                             "while attempting to upgrade cached data!")
+                                                                .arg(ireporter->DisplayName()[0])
+                                                                .arg(ireporter->ErrorString()));
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+
                     QString pi_class = ireporter->PluginClass();
                     if(!beats.contains(pi_class))
                         beats[pi_class] = ReportersInfoVector();
@@ -207,23 +343,23 @@ void MainWindow::closeEvent(QCloseEvent* event)
 //        story_info->identity = QString("%1_%2").arg(story_info->identity).arg(next_dupe + 1);
 //}
 
-void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
+void MainWindow::fix_angle_duplication(StoryInfoPointer story_info)
 {
-    QString prefix = QString("%1::").arg(story_info->identity);
+    QString prefix = QString("%1::").arg(story_info->angle);
     foreach(const SeriesInfo& series_info, series_ordered)
     {
         foreach(ProducerPointer producer, series_info.producers)
         {
             StoryInfoPointer si = producer->get_story();
-            if(si->identity.startsWith(prefix))
+            if(si->angle.startsWith(prefix))
             {
                 // generate a random number to append to the identity
                 std::random_device rd;
                 std::mt19937 mt(rd());
                 std::uniform_int_distribution<> dist(INT_MAX / 2, INT_MAX);
 
-                prefix = QString("%1::%2").arg(story_info->identity).arg(QString::number(dist(mt),16));
-                story_info->identity = prefix;
+                prefix = QString("%1::%2").arg(story_info->angle).arg(QString::number(dist(mt),16));
+                story_info->angle = prefix;
                 break;
             }
         }
@@ -267,7 +403,14 @@ bool MainWindow::cover_story(ProducerPointer& producer, StoryInfoPointer story_i
             {
                 reporter = plugin_reporter;
                 // give the Reporter their assignment
-                reporter->SetRequirements(story_info->reporter_parameters);
+                if(!reporter->SetRequirements(story_info->reporter_parameters))
+                {
+                    QMessageBox::critical(0,
+                                          tr("Newsroom: Error"),
+                                          tr("Reporters \"%1\" encountered an error.\n"
+                                             "\"%1\"").arg(reporter->ErrorString()));
+                    return result;
+                }
                 break;
             }
         }
@@ -355,11 +498,13 @@ void MainWindow::dropEvent(QDropEvent* event)
         StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
         restore_story_defaults(story_info);
         story_info->story = story;
-        story_info->identity.clear();
+        story_info->angle.clear();
         story_info->dashboard_compact_mode = compact_mode;
         story_info->dashboard_compression = compact_compression;
 
         // Provide a 'hint' as to which beat is appropriate for this Story
+
+        QMap<float, QStringList> guesses;
 
         story_info->reporter_beat.clear();
         foreach(const QString& key, beats.keys())
@@ -370,16 +515,19 @@ void MainWindow::dropEvent(QDropEvent* event)
                 IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
                 Q_ASSERT(ireporterfactory);
                 IReporterPointer plugin_reporter = ireporterfactory->newInstance();
-                if(plugin_reporter->Supports(story))
-                {
-                    story_info->reporter_beat = key;
-                    break;
-                }
-            }
 
-            if(!story_info->reporter_beat.isEmpty())
-                break;
+                float best_guess = plugin_reporter->Supports(story);
+                if(!guesses.contains(best_guess))
+                    guesses[best_guess] = QStringList();
+                guesses[best_guess] << key;
+            }
         }
+
+        // identify and suggest the best guess
+        QList<float> keys = guesses.keys();
+        if(keys.length() > 1)
+            qSort(keys.begin(), keys.end(), /* descending */ qGreater<float>());
+        story_info->reporter_beat = guesses[keys[0]][0];
 
         if(story_info->reporter_beat.isEmpty())
         {
@@ -389,17 +537,20 @@ void MainWindow::dropEvent(QDropEvent* event)
             return;
         }
 
-        AddStoryDialog addstory_dlg(beats, story_info, settings, this);
+        AddStoryDialog addstory_dlg(beats, story_info, application_settings, parameters_defaults_folder, this);
 
         restore_window_data(&addstory_dlg);
 
+        bool story_accepted = false;
         if(addstory_dlg.exec() == QDialog::Accepted)
         {
             // AddStoryDialog has automatically updated 'story_info' with all settings
             save_story_defaults(story_info);
 
             // fix any duplication issues with the story identity
-            fix_identity_duplication(story_info);
+            fix_angle_duplication(story_info);
+
+            story_info->identity = QUuid::createUuid().toString();
 
             // find "Default"
             for(SeriesInfoList::iterator iter = series_ordered.begin();iter != series_ordered.end();++iter)
@@ -410,13 +561,18 @@ void MainWindow::dropEvent(QDropEvent* event)
 
                     ProducerPointer producer;
                     if(cover_story(producer, story_info, CoverageStart::Immediate, reporters_info))
+                    {
                         iter->producers.append(producer);
+                        story_accepted = true;
+                    }
                     break;
                 }
             }
         }
 
         save_window_data(&addstory_dlg);
+        if(story_accepted)
+            save_application_settings();
     }
 
     if(accept)
@@ -477,49 +633,49 @@ void MainWindow::build_tray_menu()
 
 void MainWindow::save_application_settings()
 {
-    settings->set_version(application_settings_version);
+    application_settings->set_version(application_settings_version);
 
-    settings->clear_section("/Application");
+    application_settings->clear_section("/Application");
 
-    settings->begin_section("/Application");
+    application_settings->begin_section("/Application");
 
-    settings->set_item("auto_start", auto_start);
-    settings->set_item("continue_coverage", continue_coverage);
-    settings->set_item("dashboard.compact_mode", compact_mode);
-    settings->set_item("dashboard.compact_compression", compact_compression);
-    settings->set_item("chyron.font", headline_font.toString());
+    application_settings->set_item("auto_start", auto_start);
+    application_settings->set_item("continue_coverage", continue_coverage);
+    application_settings->set_item("dashboard.compact_mode", compact_mode);
+    application_settings->set_item("dashboard.compact_compression", compact_compression);
+    application_settings->set_item("chyron.font", headline_font.toString());
 
-    settings->clear_section("HeadlineStyles");
+    application_settings->clear_section("HeadlineStyles");
 
-    settings->begin_array("HeadlineStyles");
+    application_settings->begin_array("HeadlineStyles");
     quint32 index = 0;
     foreach(const HeadlineStyle& style, *(headline_style_list.data()))
     {
-        settings->set_array_index(index++);
+        application_settings->set_array_index(index++);
 
-        settings->set_item("name", style.name);
-        settings->set_item("triggers", style.triggers);
-        settings->set_item("stylesheet", style.stylesheet);
+        application_settings->set_item("name", style.name);
+        application_settings->set_item("triggers", style.triggers);
+        application_settings->set_item("stylesheet", style.stylesheet);
     }
 
-    settings->end_array();
+    application_settings->end_array();
 
-    settings->clear_section("WindowData");
+    application_settings->clear_section("WindowData");
     if(window_data.size())
     {
-        settings->begin_array("WindowData");
+        application_settings->begin_array("WindowData");
 
         index = 0;
         QList<QString> keys = window_data.keys();
         foreach(QString key, keys)
         {
-            settings->set_array_index(index++);
+            application_settings->set_array_index(index++);
 
-            settings->set_item("key", key);
-            settings->set_item("geometry", window_data[key]);
+            application_settings->set_item("key", key);
+            application_settings->set_item("geometry", window_data[key]);
         }
 
-        settings->end_array();
+        application_settings->end_array();
     }
 
     QStringList series_names;
@@ -529,11 +685,11 @@ void MainWindow::save_application_settings()
         save_series(series_info);
     }
 
-    settings->set_item("series", series_names);
+    application_settings->set_item("series", series_names);
 
-    settings->end_section();
+    application_settings->end_section();
 
-    settings->flush();
+    application_settings->flush();
 
     settings_modified = false;
 }
@@ -553,28 +709,28 @@ void MainWindow::load_application_settings()
     hs.stylesheet = default_stylesheet;
     headline_style_list->append(hs);
 
-    settings->begin_section("/Application");
+    application_settings->begin_section("/Application");
 
-    auto_start = settings->get_item("auto_start", false).toBool();
-    continue_coverage = settings->get_item("continue_coverage", false).toBool();
-    compact_mode = settings->get_item("dashboard.compact_mode", false).toBool();
-    compact_compression = settings->get_item("dashboard.compact_compression", 25).toInt();
+    auto_start = application_settings->get_item("auto_start", false).toBool();
+    continue_coverage = application_settings->get_item("continue_coverage", false).toBool();
+    compact_mode = application_settings->get_item("dashboard.compact_mode", false).toBool();
+    compact_compression = application_settings->get_item("dashboard.compact_compression", 25).toInt();
     QFont f = ui->label->font();
-    QString font_str = settings->get_item("chyron.font", f.toString()).toString();
+    QString font_str = application_settings->get_item("chyron.font", f.toString()).toString();
     if(!font_str.isEmpty())
         headline_font.fromString(font_str);
 
-    int styles_size = settings->begin_array("HeadlineStyles");
+    int styles_size = application_settings->begin_array("HeadlineStyles");
     if(styles_size)
     {
         for(int i = 0; i < styles_size; ++i)
         {
-            settings->set_array_index(i);
+            application_settings->set_array_index(i);
 
             HeadlineStyle hs;
-            hs.name = settings->get_item("name").toString();
-            hs.triggers = settings->get_item("triggers").toStringList();
-            hs.stylesheet = settings->get_item("stylesheet").toString();
+            hs.name = application_settings->get_item("name").toString();
+            hs.triggers = application_settings->get_item("triggers").toStringList();
+            hs.stylesheet = application_settings->get_item("stylesheet").toString();
 
             bool updated = false;
             for(HeadlineStyleList::iterator iter = headline_style_list->begin();
@@ -593,24 +749,24 @@ void MainWindow::load_application_settings()
                 headline_style_list->append(hs);
         }
     }
-    settings->end_array();
+    application_settings->end_array();
 
     lane_manager = LaneManagerPointer(new LaneManager(headline_font, (*headline_style_list.data())[0].stylesheet, this));
 
-    int windata_size = settings->begin_array("WindowData");
+    int windata_size = application_settings->begin_array("WindowData");
     if(windata_size)
     {
         for(int i = 0; i < windata_size; ++i)
         {
-            settings->set_array_index(i);
+            application_settings->set_array_index(i);
 
-            QString key = settings->get_item("key").toString();
-            window_data[key] = settings->get_item("geometry").toByteArray();
+            QString key = application_settings->get_item("key").toString();
+            window_data[key] = application_settings->get_item("geometry").toByteArray();
         }
     }
-    settings->end_array();
+    application_settings->end_array();
 
-    QStringList series_names = settings->get_item("series", QStringList() << "Default").toStringList();
+    QStringList series_names = application_settings->get_item("series", QStringList() << "Default").toStringList();
     foreach(const QString& series_name, series_names)
     {
         SeriesInfo si;
@@ -620,21 +776,19 @@ void MainWindow::load_application_settings()
         load_series(series_ordered.back());
     }
 
-    settings->end_section();
+    application_settings->end_section();
 
-    settings_modified = !QFile::exists(settings_file_name);
+    settings_modified = !QFile::exists(application_settings_file_name);
 }
 
 void MainWindow::load_series(SeriesInfo &series_info)
 {
-    QString series_dir = QDir::toNativeSeparators(QString("%1/Series")
-                                                .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-    if(!QFile::exists(series_dir))
+    if(!QFile::exists(series_folder))
         return;
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(series_info.name, "", "?*$"))));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info.name)));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
-    series_settings->cache();
+    series_settings->init();
 
     series_settings->begin_section("/Series");
 
@@ -696,21 +850,19 @@ void MainWindow::load_series(SeriesInfo &series_info)
 
 void MainWindow::save_series(const SeriesInfo &series_info)
 {
-    QString series_dir = QDir::toNativeSeparators(QString("%1/Series")
-                                                .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-    if(!QFile::exists(series_dir))
+    if(!QFile::exists(series_folder))
     {
-        QDir d(series_dir);
+        QDir d(series_folder);
         if(!d.mkdir("."))
             return;
     }
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(series_info.name, "", "?*$"))));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info.name)));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
 
     QStringList active;
 
-//    series_settings->cache();
+    series_settings->init(true);
 
     series_settings->set_version(series_settings_version);
 
@@ -744,86 +896,88 @@ void MainWindow::save_series(const SeriesInfo &series_info)
 
 void MainWindow::restore_story_defaults(StoryInfoPointer story_info)
 {
-    settings->begin_section("/StoryDefaults");
+    application_settings->begin_section("/StoryDefaults");
 
-    story_info->story                    = settings->get_item("story", QUrl()).toUrl();
-    story_info->identity                 = settings->get_item("identity", QString()).toString();
-    story_info->reporter_beat            = settings->get_item("reporter_class", QString()).toString();
-    story_info->reporter_id              = settings->get_item("reporter_id", QString()).toString();
+    story_info->story                    = application_settings->get_item("story", QUrl()).toUrl();
+    story_info->angle                 = application_settings->get_item("identity", QString()).toString();
+    story_info->reporter_beat            = application_settings->get_item("reporter_class", QString()).toString();
+    story_info->reporter_id              = application_settings->get_item("reporter_id", QString()).toString();
+    story_info->reporter_parameters_version = application_settings->get_item("reporter_parameters_version", 1).toInt();
     // Note: Reporter parameter defaults are managed by the AddStoryDialog class
-    story_info->ttl                      = settings->get_item("ttl", story_info->ttl).toInt();
-    story_info->primary_screen           = settings->get_item("primary_screen", 0).toInt();
-    story_info->headlines_always_visible = settings->get_item("headlines_always_visible", true).toBool();
-    story_info->interpret_as_pixels      = settings->get_item("interpret_as_pixels", true).toBool();
-    story_info->headlines_pixel_width    = settings->get_item("headlines_pixel_width", 0).toInt();
-    story_info->headlines_pixel_height   = settings->get_item("headlines_pixel_height", 0).toInt();
-    story_info->headlines_percent_width  = settings->get_item("headlines_percent_width", 0.0).toDouble();
-    story_info->headlines_percent_height = settings->get_item("headlines_percent_height", 0.0).toDouble();
-    story_info->limit_content_to         = settings->get_item("limit_content_to", 0).toInt();
-    story_info->headlines_fixed_type     = static_cast<FixedText>(settings->get_item("headlines_fixed_type", 0).toInt());
-    story_info->include_progress_bar     = settings->get_item("include_progress_bar", false).toBool();
-    story_info->progress_text_re         = settings->get_item("progress_text_re", story_info->progress_text_re).toString();
-    story_info->progress_on_top          = settings->get_item("progress_on_top", false).toBool();
-    story_info->entry_type               = static_cast<AnimEntryType>(settings->get_item("entry_type", 0).toInt());
-    story_info->exit_type                = static_cast<AnimExitType>(settings->get_item("exit_type", 0).toInt());
-    story_info->anim_motion_duration     = settings->get_item("anim_motion_duration", story_info->anim_motion_duration).toInt();
-    story_info->fade_target_duration     = settings->get_item("fade_target_duration", story_info->fade_target_duration).toInt();
-    story_info->train_use_age_effect     = settings->get_item("train_use_age_effects", false).toBool();
-    story_info->train_age_effect         = static_cast<AgeEffects>(settings->get_item("train_age_effect", 0).toInt());
-    story_info->train_age_percent        = settings->get_item("train_age_percent", story_info->train_age_percent).toInt();
-    story_info->dashboard_use_age_effect = settings->get_item("dashboard_use_age_effects", false).toBool();
-    story_info->dashboard_age_percent    = settings->get_item("dashboard_age_percent", story_info->dashboard_age_percent).toInt();
-    story_info->dashboard_group_id       = settings->get_item("dashboard_group_id", QString()).toString();
+    story_info->ttl                      = application_settings->get_item("ttl", story_info->ttl).toInt();
+    story_info->primary_screen           = application_settings->get_item("primary_screen", 0).toInt();
+    story_info->headlines_always_visible = application_settings->get_item("headlines_always_visible", true).toBool();
+    story_info->interpret_as_pixels      = application_settings->get_item("interpret_as_pixels", true).toBool();
+    story_info->headlines_pixel_width    = application_settings->get_item("headlines_pixel_width", 0).toInt();
+    story_info->headlines_pixel_height   = application_settings->get_item("headlines_pixel_height", 0).toInt();
+    story_info->headlines_percent_width  = application_settings->get_item("headlines_percent_width", 0.0).toDouble();
+    story_info->headlines_percent_height = application_settings->get_item("headlines_percent_height", 0.0).toDouble();
+    story_info->limit_content_to         = application_settings->get_item("limit_content_to", 0).toInt();
+    story_info->headlines_fixed_type     = static_cast<FixedText>(application_settings->get_item("headlines_fixed_type", 0).toInt());
+    story_info->include_progress_bar     = application_settings->get_item("include_progress_bar", false).toBool();
+    story_info->progress_text_re         = application_settings->get_item("progress_text_re", story_info->progress_text_re).toString();
+    story_info->progress_on_top          = application_settings->get_item("progress_on_top", false).toBool();
+    story_info->entry_type               = static_cast<AnimEntryType>(application_settings->get_item("entry_type", 0).toInt());
+    story_info->exit_type                = static_cast<AnimExitType>(application_settings->get_item("exit_type", 0).toInt());
+    story_info->anim_motion_duration     = application_settings->get_item("anim_motion_duration", story_info->anim_motion_duration).toInt();
+    story_info->fade_target_duration     = application_settings->get_item("fade_target_duration", story_info->fade_target_duration).toInt();
+    story_info->train_use_age_effect     = application_settings->get_item("train_use_age_effects", false).toBool();
+    story_info->train_age_effect         = static_cast<AgeEffects>(application_settings->get_item("train_age_effect", 0).toInt());
+    story_info->train_age_percent        = application_settings->get_item("train_age_percent", story_info->train_age_percent).toInt();
+    story_info->dashboard_use_age_effect = application_settings->get_item("dashboard_use_age_effects", false).toBool();
+    story_info->dashboard_age_percent    = application_settings->get_item("dashboard_age_percent", story_info->dashboard_age_percent).toInt();
+    story_info->dashboard_group_id       = application_settings->get_item("dashboard_group_id", QString()).toString();
 
     // Chyron settings
-    story_info->margin                   = settings->get_item("margins", story_info->margin).toInt();
+    story_info->margin                   = application_settings->get_item("margins", story_info->margin).toInt();
 
     // Producer settings
-    story_info->font.fromString(settings->get_item("font", headline_font.toString()).toString());
+    story_info->font.fromString(application_settings->get_item("font", headline_font.toString()).toString());
 
-    settings->end_section();
+    application_settings->end_section();
 }
 
 void MainWindow::save_story_defaults(StoryInfoPointer story_info)
 {
-    settings->begin_section("/StoryDefaults");
+    application_settings->begin_section("/StoryDefaults");
 
-    settings->set_item("story", story_info->story);
-    settings->set_item("identity", story_info->identity);
-    settings->set_item("reporter_class", story_info->reporter_beat);
-    settings->set_item("reporter_id", story_info->reporter_id);
+    application_settings->set_item("story", story_info->story);
+    application_settings->set_item("identity", story_info->angle);
+    application_settings->set_item("reporter_class", story_info->reporter_beat);
+    application_settings->set_item("reporter_id", story_info->reporter_id);
+    application_settings->set_item("reporter_parameters_version", story_info->reporter_parameters_version);
     // Note: Reporter parameter defaults are managed by the AddStoryDialog class
-    settings->set_item("ttl", story_info->ttl);
-    settings->set_item("primary_screen", story_info->primary_screen);
-    settings->set_item("headlines_always_visible", story_info->headlines_always_visible);
-    settings->set_item("interpret_as_pixels", story_info->interpret_as_pixels);
-    settings->set_item("headlines_pixel_width", story_info->headlines_pixel_width);
-    settings->set_item("headlines_pixel_height", story_info->headlines_pixel_height);
-    settings->set_item("headlines_percent_width", story_info->headlines_percent_width);
-    settings->set_item("headlines_percent_height", story_info->headlines_percent_height);
-    settings->set_item("limit_content_to", story_info->limit_content_to);
-    settings->set_item("headlines_fixed_type", static_cast<int>(story_info->headlines_fixed_type));
-    settings->set_item("include_progress_bar", story_info->include_progress_bar);
-    settings->set_item("progress_text_re", story_info->progress_text_re);
-    settings->set_item("progress_on_top", story_info->progress_on_top);
-    settings->set_item("entry_type", static_cast<int>(story_info->entry_type));
-    settings->set_item("exit_type", static_cast<int>(story_info->exit_type));
-    settings->set_item("anim_motion_duration", story_info->anim_motion_duration);
-    settings->set_item("fade_target_duration", story_info->fade_target_duration);
-    settings->set_item("train_use_age_effects", story_info->train_use_age_effect);
-    settings->set_item("train_age_effect", static_cast<int>(story_info->train_age_effect));
-    settings->set_item("train_age_percent", story_info->train_age_percent);
-    settings->set_item("dashboard_use_age_effects", story_info->dashboard_use_age_effect);
-    settings->set_item("dashboard_age_percent", story_info->dashboard_age_percent);
-    settings->set_item("dashboard_group_id", story_info->dashboard_group_id);
+    application_settings->set_item("ttl", story_info->ttl);
+    application_settings->set_item("primary_screen", story_info->primary_screen);
+    application_settings->set_item("headlines_always_visible", story_info->headlines_always_visible);
+    application_settings->set_item("interpret_as_pixels", story_info->interpret_as_pixels);
+    application_settings->set_item("headlines_pixel_width", story_info->headlines_pixel_width);
+    application_settings->set_item("headlines_pixel_height", story_info->headlines_pixel_height);
+    application_settings->set_item("headlines_percent_width", story_info->headlines_percent_width);
+    application_settings->set_item("headlines_percent_height", story_info->headlines_percent_height);
+    application_settings->set_item("limit_content_to", story_info->limit_content_to);
+    application_settings->set_item("headlines_fixed_type", static_cast<int>(story_info->headlines_fixed_type));
+    application_settings->set_item("include_progress_bar", story_info->include_progress_bar);
+    application_settings->set_item("progress_text_re", story_info->progress_text_re);
+    application_settings->set_item("progress_on_top", story_info->progress_on_top);
+    application_settings->set_item("entry_type", static_cast<int>(story_info->entry_type));
+    application_settings->set_item("exit_type", static_cast<int>(story_info->exit_type));
+    application_settings->set_item("anim_motion_duration", story_info->anim_motion_duration);
+    application_settings->set_item("fade_target_duration", story_info->fade_target_duration);
+    application_settings->set_item("train_use_age_effects", story_info->train_use_age_effect);
+    application_settings->set_item("train_age_effect", static_cast<int>(story_info->train_age_effect));
+    application_settings->set_item("train_age_percent", story_info->train_age_percent);
+    application_settings->set_item("dashboard_use_age_effects", story_info->dashboard_use_age_effect);
+    application_settings->set_item("dashboard_age_percent", story_info->dashboard_age_percent);
+    application_settings->set_item("dashboard_group_id", story_info->dashboard_group_id);
 
     // Chyron settings
-    settings->set_item("margin", story_info->margin);
+    application_settings->set_item("margin", story_info->margin);
 
     // Producer settings
-    settings->set_item("font", story_info->font.toString());
+    application_settings->set_item("font", story_info->font.toString());
 
-    settings->end_section();
+    application_settings->end_section();
 
     settings_modified = true;
 }
@@ -831,10 +985,10 @@ void MainWindow::save_story_defaults(StoryInfoPointer story_info)
 void MainWindow::save_story(SettingsPointer settings, StoryInfoPointer story_info)
 {
     settings->set_item("story", story_info->story);
+    settings->set_item("angle", story_info->angle);
     settings->set_item("identity", story_info->identity);
     settings->set_item("reporter_class", story_info->reporter_beat);
     settings->set_item("reporter_id", story_info->reporter_id);
-    settings->set_item("reporter_parameters", story_info->reporter_parameters);
     settings->set_item("ttl", story_info->ttl);
     settings->set_item("primary_screen", story_info->primary_screen);
     settings->set_item("headlines_always_visible", story_info->headlines_always_visible);
@@ -864,15 +1018,55 @@ void MainWindow::save_story(SettingsPointer settings, StoryInfoPointer story_inf
 
     // Producer settings
     settings->set_item("font", story_info->font.toString());
+
+    // save the Reporter's "live" parameter data to a separate,
+    // upgradable file independent of the other Story data
+
+    QString story_filename = QDir::toNativeSeparators(QString("%1/%2")
+                                                .arg(parameters_stories_folder)
+                                                .arg(encode_for_filesystem(story_info->identity))
+                                                );
+
+    QDir story_dir(story_filename);
+    if(!story_dir.exists())
+    {
+        if(!story_dir.mkdir("."))
+            return;     // TODO: need to handle this error
+    }
+
+    QString parameters_filename = QDir::toNativeSeparators(QString("%1/%2")
+                                                .arg(story_filename)
+                                                .arg(encode_for_filesystem(story_info->reporter_id))
+                                                );
+
+    // get the Reporter metadata from the beats[]
+
+    const ReporterInfo* reporter_info = get_reporter_info(story_info->reporter_id);
+    Q_ASSERT(reporter_info);
+
+    int params_count = reporter_info->params_requires.count() / 2;
+    if(params_count && (params_count == story_info->reporter_parameters.count()))
+    {
+        SettingsPointer reporter_settings = SettingsPointer(new SettingsXML("ReporterData", parameters_filename));
+        reporter_settings->init(true);
+        reporter_settings->set_version(reporter_info->params_version);
+
+        reporter_settings->begin_section("/ReporterData");
+          for(int i = 0, j = 0;i < reporter_info->params_requires.length();i += 2, ++j)
+            reporter_settings->set_item(reporter_info->params_requires[i], story_info->reporter_parameters[j]);
+        reporter_settings->end_section();
+
+        reporter_settings->flush();
+    }
 }
 
 void MainWindow::restore_story(SettingsPointer settings, StoryInfoPointer story_info)
 {
     story_info->story                    = settings->get_item("story", QUrl()).toUrl();
+    story_info->angle                    = settings->get_item("angle", QString()).toString();
     story_info->identity                 = settings->get_item("identity", QString()).toString();
     story_info->reporter_beat            = settings->get_item("reporter_class", QString()).toString();
     story_info->reporter_id              = settings->get_item("reporter_id", QString()).toString();
-    story_info->reporter_parameters      = settings->get_item("reporter_parameters", QStringList()).toStringList();
     story_info->ttl                      = settings->get_item("ttl", story_info->ttl).toInt();
     story_info->primary_screen           = settings->get_item("primary_screen", 0).toInt();
     story_info->headlines_always_visible = settings->get_item("headlines_always_visible", true).toBool();
@@ -902,6 +1096,41 @@ void MainWindow::restore_story(SettingsPointer settings, StoryInfoPointer story_
 
     // Producer settings
     story_info->font.fromString(settings->get_item("font", headline_font.toString()).toString());
+
+    // restore the Reporter's "live" parameter data from an independent
+    // data file
+
+    story_info->reporter_parameters_version = 1;
+    story_info->reporter_parameters.clear();
+
+    QString parameters_filename = QDir::toNativeSeparators(QString("%1/%2/%3")
+                                                .arg(parameters_stories_folder)
+                                                .arg(encode_for_filesystem(story_info->identity))
+                                                .arg(encode_for_filesystem(story_info->reporter_id))
+                                                );
+    SettingsPointer reporter_settings = SettingsPointer(new SettingsXML("ReporterData", parameters_filename));
+    if(QFile::exists(reporter_settings->get_filename()))
+    {
+        reporter_settings->init();
+
+        // get the Reporter metadata from the beats[]
+
+        const ReporterInfo* reporter_info = get_reporter_info(story_info->reporter_id);
+        Q_ASSERT(reporter_info);
+
+        // this shouldn't happen
+        Q_ASSERT(reporter_info->params_version == reporter_settings->get_version());
+
+        story_info->reporter_parameters_version = reporter_settings->get_version();
+
+        reporter_settings->begin_section("/ReporterData");
+          for(int i = 0, j = 0;i < reporter_info->params_requires.length();i += 2, ++j)
+          {
+              story_info->reporter_parameters.append(QString());
+              story_info->reporter_parameters[j] = reporter_settings->get_item(reporter_info->params_requires[i], QString()).toString();
+          }
+        reporter_settings->end_section();
+    }
 }
 
 void MainWindow::slot_icon_activated(QSystemTrayIcon::ActivationReason reason)
@@ -974,14 +1203,17 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     if(settings_dlg->exec() == QDialog::Accepted)
     {
-        QString series_dir = QDir::toNativeSeparators(QString("%1/Series")
-                                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-
         auto_start                       = settings_dlg->get_autostart();
         continue_coverage                = settings_dlg->get_continue_coverage();
         compact_mode                     = settings_dlg->get_compact_mode(compact_compression);
         headline_font                    = settings_dlg->get_font();
         settings_dlg->get_styles(*(headline_style_list.data()));
+
+        // get a list of the Story ids that will deleted by the call
+        // to get_series() below.  this gives us a means to clear any
+        // cached data.
+
+        QStringList removed_stories      = settings_dlg->get_removed_stories();
 
         // the SeriesInfoList returned by SettingsDialog is the way
         // Series/Stories look now, and the assignment to 'series_ordered'
@@ -1011,9 +1243,23 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
         foreach(const QString& series_name, deleted_series)
         {
-            QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_dir).arg(QString(QUrl::toPercentEncoding(series_name, "", "?*$"))));
+            QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_name)));
             SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
             series_settings->remove();
+        }
+
+        // clean up any abandoned Story data
+        foreach(const QString& story_id, removed_stories)
+        {
+            QString parameters_folder = QDir::toNativeSeparators(QString("%1/%2")
+                                                        .arg(parameters_stories_folder)
+                                                        .arg(encode_for_filesystem(story_id))
+                                                        );
+            if(QFile::exists(parameters_folder))
+            {
+                QDir d(parameters_folder);
+                d.removeRecursively();
+            }
         }
 
         save_application_settings();
@@ -1036,7 +1282,7 @@ void MainWindow::slot_edit_story(const QString& story_id)
         foreach(ProducerPointer pp, si.producers)
         {
             StoryInfoPointer story_info = pp->get_story();
-            if(!story_info->identity.compare(story_id))
+            if(!story_info->angle.compare(story_id))
             {
                 producer = pp;
                 break;
@@ -1050,7 +1296,7 @@ void MainWindow::slot_edit_story(const QString& story_id)
 
     CoverageStart coverage_start = producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
 
-    AddStoryDialog addstory_dlg(beats, story_info, settings, this);
+    AddStoryDialog addstory_dlg(beats, story_info, application_settings, parameters_defaults_folder, this);
 
     addstory_dlg.lock_angle();
 

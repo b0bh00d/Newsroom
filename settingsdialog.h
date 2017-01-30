@@ -37,6 +37,7 @@ public:     // methods
     QFont           get_font();
     void            get_styles(HeadlineStyleList& style_list);
     SeriesInfoList  get_series();
+    QStringList     get_removed_stories()   const { return removed_story_identities; }
 
 signals:
     void            signal_edit_story(const QString& story_id);
@@ -74,4 +75,6 @@ private:    // data members
 
     QString         original_series_name;
     bool            editing;
+
+    QStringList     removed_story_identities;
 };

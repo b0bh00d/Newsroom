@@ -36,6 +36,7 @@ public:
     explicit AddStoryDialog(BeatsMap &beats_map,
                             StoryInfoPointer story_info,
                             SettingsPointer settings,
+                            const QString& defaults_folder,
                             QWidget *parent = 0);
     ~AddStoryDialog();
 
@@ -95,4 +96,6 @@ private:
     bool                angle_is_locked;
 
     int                 current_reporter_index;
+
+    QString             defaults_folder;
 };

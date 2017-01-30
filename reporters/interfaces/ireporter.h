@@ -9,6 +9,11 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QSharedPointer>
 
+enum class RequirementsFormats
+{
+    Simple,
+};
+
 /// @class IReporter
 /// @brief Base interface for Newsroom Reporter plug-ins.
 ///
@@ -67,19 +72,63 @@ public:     // methods
       and from which file meaningful reports.
 
       \param file An entity of some kind (typically a local file path or URL-formatted resource).
-      \returns A Boolean true if the plug-in can provide meaningful reports for this entity, otherwise false.
+      \returns
+        A float that indicates the plug-ins comfort level with the Story, from "No, I can't
+        handle that!" at 0.0 to "That belongs only to me!" at 1.0.  Values in between represent
+        the plug-ins best guess as to how well it can handle the Story.
      */
-    virtual bool Supports(const QUrl& story) const = 0;
+    virtual float Supports(const QUrl& story) const = 0;
+
+    /*!
+      Specifies the current version of the Reporters requirements.
+
+      Any previously cached Reporter parameter data will be upgraded
+      automatically when the host application starts.  Only the Requires()
+      method should actually need a version number specified; all other
+      methods that handle parameter data should be able to safely assume
+      the format is current.
+
+      \returns An integer value that represents the Reporters current requirements version format.
+     */
+    virtual int RequiresVersion() const = 0;
+
+    /*!
+      Specifies the format of the requirements that will be returned by the Requires() method.
+
+      \returns An integer value that represents the Reporters current requirements version format.
+     */
+    virtual RequirementsFormats RequiresFormat() const = 0;
+
+    /*!
+      Upgrades the provided data of the specified version to the current version
+      reported by RequiresVersion().
+
+      \returns A Boolean true if the data in parameters was modified, false otherwise.
+     */
+    virtual bool RequiresUpgrade(int version, QStringList& parameters) = 0;
 
     /*!
       This method returns a list of names identifying parameters that the
-      plug-in requires in order to perform its function.
+      plug-in requires in order to perform its function.  The string list
+      returned provides parameter declarations in a "Simple" format, but may
+      provide other formats (JSON, XML, etc.) in future versions.  The
+      host application uses the value returned by the RequiresFormat()
+      method to know what to expect and how to decode the value returned by
+      Requires().
 
-      Parameter names that end with an asterisk (*) indicate a required value,
-      all others are considered optional.  Required fields will be highlighted
+      The version value returned by RequiresVersion() will be cached to disk
+      along with any values entered by the user in case the Reporter plug-in
+      is upgraded between runs.  Your plug-in should be cognizant of older
+      parameter formats and be able to handle data of those versions upon
+      request.
+
+      In "Simple" formats, parameter names that end with an asterisk (*)
+      indicate a required value, all others are considered optional.
+      In all format cases, parameters flagged as required will be highlighted
       and enforced.
 
-      Each parameter should specify one of the following types:
+      Each parameter should specify one of the following control types within
+      the idiom of the chosen format:
 
       - string
         + This is a regular, single-line string value
@@ -93,31 +142,50 @@ public:     // methods
         + A multiline string value (edited with a QPlainTextEdit widget)
       - combo
         + A combo box
+      - check
+        + A check box
 
-      Parameter types can specify default values by adding a colon (:) followed
-      by a value as a suffix (e.g., "integer:10").  This default value will
-      become the place holder value in single-line edit fields.
+      For "Simple" formats, parameter types can specify default values by
+      adding a colon (:) followed by a value as a suffix (e.g., "integer:10").
+      Other formats explicity identify a default value.  This default value
+      will become the place holder value in single-line edit fields.
 
-      In the case of "multiline" editing, the default valaue (if any) will be
+      In the case of "multiline" editing, the default value (if any) will be
       inserted into the edit field for the user to directly modify.
 
       For "combo", combo box values are provided in a comma-separated list.
       The default index can be specified by following an item with an asterisk,
       otherwise the first item in the list will be selected by default.
 
+      "check" should include a "true" or "false" as the default value for the
+      checkbox control.
+
       The host application will post a dialog requesting these parameters and
       types from the user, and then provide them back to the plug-in via the
       SetRequirements() method.
 
-      \returns A list of string pairs representing parameter names and types with optional defaults.
+      \param version
+        The format version of the parameter definitions to be returned.  If zero
+        (0), return the current version specified by RequiresVersion().
+      \returns
+        A string list containing the requirements in the format reported by
+        RequiresFormat() (currently only "Simple")
      */
-    virtual QStringList Requires() const = 0;
+    virtual QStringList Requires(int version = 0) const = 0;
 
     /*!
       Sets the parameters dictated by the Required() method.
 
-      \param parameters A list of string values that match the parameters/types indicated by the Requires() method.  The plug-in will convert the string values into the appropriate data types, as needed.
-      \returns A true value if the provided parameters are sufficient to perform the plug-in's function, otherwise false.
+      \param version
+        The requirements version number of the parameters being provided.  This
+        may be different (i.e., older) than the current requirements version.
+      \param parameters
+        A list of string values that match the parameters/types indicated by
+        the Requires() method.  The plug-in will convert the string values into
+        the appropriate data types, as needed.
+      \returns
+        A true value if the provided parameters are sufficient to perform the
+        plug-in's function, otherwise false.
      */
     virtual bool SetRequirements(const QStringList& parameters) = 0;
 
@@ -155,6 +223,11 @@ public:     // methods
       SetRequirements() methods.
 
       Data should be modified in-place.
+
+      \param parameters
+        A list of string values that match the parameters/types indicated by
+        the Requires() method.  The plug-in will convert the string values
+        into the appropriate data types, as needed.
      */
     virtual void Secure(QStringList& parameters) const = 0;
 
@@ -164,6 +237,11 @@ public:     // methods
       by the user.
 
       Data should be modified in-place.
+
+      \param parameters
+        A list of string values that match the parameters/types indicated by
+        the Requires() method.  The plug-in will convert the string values into
+        the appropriate data types, as needed.
      */
     virtual void Unsecure(QStringList& parameters) const = 0;
 

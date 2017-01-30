@@ -132,7 +132,9 @@ void SettingsDialog::set_series(const SeriesInfoList& series_ordered)
         {
             StoryInfoPointer story_info = producer->get_story();
 
-            QTreeWidgetItem* story_item = new QTreeWidgetItem(series_item, QStringList() << "" << story_info->identity);
+            QTreeWidgetItem* story_item = new QTreeWidgetItem(series_item, QStringList() << "" << story_info->angle);
+            story_item->setData(0, Qt::UserRole, story_info->identity);
+
             producers[story_item->text(1)] = producer;
 
             if(producer->is_covering_story())
@@ -496,10 +498,11 @@ void SettingsDialog::slot_remove_story()
 {
     QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
     QList<QTreeWidgetItem *>::iterator iter;
-    QStringList story_ids;
+    QStringList story_angles;
     for(iter = selections.begin();iter != selections.end();++iter)
     {
-        story_ids << (*iter)->text(1);
+        story_angles << (*iter)->text(1);
+        removed_story_identities << (*iter)->data(0, Qt::UserRole).toString();
 
         QTreeWidgetItem* series = (*iter)->parent();
         delete series->takeChild(series->indexOfChild(*iter));
@@ -508,8 +511,8 @@ void SettingsDialog::slot_remove_story()
             delete ui->tree_Series->takeTopLevelItem(ui->tree_Series->indexOfTopLevelItem(series));
     }
 
-    foreach(const QString& story_id, story_ids)
-        producers.remove(story_id);
+    foreach(const QString& story_angle, story_angles)
+        producers.remove(story_angle);
 }
 
 void SettingsDialog::slot_remove_story_all()
@@ -518,7 +521,12 @@ void SettingsDialog::slot_remove_story_all()
     {
         QTreeWidgetItem* series = ui->tree_Series->takeTopLevelItem(0);
         while(series->childCount())
+        {
+            QTreeWidgetItem* child = series->child(0);
+            removed_story_identities << child->data(0, Qt::UserRole).toString();
+
             delete series->takeChild(0);
+        }
         delete ui->tree_Series->takeTopLevelItem(0);
     }
 
