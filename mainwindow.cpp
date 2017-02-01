@@ -454,7 +454,7 @@ bool MainWindow::cover_story(ProducerPointer& producer, StoryInfoPointer story_i
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
-    bool accept = true;
+    bool accept = false;
 
     //    QStringList formats = event->mimeData()->formats();
     //    if(event->mimeData()->hasFormat("text/uri-list"))
@@ -468,13 +468,13 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *event)
             {
                 QString text = url.toLocalFile();
                 QString name = mime_db.mimeTypeForFile(text).name();
-                if(!name.startsWith("text/"))
-                    accept = false;
+                if(name.startsWith("text/"))
+                    accept = true;
+                else if(name.contains("mswinurl"))
+                    accept = true;
             }
         }
     }
-    else
-        accept = false;
 
     if(accept)
         event->acceptProposedAction();
@@ -497,7 +497,32 @@ void MainWindow::dropEvent(QDropEvent* event)
     {
         StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
         restore_story_defaults(story_info);
-        story_info->story = story;
+
+        if(story.isLocalFile())
+        {
+            // see if this is a .url file, which is an INI file
+            // that holds an actual URL address
+
+            QString url;
+
+            QString local_file = story.toLocalFile().toLower();
+            if(local_file.endsWith(".url"))
+            {
+                QSettings url_file(local_file, QSettings::IniFormat);
+                url_file.beginGroup("InternetShortcut");
+                    if(url_file.contains("URL"))
+                        url = url_file.value("URL").toString();
+                url_file.endGroup();
+            }
+
+            if(url.isEmpty())
+                story_info->story = story;
+            else
+                story_info->story = QUrl(url);
+        }
+        else
+            story_info->story = story;
+
         story_info->angle.clear();
         story_info->dashboard_compact_mode = compact_mode;
         story_info->dashboard_compression = compact_compression;
@@ -516,7 +541,7 @@ void MainWindow::dropEvent(QDropEvent* event)
                 Q_ASSERT(ireporterfactory);
                 IReporterPointer plugin_reporter = ireporterfactory->newInstance();
 
-                float best_guess = plugin_reporter->Supports(story);
+                float best_guess = plugin_reporter->Supports(story_info->story);
                 if(!guesses.contains(best_guess))
                     guesses[best_guess] = QStringList();
                 guesses[best_guess] << key;
