@@ -135,7 +135,7 @@ void SettingsDialog::set_series(const SeriesInfoList& series_ordered)
             QTreeWidgetItem* story_item = new QTreeWidgetItem(series_item, QStringList() << "" << story_info->angle);
             story_item->setData(0, Qt::UserRole, story_info->identity);
 
-            producers[story_item->text(1)] = producer;
+            producers[story_info->identity] = producer;
 
             if(producer->is_covering_story())
                 story_item->setIcon(0, QIcon(":/images/Covering.png"));
@@ -210,7 +210,8 @@ SeriesInfoList SettingsDialog::get_series()
             for(int j = 0;j < series_item->childCount();++j)
             {
                 QTreeWidgetItem* story_item = series_item->child(j);
-                si.producers.append(producers[story_item->text(1)]);
+                QString identity = story_item->data(0, Qt::UserRole).toString();
+                si.producers.append(producers[identity]);
             }
 
             sl.append(si);
@@ -347,7 +348,8 @@ void SettingsDialog::slot_story_selection_changed()
         for(int i = 0;i < selections[0]->childCount();++i)
         {
             QTreeWidgetItem* item = selections[0]->child(i);
-            ProducerPointer producer = producers[item->text(1)];
+            QString identity = item->data(0, Qt::UserRole).toString();
+            ProducerPointer producer = producers[identity];
             if(producer->is_covering_story())
                 ++covering;
             else
@@ -361,7 +363,8 @@ void SettingsDialog::slot_story_selection_changed()
     {
         ui->button_EditStory->setEnabled(true);
 
-        ProducerPointer producer = producers[selections[0]->text(1)];
+        QString identity = selections[0]->data(0, Qt::UserRole).toString();
+        ProducerPointer producer = producers[identity];
         ui->button_StartCoverage->setEnabled(!producer->is_covering_story());
         ui->button_StopCoverage->setEnabled(producer->is_covering_story());
     }
@@ -375,7 +378,8 @@ void SettingsDialog::slot_edit_story()
 
 void SettingsDialog::start_coverage(QTreeWidgetItem* item)
 {
-    ProducerPointer producer = producers[item->text(1)];
+    QString identity = item->data(0, Qt::UserRole).toString();
+    ProducerPointer producer = producers[identity];
     if(!producer->start_covering_story())
     {
         QMessageBox::critical(this,
@@ -408,7 +412,8 @@ void SettingsDialog::slot_start_coverage()
 
 void SettingsDialog::stop_coverage(QTreeWidgetItem* item)
 {
-    ProducerPointer producer = producers[item->text(1)];
+    QString identity = item->data(0, Qt::UserRole).toString();
+    ProducerPointer producer = producers[identity];
     if(producer->is_covering_story())
     {
         if(producer->stop_covering_story())
@@ -446,7 +451,8 @@ void SettingsDialog::slot_start_coverage_all()
         for(int j = 0;j < series_item->childCount();++j)
         {
             QTreeWidgetItem* story_item = series_item->child(j);
-            ProducerPointer producer = producers[story_item->text(1)];
+            QString identity = story_item->data(0, Qt::UserRole).toString();
+            ProducerPointer producer = producers[identity];
             if(!producer->is_covering_story())
             {
                 if(producer->start_covering_story())
@@ -475,7 +481,8 @@ void SettingsDialog::slot_stop_coverage_all()
         for(int j = 0;j < series_item->childCount();++j)
         {
             QTreeWidgetItem* story_item = series_item->child(j);
-            ProducerPointer producer = producers[story_item->text(1)];
+            QString identity = story_item->data(0, Qt::UserRole).toString();
+            ProducerPointer producer = producers[identity];
             if(producer->is_covering_story())
             {
                 if(producer->stop_covering_story())
