@@ -33,21 +33,20 @@ class AddStoryDialog : public QDialog
     Q_OBJECT
 
 public:
+    enum class Mode
+    {
+        None,
+        Add,
+        Edit,
+    };
+
     explicit AddStoryDialog(BeatsMap &beats_map,
                             StoryInfoPointer story_info,
                             SettingsPointer settings,
                             const QString& defaults_folder,
+                            Mode edit_mode = Mode::Add,
                             QWidget *parent = 0);
     ~AddStoryDialog();
-
-    /*!
-      When an existing Story is edited, its original "angle" (i.e., unique
-      identity), generated at the time it was created, must remain unmodified.
-      This method signals to the AddStoryDialog that this should be the case
-      (i.e., this is an edit, not a creation, of a Story) so it will prevent
-      that "angle" from being altered.
-     */
-    void            lock_angle();
 
 protected:
     void            showEvent(QShowEvent *);
@@ -76,6 +75,15 @@ private:        // methods
     void            store_reporter_parameters();
     void            recall_reporter_parameters();
 
+    /*!
+      When an existing Story is edited, some of its original settings (angle,
+      Reporter, etc.), generated or selected at the time it was created, must
+      remain unmodified.  This method signals to the AddStoryDialog that this
+      should be the case (i.e., this is an edit, not a creation, of a Story)
+      so it will prevent those values from being altered.
+     */
+    void            set_edit_mode();
+
 private:
     Ui::AddStoryDialog *ui;
 
@@ -93,7 +101,7 @@ private:
 
     QUrl                story;
 
-    bool                angle_is_locked;
+    Mode                edit_mode;
 
     int                 current_reporter_index;
 

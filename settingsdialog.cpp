@@ -373,7 +373,7 @@ void SettingsDialog::slot_story_selection_changed()
 void SettingsDialog::slot_edit_story()
 {
     QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
-    emit signal_edit_story(selections[0]->text(1));
+    emit signal_edit_story(selections[0]->data(0, Qt::UserRole).toString());
 }
 
 void SettingsDialog::start_coverage(QTreeWidgetItem* item)

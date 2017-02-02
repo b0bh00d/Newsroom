@@ -45,13 +45,14 @@ AddStoryDialog::AddStoryDialog(BeatsMap &beats_map,
                                StoryInfoPointer story_info,
                                SettingsPointer settings,
                                const QString &defaults_folder,
+                               AddStoryDialog::Mode edit_mode,
                                QWidget *parent)
     : plugin_beats(beats_map),
       story_info(story_info),
       settings(settings),
       defaults_folder(defaults_folder),
-      angle_is_locked(false),
       current_reporter_index(0),
+      edit_mode(edit_mode),
       QDialog(parent),
       ui(new Ui::AddStoryDialog)
 {
@@ -88,7 +89,6 @@ AddStoryDialog::AddStoryDialog(BeatsMap &beats_map,
     connect(this, &QDialog::accepted, this, &AddStoryDialog::slot_accepted);
 //    connect(this, &QDialog::rejected, this, &AddStoryDialog::slot_cleanup);
 //    connect(this, &QDialog::finished, this, &AddStoryDialog::slot_cleanup);
-
 
     load_settings();
 }
@@ -130,10 +130,11 @@ void AddStoryDialog::showEvent(QShowEvent *event)
     raise();
 }
 
-void AddStoryDialog::lock_angle()
+void AddStoryDialog::set_edit_mode()
 {
-    angle_is_locked = true;
     ui->edit_Angle->setEnabled(false);
+    ui->combo_AvailableReporters->setEnabled(false);
+    ui->combo_ReporterBeats->setEnabled(false);
 }
 
 void AddStoryDialog::save_settings()
@@ -148,23 +149,28 @@ void AddStoryDialog::save_settings()
 
     settings->end_section();
 
-    QString story = ui->edit_Source->text();
-    if(QFile::exists(story))
-        story_info->story = QUrl::fromLocalFile(story);
-    else
+    if(edit_mode == Mode::Add)
     {
-        if(story.endsWith("/"))
-            story.chop(1);
-        story_info->story.setUrl(story);
+        QString story = ui->edit_Source->text();
+        if(QFile::exists(story))
+            story_info->story = QUrl::fromLocalFile(story);
+        else
+        {
+            if(story.endsWith("/"))
+                story.chop(1);
+            story_info->story.setUrl(story);
+        }
+
+        story_info->angle = ui->edit_Angle->text();
+        if(story_info->angle.isEmpty())
+            story_info->angle = ui->edit_Angle->placeholderText();
+
+        story_info->reporter_id = plugin_reporter->PluginID();
+
+        store_reporter_parameters();
     }
-
-    story_info->angle = ui->edit_Angle->text();
-    if(story_info->angle.isEmpty())
-        story_info->angle = ui->edit_Angle->placeholderText();
-
-    story_info->reporter_id = plugin_reporter->PluginID();
-
-    store_reporter_parameters();
+    else
+        get_reporter_parameters();
 
     if(!ui->edit_TTL->text().isEmpty())
         story_info->ttl = ui->edit_TTL->text().toInt();
@@ -387,6 +393,9 @@ void AddStoryDialog::load_settings()
 
     if(!ui->edit_Angle->placeholderText().compare(story_info->angle))
         ui->edit_Angle->setText(QString());
+
+    if(edit_mode == Mode::Edit)
+        set_edit_mode();
 }
 
 void AddStoryDialog::set_display()
@@ -410,7 +419,7 @@ void AddStoryDialog::set_display()
 
 void AddStoryDialog::set_angle()
 {
-    if(angle_is_locked || !ui->edit_Angle->text().isEmpty())
+    if(edit_mode != Mode::Add || !ui->edit_Angle->text().isEmpty())
         return;
 
     AnimEntryType entry_type = static_cast<AnimEntryType>(ui->combo_EntryType->currentIndex());
@@ -651,7 +660,8 @@ void AddStoryDialog::slot_beat_changed(int index)
 {
     // save the current reporter configuration under the current 'reporter_id'
 
-    store_reporter_parameters();
+    if(edit_mode == Mode::Add)
+        store_reporter_parameters();
 
     story_info->reporter_beat = ui->combo_ReporterBeats->itemText(index);
 
@@ -703,7 +713,8 @@ void AddStoryDialog::slot_beat_changed(int index)
     float best_guess = plugin_reporter->Supports(story_info->story);
     ui->label_Success->setText(tr("Success: %1%").arg((int)(best_guess * 100.0f)));
 
-    recall_reporter_parameters();
+    if(edit_mode == Mode::Add)
+        recall_reporter_parameters();
 
     slot_configure_reporter_configure();
 }
@@ -713,7 +724,8 @@ void AddStoryDialog::slot_reporter_changed(int index)
     if(index == current_reporter_index)
         return;
 
-    store_reporter_parameters();
+    if(edit_mode == Mode::Add)
+        store_reporter_parameters();
 
     ReportersInfoVector& info = plugin_beats[story_info->reporter_beat];
 
@@ -728,7 +740,8 @@ void AddStoryDialog::slot_reporter_changed(int index)
     float best_guess = plugin_reporter->Supports(story_info->story);
     ui->label_Success->setText(tr("Success: %1%").arg((int)(best_guess * 100.0f)));
 
-    recall_reporter_parameters();
+    if(edit_mode == Mode::Add)
+        recall_reporter_parameters();
 
     slot_configure_reporter_configure();
 }

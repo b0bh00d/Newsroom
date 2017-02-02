@@ -562,7 +562,12 @@ void MainWindow::dropEvent(QDropEvent* event)
             return;
         }
 
-        AddStoryDialog addstory_dlg(beats, story_info, application_settings, parameters_defaults_folder, this);
+        AddStoryDialog addstory_dlg(beats,
+                                    story_info,
+                                    application_settings,
+                                    parameters_defaults_folder,
+                                    AddStoryDialog::Mode::Add,
+                                    this);
 
         restore_window_data(&addstory_dlg);
 
@@ -1307,7 +1312,7 @@ void MainWindow::slot_edit_story(const QString& story_id)
         foreach(ProducerPointer pp, si.producers)
         {
             StoryInfoPointer story_info = pp->get_story();
-            if(!story_info->angle.compare(story_id))
+            if(!story_info->identity.compare(story_id))
             {
                 producer = pp;
                 break;
@@ -1321,9 +1326,12 @@ void MainWindow::slot_edit_story(const QString& story_id)
 
     CoverageStart coverage_start = producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
 
-    AddStoryDialog addstory_dlg(beats, story_info, application_settings, parameters_defaults_folder, this);
-
-    addstory_dlg.lock_angle();
+    AddStoryDialog addstory_dlg(beats,
+                                story_info,
+                                application_settings,
+                                parameters_defaults_folder,
+                                AddStoryDialog::Mode::Edit,
+                                this);
 
     restore_window_data(&addstory_dlg);
 
