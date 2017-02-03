@@ -97,6 +97,13 @@ void Producer::file_headline(const QString& data)
 
     headline->set_stylesheet(stylesheet);
 
+    IReporter2* reporter_draw = dynamic_cast<IReporter2*>(reporter.data());
+    if(reporter_draw && reporter_draw->UseReporterDraw())
+    {
+        headline->set_reporter_draw(true);
+        connect(headline.data(), &Headline::signal_reporter_draw, reporter_draw, &IReporter2::ReporterDraw);
+    }
+
     emit signal_new_headline(headline);
 }
 

@@ -29,6 +29,7 @@ Headline::Headline(StoryInfoPointer story_info,
       is_zoomed(false),
       shrink_text_to_fit(false),
       compact_mode(false),
+      reporter_draw(false),
       margin(5),
       ignore(false),
       animation(nullptr),
@@ -317,8 +318,14 @@ void PortraitHeadline::paintEvent(QPaintEvent* /*event*/)
         return;
 
     QPainter painter(this);
-
     QRect s = geometry();
+
+    if(reporter_draw)
+    {
+        QRect bounds(margin, margin, s.width() - (margin * 2), s.height() - (margin * 2));
+        emit signal_reporter_draw(bounds, painter);
+        return;
+    }
 
     QTextDocument td;
     td.setDocumentMargin(margin);
@@ -479,6 +486,13 @@ void LandscapeHeadline::paintEvent(QPaintEvent* /*event*/)
 {
     QPainter painter(this);
     QRect s = geometry();
+
+    if(reporter_draw)
+    {
+        QRect bounds(margin, margin, s.width() - (margin * 2), s.height() - (margin * 2));
+        emit signal_reporter_draw(bounds, painter);
+        return;
+    }
 
     QTextDocument td;
     td.setDocumentMargin(margin);

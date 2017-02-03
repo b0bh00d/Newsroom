@@ -4,10 +4,13 @@
 #include <QtCore/QtPlugin>
 
 #include <QtCore/QUrl>
+#include <QtCore/QRect>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QByteArray>
 #include <QtCore/QSharedPointer>
+
+#include <QtGui/QPainter>
 
 enum class RequirementsFormats
 {
@@ -254,6 +257,28 @@ protected:
 };
 
 typedef QSharedPointer<IReporter> IReporterPointer;
+
+/// @class IReporter2
+/// @brief Adds custom drawing functionality to the IReporter interface
+///
+/// This IReporter subclass provides custom drawing functionality for the
+/// Reporter class.  Headlines are notified of this Reporter desire, and
+/// full control of the content appearing on the Headline is routed to
+/// the Reporter plug-in instance.
+///
+/// Plug-ins that do not need this functionality may either return false
+/// from UseReporterDraw(), or continue to inherit from IReporter.
+
+class IReporter2 : public IReporter
+{
+    Q_OBJECT
+public:     // methods
+    IReporter2(QObject* parent = nullptr) : IReporter(parent) {}
+    virtual ~IReporter2() {}
+
+    virtual bool UseReporterDraw() const = 0;
+    virtual void ReporterDraw(const QRect& bounds, QPainter& painter) = 0;
+};
 
 /// @class IReporterFactory
 /// @brief A factory interface for generating IPlugin-based plug-ins

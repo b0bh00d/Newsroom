@@ -34,16 +34,21 @@ TeamCity9Poller::~TeamCity9Poller()
     {
         request_timer->stop();
         request_timer->deleteLater();
+        request_timer = nullptr;
     }
 
     if(poll_timer)
     {
         poll_timer->stop();
         poll_timer->deleteLater();
+        poll_timer = nullptr;
     }
 
     if(QNAM)
+    {
         QNAM->deleteLater();
+        QNAM = nullptr;
+    }
 }
 
 void TeamCity9Poller::add_interest(const QString& project_name, const QString& builder_name, QObject* me, int flags)

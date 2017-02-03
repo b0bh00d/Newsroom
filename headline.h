@@ -45,9 +45,12 @@ public:
     void    set_font(const QFont& font)                 { this->font = font; }
     void    set_stylesheet(const QString& stylesheet)   { this->stylesheet = stylesheet; }
 
+    void    set_reporter_draw(bool reporterdraw = true) { reporter_draw = reporterdraw; }
+
 signals:
     void    signal_mouse_enter();
     void    signal_mouse_exit();
+    void    signal_reporter_draw(const QRect& bounds, QPainter& painter);
 
 protected slots:
     void    slot_zoom_in();
@@ -122,6 +125,7 @@ protected:  // data members
 
     bool            shrink_text_to_fit;
     bool            compact_mode;
+    bool            reporter_draw;
     int             original_w;
     int             original_h;
 

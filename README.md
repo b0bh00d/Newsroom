@@ -88,9 +88,9 @@ Trigger keywords are separated by commas, and are case-insensitive.
 For example, for TeamCity Headlines, you might have a stylesheet defined that
 "triggers" if the one of the keywords "error, fail" appear in the report.  Or
 perhaps one to be used if the word "hung" appears (indicating that a builder
-might be hung).  Styles are in priority order in the list, with "Default" having
-the highest position.  If you have one with a "finish" trigger ahead of one
-with "error", and both keywords appear in the same Headline text, the
+might be hung).  Styles are in priority order in the list, with "Default"
+having the highest position.  If you have one with a "finish" trigger ahead of
+one with "error", and both keywords appear in the same Headline text, the
 stylesheet for "finish" will be used and not "error".  Plan your styles and
 their relationships to one another carefully.
 
@@ -106,6 +106,59 @@ therefore, screen presence and position--based on the relative ordering within
 the Series tree, top to bottom.  Depending upon how Chyrons are stacked by the
 internal LaneManager, you may need to re-order Story positions to achieve the
 desired layout based on the assigned "entry" type.
+
+## Examples
+
+The following are some visual examples of the Newroom program in action.
+Because the included TextFile Reporter isn't every interesting beyond its
+possible Entry and Exit types, I'm only including screen shots of the TeamCity9
+and YahooChartAPI Reporters included with the program.
+
+### TeamCity9
+
+This screen shot shows multiple TeamCity9 Reporters covering a number of
+build configurations using one of the Dashboard Entry types, with each
+related build configuration grouped within a single Dashboard group.  The
+various Headline coloring corresponds to defined stylesheets associated with
+"trigger" keywords in the Headline text ("Changes", "Success", etc.):
+
+![snap1](https://cloud.githubusercontent.com/assets/4536448/22610013/ac5e719a-ea20-11e6-9724-899d53ffe75a.png)
+
+This screen shot shows 32 TeamCity build configurations across three different
+TeamCity servers being monitored by TeamCity9 Reporters in the "compact"
+Dashboard mode.  Note that, if the "detect progress" option is enabled, a
+progress bar appears on the compacted Headline:
+
+![snap2](https://cloud.githubusercontent.com/assets/4536448/22610018/afad370a-ea20-11e6-91e7-f89a33499101.png)
+
+### YahooChartAPI
+
+The newest Reporter to Newsroom is the YahooChartAPI Reporter.  When activated
+with the Yahoo Chart API URL (http://chartapi.finance.yahoo.com/instrument/1.0),
+it uses the API to provide minute-by-minute updates on specified New York Stock
+Exchange stock symbols.  The default symbol is "^dji", which provides Dow Jones
+Industrial Average information, but you can specify a stock symbol of your
+choice.
+
+This screen shot shows the "^dji" (Dow Jones Industrial Average) and "msft"
+(Microsoft) symbols displayed using the default, text-based Headline display
+after the market has closed:
+
+![snap3](https://cloud.githubusercontent.com/assets/4536448/22610019/b0faf69c-ea20-11e6-9482-63a411d6b223.png)
+
+In its parameters, the YahooChartAPI Reporter gives you the option to enable
+chart drawing alongside text information (the grey line is the "open" point of
+the chart's day):
+
+![snap4](https://cloud.githubusercontent.com/assets/4536448/22610023/b233fc84-ea20-11e6-9fa5-9604e3a8cced.png)
+
+(As an aside, this custom drawing on a Headline is enabled by the new
+ReporterDraw() functionality of the IReporter2 interface, which allows the
+Reporter to completely take over responsibility for the Headline display.)
+
+When the market is closed, the chart mode will also indicate this:
+
+![snap5](https://cloud.githubusercontent.com/assets/4536448/22610025/b35490ce-ea20-11e6-9bde-de3dee8e120e.png)
 
 ## Documentation
 You're reading it now.
