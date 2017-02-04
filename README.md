@@ -131,6 +131,10 @@ progress bar appears on the compacted Headline:
 
 ![snap2](https://cloud.githubusercontent.com/assets/4536448/22610018/afad370a-ea20-11e6-91e7-f89a33499101.png)
 
+Hovering the mouse pointer over any one of the "compacted" Headlines causes it
+to expand to full size for viewing.  Leaving the Headline returns it to its
+compacted size.
+
 ### YahooChartAPI
 
 The newest Reporter to Newsroom is the YahooChartAPI Reporter.  When activated
