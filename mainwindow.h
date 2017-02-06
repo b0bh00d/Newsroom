@@ -95,8 +95,8 @@ private:    // methods
     bool                configure_reporters();
     void                load_application_settings();
     void                save_application_settings();
-    void                load_series(SeriesInfo &series_info);
-    void                save_series(const SeriesInfo& series_info);
+    void                load_series(SeriesInfoPointer series_info);
+    void                save_series(SeriesInfoPointer series_info);
     void                save_story(SettingsPointer application_settings, StoryInfoPointer story_info);
     void                restore_story(SettingsPointer application_settings, StoryInfoPointer story_info);
     void                restore_story_defaults(StoryInfoPointer story_info);
@@ -113,8 +113,6 @@ private:    // data members
 
     bool                auto_start;
     bool                continue_coverage;
-    bool                compact_mode;
-    int                 compact_compression;
     bool                edit_story_first_time;
 
     QSystemTrayIcon*    trayIcon;

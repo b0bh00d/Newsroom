@@ -89,6 +89,9 @@ QStringList YahooChartAPI::Requires(int /*version*/) const
                 // should we display the graph instead of just text?
                 << "Display graph instead of just text" << "check:true"
 
+//                // Retain the largest range seen for the graph volume?
+//                << "Lock graph to largest volume range" << "check:true"
+
                 << "Format:"        << QString("multiline:%1").arg(report_template.join("<br>\n"));
 
     return definitions;
@@ -290,6 +293,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
                 i+=volume_increment;
                 p+=pixel_increment;
             }
+            volume_ticks.append(qMakePair(volume_high, p));
         }
         else
         {
@@ -304,6 +308,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
                 i+=volume_increment;
                 p+=pixel_increment;
             }
+            volume_ticks.append(qMakePair(volume_high, p));
         }
 
         // left is open_timestamp; right is close_timestamp
@@ -519,8 +524,8 @@ void YahooChartAPI::ticker_update(const QString& status)
         QTime close_time = close_datetime.time();
 
         // account for weekends when the market is closed
-        int dow = now.date().dayOfWeek();
-        chart_data->next_open = open_datetime.addDays((dow < Fri || dow == Sun) ? 1 : (dow == Fri ? 3 : 2)).toLocalTime();
+        int dow = close_datetime.date().dayOfWeek();
+        chart_data->next_open = open_datetime.addDays((dow < Fri) ? 1 : 3).toLocalTime();
 
         // do we need to sleep until the market is actually open?
         if(my_time < open_time || my_time > close_time)

@@ -30,8 +30,6 @@ MainWindow* mainwindow;
 MainWindow::MainWindow(QWidget *parent)
     : auto_start(false),
       continue_coverage(false),
-      compact_mode(false),
-      compact_compression(25),
       edit_story_first_time(true),
       trayIconMenu(0),
       window_geometry_save_enabled(true),
@@ -346,9 +344,9 @@ void MainWindow::closeEvent(QCloseEvent* event)
 void MainWindow::fix_angle_duplication(StoryInfoPointer story_info)
 {
     QString prefix = QString("%1::").arg(story_info->angle);
-    foreach(const SeriesInfo& series_info, series_ordered)
+    foreach(SeriesInfoPointer series_info, series_ordered)
     {
-        foreach(ProducerPointer producer, series_info.producers)
+        foreach(ProducerPointer producer, series_info->producers)
         {
             StoryInfoPointer si = producer->get_story();
             if(si->angle.startsWith(prefix))
@@ -366,7 +364,10 @@ void MainWindow::fix_angle_duplication(StoryInfoPointer story_info)
     }
 }
 
-bool MainWindow::cover_story(ProducerPointer& producer, StoryInfoPointer story_info, CoverageStart coverage_start, const ReportersInfoVector *reporters_info)
+bool MainWindow::cover_story(ProducerPointer& producer,
+                             StoryInfoPointer story_info,
+                             CoverageStart coverage_start,
+                             const ReportersInfoVector *reporters_info)
 {
     bool result = false;
 
@@ -524,8 +525,6 @@ void MainWindow::dropEvent(QDropEvent* event)
             story_info->story = story;
 
         story_info->angle.clear();
-        story_info->dashboard_compact_mode = compact_mode;
-        story_info->dashboard_compression = compact_compression;
 
         // Provide a 'hint' as to which beat is appropriate for this Story
 
@@ -585,14 +584,17 @@ void MainWindow::dropEvent(QDropEvent* event)
             // find "Default"
             for(SeriesInfoList::iterator iter = series_ordered.begin();iter != series_ordered.end();++iter)
             {
-                if(!iter->name.compare("Default"))
+                if(!(*iter)->name.compare("Default"))
                 {
                     ReportersInfoVector* reporters_info = &beats[story_info->reporter_beat];
+
+                    story_info->dashboard_compact_mode = (*iter)->compact_mode;
+                    story_info->dashboard_compression = (*iter)->compact_compression;
 
                     ProducerPointer producer;
                     if(cover_story(producer, story_info, CoverageStart::Immediate, reporters_info))
                     {
-                        iter->producers.append(producer);
+                        (*iter)->producers.append(producer);
                         story_accepted = true;
                     }
                     break;
@@ -671,8 +673,6 @@ void MainWindow::save_application_settings()
 
     application_settings->set_item("auto_start", auto_start);
     application_settings->set_item("continue_coverage", continue_coverage);
-    application_settings->set_item("dashboard.compact_mode", compact_mode);
-    application_settings->set_item("dashboard.compact_compression", compact_compression);
     application_settings->set_item("chyron.font", headline_font.toString());
 
     application_settings->clear_section("HeadlineStyles");
@@ -709,9 +709,9 @@ void MainWindow::save_application_settings()
     }
 
     QStringList series_names;
-    foreach(const SeriesInfo& series_info, series_ordered)
+    foreach(SeriesInfoPointer series_info, series_ordered)
     {
-        series_names << series_info.name;
+        series_names << series_info->name;
         save_series(series_info);
     }
 
@@ -743,8 +743,6 @@ void MainWindow::load_application_settings()
 
     auto_start = application_settings->get_item("auto_start", false).toBool();
     continue_coverage = application_settings->get_item("continue_coverage", false).toBool();
-    compact_mode = application_settings->get_item("dashboard.compact_mode", false).toBool();
-    compact_compression = application_settings->get_item("dashboard.compact_compression", 25).toInt();
     QFont f = ui->label->font();
     QString font_str = application_settings->get_item("chyron.font", f.toString()).toString();
     if(!font_str.isEmpty())
@@ -799,8 +797,8 @@ void MainWindow::load_application_settings()
     QStringList series_names = application_settings->get_item("series", QStringList() << "Default").toStringList();
     foreach(const QString& series_name, series_names)
     {
-        SeriesInfo si;
-        si.name = series_name;
+        SeriesInfoPointer si = SeriesInfoPointer(new SeriesInfo());
+        si->name = series_name;
         series_ordered.append(si);
 
         load_series(series_ordered.back());
@@ -811,16 +809,19 @@ void MainWindow::load_application_settings()
     settings_modified = !QFile::exists(application_settings_file_name);
 }
 
-void MainWindow::load_series(SeriesInfo &series_info)
+void MainWindow::load_series(SeriesInfoPointer series_info)
 {
     if(!QFile::exists(series_folder))
         return;
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info.name)));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info->name)));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
     series_settings->init();
 
     series_settings->begin_section("/Series");
+
+    series_info->compact_mode = series_settings->get_item("compact_mode", series_info->compact_mode).toBool();
+    series_info->compact_compression = series_settings->get_item("compact_compression", series_info->compact_compression).toInt();
 
     QBitArray is_active;
     QStringList active_list = series_settings->get_item("active", QString()).toString().split(",");
@@ -841,15 +842,15 @@ void MainWindow::load_series(SeriesInfo &series_info)
             StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
             restore_story(series_settings, story_info);
 
-            story_info->dashboard_compact_mode = compact_mode;
-            story_info->dashboard_compression = compact_compression;
+            story_info->dashboard_compact_mode = series_info->compact_mode;
+            story_info->dashboard_compression = series_info->compact_compression;
 
             // inject the story into the system, but don't start coverage
 
             ProducerPointer producer;
             if(cover_story(producer, story_info, CoverageStart::None))
             {
-                series_info.producers.append(producer);
+                series_info->producers.append(producer);
 
                 CoverageStart coverage_start = CoverageStart::None;
                 if(continue_coverage && is_active.testBit(i))
@@ -878,7 +879,7 @@ void MainWindow::load_series(SeriesInfo &series_info)
     series_settings->end_section();
 }
 
-void MainWindow::save_series(const SeriesInfo &series_info)
+void MainWindow::save_series(SeriesInfoPointer series_info)
 {
     if(!QFile::exists(series_folder))
     {
@@ -887,7 +888,7 @@ void MainWindow::save_series(const SeriesInfo &series_info)
             return;
     }
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info.name)));
+    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info->name)));
     SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
 
     QStringList active;
@@ -898,14 +899,17 @@ void MainWindow::save_series(const SeriesInfo &series_info)
 
     series_settings->begin_section("/Series");
 
+    series_settings->set_item("compact_mode", series_info->compact_mode);
+    series_settings->set_item("compact_compression", series_info->compact_compression);
+
     series_settings->clear_section("Stories");
 
-    if(!series_info.producers.isEmpty())
+    if(!series_info->producers.isEmpty())
     {
         series_settings->begin_array("Stories");
 
         int index = 0;
-        foreach(ProducerPointer producer, series_info.producers)
+        foreach(ProducerPointer producer, series_info->producers)
         {
             if(producer->is_covering_story())
                 active << QString::number(index);
@@ -1218,7 +1222,6 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     settings_dlg->set_autostart(auto_start);
     settings_dlg->set_continue_coverage(continue_coverage);
-    settings_dlg->set_compact_mode(compact_mode, compact_compression);
     settings_dlg->set_font(headline_font);
     settings_dlg->set_styles(*(headline_style_list.data()));
     settings_dlg->set_series(series_ordered);
@@ -1228,14 +1231,13 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     connect(settings_dlg, &SettingsDialog::signal_edit_story, this, &MainWindow::slot_edit_story);
 
     QStringList original_series;
-    foreach(const SeriesInfo& series_info, series_ordered)
-        original_series << series_info.name;
+    foreach(SeriesInfoPointer series_info, series_ordered)
+        original_series << series_info->name;
 
     if(settings_dlg->exec() == QDialog::Accepted)
     {
         auto_start                       = settings_dlg->get_autostart();
         continue_coverage                = settings_dlg->get_continue_coverage();
-        compact_mode                     = settings_dlg->get_compact_mode(compact_compression);
         headline_font                    = settings_dlg->get_font();
         settings_dlg->get_styles(*(headline_style_list.data()));
 
@@ -1257,8 +1259,8 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
         // clear any deleted Series
 
         QStringList remaining_series;
-        foreach(const SeriesInfo& series_info, series_ordered)
-            remaining_series << series_info.name;
+        foreach(SeriesInfoPointer series_info, series_ordered)
+            remaining_series << series_info->name;
 
         QStringList series_names = remaining_series;
         QStringList deleted_series;
@@ -1307,9 +1309,9 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 void MainWindow::slot_edit_story(const QString& story_id)
 {
     ProducerPointer producer;
-    foreach(const SeriesInfo& si, series_ordered)
+    foreach(SeriesInfoPointer si, series_ordered)
     {
-        foreach(ProducerPointer pp, si.producers)
+        foreach(ProducerPointer pp, si->producers)
         {
             StoryInfoPointer story_info = pp->get_story();
             if(!story_info->identity.compare(story_id))

@@ -3,6 +3,7 @@
 #include "mainwindow.h"
 #include "editheadlinedialog.h"
 #include "addstorydialog.h"
+#include "editseriesdialog.h"
 
 #include "settingsdialog.h"
 #include "ui_settingsdialog.h"
@@ -33,13 +34,10 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(ui->button_StopCoverageAll, &QPushButton::clicked, this, &SettingsDialog::slot_stop_coverage_all);
     connect(ui->button_RemoveStory, &QPushButton::clicked, this, &SettingsDialog::slot_remove_story);
     connect(ui->button_RemoveStoryAll, &QPushButton::clicked, this, &SettingsDialog::slot_remove_story_all);
+    connect(ui->button_EditSeries, &QPushButton::clicked, this, &SettingsDialog::slot_edit_series);
     connect(ui->tree_Styles, &QTreeWidget::itemSelectionChanged, this, &SettingsDialog::slot_apply_stylesheet);
 
     ui->button_EditStory->setEnabled(false);
-
-    connect(ui->check_CompactMode, &QCheckBox::clicked, this, &SettingsDialog::slot_compact_mode_clicked);
-    ui->edit_ZoomOutPercent->setValidator(new QIntValidator(5, 30));
-    slot_compact_mode_clicked(true);
 
     setWindowTitle(tr("Newsroom: Settings"));
     setWindowIcon(QIcon(":/images/Newsroom.png"));
@@ -60,18 +58,6 @@ void SettingsDialog::set_autostart(bool autostart)
 void SettingsDialog::set_continue_coverage(bool continue_coverage)
 {
     ui->check_ContinueCoverage->setChecked(continue_coverage);
-}
-
-void SettingsDialog::set_compact_mode(bool compact_mode, int zoom_percent)
-{
-    ui->check_CompactMode->setChecked(compact_mode);
-    if(zoom_percent != ui->edit_ZoomOutPercent->placeholderText().toInt())
-    {
-        if(zoom_percent >= 5 && zoom_percent <= 30)
-            ui->edit_ZoomOutPercent->setText(QString::number(zoom_percent));
-    }
-
-    slot_compact_mode_clicked(compact_mode);
 }
 
 void SettingsDialog::set_font(const QFont& font)
@@ -123,12 +109,17 @@ void SettingsDialog::set_series(const SeriesInfoList& series_ordered)
     ui->tree_Series->setDefaultDropAction(Qt::TargetMoveAction);
     ui->tree_Series->setDragDropMode(QAbstractItemView::InternalMove);
 
-    foreach(const SeriesInfo& series_info, series_ordered)
+    foreach(SeriesInfoPointer series_info, series_ordered)
     {
-        QTreeWidgetItem* series_item = new QTreeWidgetItem(ui->tree_Series, QStringList() << series_info.name);
+        QTreeWidgetItem* series_item = new QTreeWidgetItem(ui->tree_Series, QStringList() << series_info->name);
+
+        QVariant v;
+        v.setValue(series_info);
+        series_item->setData(0, Qt::UserRole, v);
+
         series_item->setFlags(series_item->flags() | Qt::ItemIsEditable);
 
-        foreach(ProducerPointer producer, series_info.producers)
+        foreach(ProducerPointer producer, series_info->producers)
         {
             StoryInfoPointer story_info = producer->get_story();
 
@@ -160,14 +151,6 @@ bool SettingsDialog::get_autostart()
 bool SettingsDialog::get_continue_coverage()
 {
     return ui->check_ContinueCoverage->isChecked();
-}
-
-bool SettingsDialog::get_compact_mode(int &zoom_percent)
-{
-    zoom_percent = ui->edit_ZoomOutPercent->placeholderText().toInt();
-    if(ui->check_CompactMode->isChecked() && !ui->edit_ZoomOutPercent->text().isEmpty())
-        zoom_percent = ui->edit_ZoomOutPercent->text().toInt();
-    return ui->check_CompactMode->isChecked();
 }
 
 QFont SettingsDialog::get_font()
@@ -203,15 +186,15 @@ SeriesInfoList SettingsDialog::get_series()
 
         if(series_item->childCount() || !series_item->text(0).compare("Default"))
         {
-            SeriesInfo si;
-            si.name = series_item->text(0);
+            SeriesInfoPointer si = series_item->data(0, Qt::UserRole).value<SeriesInfoPointer>();
+            si->producers.clear();
+            si->name = series_item->text(0);
 
-//            QStringList stories;
             for(int j = 0;j < series_item->childCount();++j)
             {
                 QTreeWidgetItem* story_item = series_item->child(j);
                 QString identity = story_item->data(0, Qt::UserRole).toString();
-                si.producers.append(producers[identity]);
+                si->producers.append(producers[identity]);
             }
 
             sl.append(si);
@@ -338,6 +321,7 @@ void SettingsDialog::slot_story_selection_changed()
     ui->button_RemoveStory->setEnabled(selections.length() != 0 && !series_selected);
 
     ui->button_EditStory->setEnabled(false);
+    ui->button_EditSeries->setEnabled(false);
     ui->button_StartCoverage->setEnabled(false);
     ui->button_StopCoverage->setEnabled(false);
 
@@ -358,6 +342,8 @@ void SettingsDialog::slot_story_selection_changed()
 
         ui->button_StartCoverage->setEnabled(not_covering != 0);
         ui->button_StopCoverage->setEnabled(covering != 0);
+
+        ui->button_EditSeries->setEnabled(true);
     }
     else if(stories_selected && !series_selected)
     {
@@ -374,6 +360,61 @@ void SettingsDialog::slot_edit_story()
 {
     QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
     emit signal_edit_story(selections[0]->data(0, Qt::UserRole).toString());
+}
+
+void SettingsDialog::slot_edit_series()
+{
+    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
+    SeriesInfoPointer si = selections[0]->data(0, Qt::UserRole).value<SeriesInfoPointer>();
+
+    // stop this series before we edit its settings
+    QBitArray active(selections[0]->childCount());
+
+    for(int j = 0;j < selections[0]->childCount();++j)
+    {
+        QTreeWidgetItem* story_item = selections[0]->child(j);
+        QString identity = story_item->data(0, Qt::UserRole).toString();
+        ProducerPointer producer = producers[identity];
+        active.setBit(j, producer->is_covering_story());
+        if(active[j])
+        {
+            if(producer->stop_covering_story())
+                story_item->setIcon(0, QIcon(":/images/NotCovering.png"));
+        }
+    }
+
+    EditSeriesDialog dlg(this);
+    dlg.set_compact_mode(si->compact_mode, si->compact_compression);
+
+    if(dlg.exec() == QDialog::Accepted)
+    {
+        si->compact_mode = dlg.get_compact_mode(si->compact_compression);
+
+        // update each Story in the series with the new setting
+
+        for(int j = 0;j < selections[0]->childCount();++j)
+        {
+            QTreeWidgetItem* story_item = selections[0]->child(j);
+            QString identity = story_item->data(0, Qt::UserRole).toString();
+            ProducerPointer producer = producers[identity];
+            StoryInfoPointer story_info = producer->get_story();
+            story_info->dashboard_compact_mode = si->compact_mode;
+            story_info->dashboard_compression = si->compact_compression;
+        }
+    }
+
+    // restart, as indicated
+    for(int j = 0;j < selections[0]->childCount();++j)
+    {
+        if(!active[j])
+            continue;
+
+        QTreeWidgetItem* story_item = selections[0]->child(j);
+        QString identity = story_item->data(0, Qt::UserRole).toString();
+        ProducerPointer producer = producers[identity];
+        if(producer->start_covering_story())
+            story_item->setIcon(0, QIcon(":/images/Covering.png"));
+    }
 }
 
 void SettingsDialog::start_coverage(QTreeWidgetItem* item)
@@ -541,13 +582,6 @@ void SettingsDialog::slot_remove_story_all()
     new_default->setFlags(new_default->flags() | Qt::ItemIsEditable);
 
     producers.clear();
-}
-
-void SettingsDialog::slot_compact_mode_clicked(bool /*checked*/)
-{
-    ui->label_ZoomOut1->setEnabled(ui->check_CompactMode->isChecked());
-    ui->edit_ZoomOutPercent->setEnabled(ui->check_CompactMode->isChecked());
-    ui->label_ZoomOut2->setEnabled(ui->check_CompactMode->isChecked());
 }
 
 void SettingsDialog::slot_rename_series(QTreeWidgetItem* item, int col)

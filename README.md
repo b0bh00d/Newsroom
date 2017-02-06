@@ -32,8 +32,11 @@ the Story's "beat" in order to cover it.  Local text files and REST API
 Reporters are included; others can be created.
 
 Stories can be grouped into Series.  A Series is a collection of related
-Stories (think: TeamCity builds).  Series have no affect on the display of
-a Story's Headlines.  They are purely an organizing tool.
+Stories (think: TeamCity builds).  Aside from being an organizing tool,
+Series maintain settings that will be applied to all Stories they are
+assigned.  As of this writing, the Dashboard "compact" settings are now
+per-Series instead of global, meaning you can have Dashboards grouped by
+Series that are "compact" and others in other Series that are not.
 
 Reporters only know how to file a text report about some recent activity
 on its assigned "beat".  The Producer knows how to take that filed report

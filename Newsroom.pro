@@ -57,7 +57,8 @@ SOURCES += main.cpp \
            editheadlinedialog.cpp \
            settings.cpp \
            seriestree.cpp \
-    stylestree.cpp
+    stylestree.cpp \
+    editseriesdialog.cpp
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -76,7 +77,8 @@ HEADERS  += mainwindow.h \
             settings.h \
             seriesinfo.h \
             seriestree.h \
-    stylestree.h
+    stylestree.h \
+    editseriesdialog.h
 
 # Plug-in interface
 HEADERS += \
@@ -84,7 +86,8 @@ HEADERS += \
 FORMS    += mainwindow.ui \
             settingsdialog.ui \
             addstorydialog.ui \
-            editheadlinedialog.ui
+            editheadlinedialog.ui \
+    editseriesdialog.ui
 
 highlight_lanes {
     SOURCES += highlightwidget.cpp
