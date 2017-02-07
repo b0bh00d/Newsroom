@@ -187,6 +187,8 @@ SeriesInfoList SettingsDialog::get_series()
         if(series_item->childCount() || !series_item->text(0).compare("Default"))
         {
             SeriesInfoPointer si = series_item->data(0, Qt::UserRole).value<SeriesInfoPointer>();
+            Q_ASSERT(!si.isNull());
+
             si->producers.clear();
             si->name = series_item->text(0);
 
@@ -559,8 +561,8 @@ void SettingsDialog::slot_remove_story()
             delete ui->tree_Series->takeTopLevelItem(ui->tree_Series->indexOfTopLevelItem(series));
     }
 
-    foreach(const QString& story_angle, story_angles)
-        producers.remove(story_angle);
+    foreach(const QString& identity, removed_story_identities)
+        producers.remove(identity);
 }
 
 void SettingsDialog::slot_remove_story_all()
@@ -631,6 +633,12 @@ void SettingsDialog::slot_series_renamed(QTreeWidgetItem* item, int col)
         // add a new "Default" entry
         QTreeWidgetItem* new_default = new QTreeWidgetItem(QStringList() << "Default");
         new_default->setFlags(new_default->flags() | Qt::ItemIsEditable);
+
+        SeriesInfoPointer si = SeriesInfoPointer(new SeriesInfo());
+        QVariant v;
+        v.setValue(si);
+        new_default->setData(0, Qt::UserRole, v);
+
         ui->tree_Series->insertTopLevelItem(0, new_default);
     }
 
