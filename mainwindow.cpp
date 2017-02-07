@@ -224,7 +224,7 @@ bool MainWindow::configure_reporters()
 
                                 QStringList old_data;
 
-                                reporter_settings->begin_section("ReporterData");
+                                reporter_settings->begin_section("/ReporterData");
                                   for(int i = 0, j = 0;i < requires_params.length();i += 2, ++j)
                                   {
                                       old_data.append(QString());
@@ -237,12 +237,12 @@ bool MainWindow::configure_reporters()
                                 {
                                     // save it back out in the upgraded form
 
-                                    reporter_settings->clear_section("ReporterData");
+                                    reporter_settings->clear_section("/ReporterData");
                                     reporter_settings->set_version(current_version);
 
                                     requires_params = ireporter->Requires();
 
-                                    reporter_settings->begin_section("ReporterData");
+                                    reporter_settings->begin_section("/ReporterData");
                                       for(int i = 0, j = 0;i < requires_params.length();i += 2, ++j)
                                           reporter_settings->set_item(requires_params[i], old_data[j]);
                                     reporter_settings->end_section();
