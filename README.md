@@ -154,10 +154,10 @@ after the market has closed:
 ![snap3](https://cloud.githubusercontent.com/assets/4536448/22610019/b0faf69c-ea20-11e6-9482-63a411d6b223.png)
 
 In its parameters, the YahooChartAPI Reporter gives you the option to enable
-chart drawing alongside text information (the grey line is the "open" point of
-the chart's day):
+chart drawing alongside text information (the blue line is the day's opening;
+the dashed grey line is the "previous close" point of the last trading day):
 
-![snap4](https://cloud.githubusercontent.com/assets/4536448/22610023/b233fc84-ea20-11e6-9fa5-9604e3a8cced.png)
+![snap6](https://cloud.githubusercontent.com/assets/4536448/22795957/d09e2aac-eeb5-11e6-8a7e-195b0a71df5d.png)
 
 (As an aside, this custom drawing on a Headline is enabled by the new
 ReporterDraw() functionality of the IReporter2 interface, which allows the
