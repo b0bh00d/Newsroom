@@ -165,7 +165,7 @@ Reporter to completely take over responsibility for the Headline display.)
 
 When the market is closed, the chart mode will also indicate this:
 
-![snap5](https://cloud.githubusercontent.com/assets/4536448/22610025/b35490ce-ea20-11e6-9bde-de3dee8e120e.png)
+![snap7](https://cloud.githubusercontent.com/assets/4536448/22845777/7e5b9512-efa1-11e6-81b9-2643c60b0251.png)
 
 ## Documentation
 You're reading it now.
