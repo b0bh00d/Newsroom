@@ -52,8 +52,8 @@ public:
     float Supports(const QUrl& entity) const Q_DECL_OVERRIDE;
     int RequiresVersion() const;
     RequirementsFormats RequiresFormat() const;
-    bool RequiresUpgrade(int, QStringList&);
-    QStringList Requires(int = 0) const Q_DECL_OVERRIDE;
+    bool RequiresUpgrade(int version, QStringList&parameters);
+    QStringList Requires(int target_version = 0) const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
     bool CoverStory() Q_DECL_OVERRIDE;
@@ -85,6 +85,8 @@ private:    // typedefs and enums
         Alias,
         Poll,
         Graph,
+        MaxRange,   // v2
+        Indicators, // v2
         Template,
         Max,
     } Param;
@@ -103,6 +105,7 @@ private:    // typedefs and enums
         int open_timestamp;
         int close_timestamp;
         QPoint opening_point;
+        QPoint previous_close_point;
 
         bool market_closed;
         QDateTime next_open;
@@ -131,6 +134,9 @@ private:    // typedefs and enums
     SPECIALIZE_PAIR(float, int, Volume)                 // "VolumePair"
     SPECIALIZE_VECTOR(VolumePair, Volume)               // "VolumeVector"
 
+private slots:
+    void            slot_headline_sleep();
+
 private:    // methods
     QString         format_duration(int seconds);
     void            populate_report_map(ReportMap& report_map, ChartDataPointer chart_data);
@@ -151,6 +157,12 @@ private:    // data members
     PollerPointer poller;
 
     ChartDataPointer    chart_data;
+
+    bool        lock_to_max_range;
+    float       volume_min;
+    float       volume_max;
+
+    bool        ensure_indicators_are_visible;
 
 private:    // class-static data
     struct PollerData

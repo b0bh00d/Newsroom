@@ -13,6 +13,7 @@ INCLUDEPATH += ../../interfaces
 
 CONFIG(debug, debug|release) {
     DLLDESTDIR = ../../../deploy/debug/reporters
+    DEFINES += QT_DEBUG
 } else {
     DLLDESTDIR = ../../../deploy/release/reporters
 }

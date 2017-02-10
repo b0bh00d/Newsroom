@@ -46,6 +46,13 @@ public:
     void        shift_up(int amount);
     void        shift_down(int amount);
 
+    // This method is used by the Producer to signal to the Chyron that a
+    // Reporter-drawn Headline needs to be highlighted by adjusting its opacity.
+    void        highlight_headline(HeadlinePointer hl, qreal opacity, int timeout);
+
+signals:
+    void        signal_headline_going_out_of_scope(HeadlinePointer headline);
+
 public slots:
     void        slot_file_headline(HeadlinePointer headline);
 

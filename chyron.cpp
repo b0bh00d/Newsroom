@@ -58,6 +58,24 @@ void Chyron::hide()
     }
 }
 
+void Chyron::highlight_headline(HeadlinePointer hl, qreal opacity, int timeout)
+{
+    foreach(HeadlinePointer headline, headline_list)
+    {
+        if(headline.data() == hl.data())
+        {
+            headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+            headline->animation->setDuration(timeout);
+            headline->animation->setStartValue(headline->windowOpacity());
+            headline->animation->setEndValue(opacity < 0.0 ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity));
+            headline->animation->setEasingCurve(story_info->fading_curve);
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+
+            headline->animation->start();
+        }
+    }
+}
+
 void Chyron::initialize_headline(HeadlinePointer headline)
 {
 #ifdef HIGHLIGHT_LANES
@@ -734,6 +752,7 @@ void Chyron::dashboard_expire_headlines()
     {
         headline_list.removeAll(expired);
         expired->hide();
+        emit signal_headline_going_out_of_scope(expired);
         expired.clear();
     }
 
@@ -786,6 +805,7 @@ void Chyron::slot_headline_expired()
     headline->animation->deleteLater();
 
     headline->hide();
+    emit signal_headline_going_out_of_scope(headline);
     headline.clear();
 }
 
@@ -857,6 +877,7 @@ void Chyron::slot_train_expire_headlines()
     {
         headline_list.removeAll(expired);
         expired->hide();
+        emit signal_headline_going_out_of_scope(expired);
         expired.clear();
     }
 

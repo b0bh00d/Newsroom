@@ -108,7 +108,7 @@ public:     // methods
 
       \returns A Boolean true if the data in parameters was modified, false otherwise.
      */
-    virtual bool RequiresUpgrade(int version, QStringList& parameters) = 0;
+    virtual bool RequiresUpgrade(int target_version, QStringList& parameters) = 0;
 
     /*!
       This method returns a list of names identifying parameters that the
@@ -167,25 +167,25 @@ public:     // methods
       types from the user, and then provide them back to the plug-in via the
       SetRequirements() method.
 
-      \param version
+      \param target_version
         The format version of the parameter definitions to be returned.  If zero
-        (0), return the current version specified by RequiresVersion().
+        (0), the plug-in should return the current format version specified by
+        RequiresVersion().
       \returns
         A string list containing the requirements in the format reported by
         RequiresFormat() (currently only "Simple")
      */
-    virtual QStringList Requires(int version = 0) const = 0;
+    virtual QStringList Requires(int target_version = 0) const = 0;
 
     /*!
-      Sets the parameters dictated by the Required() method.
+      Sets the parameters dictated by the Required() method.  The format version
+      of the parameters list is guaranteed to always be that specified by
+      RequiresVersion().
 
-      \param version
-        The requirements version number of the parameters being provided.  This
-        may be different (i.e., older) than the current requirements version.
       \param parameters
         A list of string values that match the parameters/types indicated by
-        the Requires() method.  The plug-in will convert the string values into
-        the appropriate data types, as needed.
+        the Requires() method.  Any required upgrades to the parameters will
+        have already been performed.
       \returns
         A true value if the provided parameters are sufficient to perform the
         plug-in's function, otherwise false.
@@ -276,8 +276,39 @@ public:     // methods
     IReporter2(QObject* parent = nullptr) : IReporter(parent) {}
     virtual ~IReporter2() {}
 
+    /*!
+      Indicates whether the Reporter plug-in plans to perform all drawing
+      on the Headline.
+
+      \returns
+        A true value if the visual representation on the Headline is the
+        Reporter's responsiblity, otherwise false.
+     */
     virtual bool UseReporterDraw() const = 0;
+    /*!
+      Invoked when the Headline needs to be draw.  This will only be
+      called if UseReporterDraw() returned true.
+
+      \param bounds
+        A rectangle representing the boundaries within which the Reporter
+        should perform all its drawing.
+      \param painter
+        A QPainter instance used for drawing activities.
+     */
     virtual void ReporterDraw(const QRect& bounds, QPainter& painter) = 0;
+
+signals:
+    /*!
+      This signal will be emitted if the Reporter feels that the Headline
+      should be highlighted in terms of its opacity setting.
+
+      \param opacity
+        The opacity level of the overall Headline.
+      \param timeout
+        The number of milliseconds it should take to reach this new level
+        from where the Headline is right now.
+     */
+    void        signal_highlight(qreal opacity, int timeout);
 };
 
 /// @class IReporterFactory

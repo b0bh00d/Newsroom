@@ -50,7 +50,12 @@ public slots:
 
 protected slots:
     void    slot_new_data(const QByteArray& data);
+    void    slot_headline_going_out_of_scope(HeadlinePointer);
+    void    slot_headline_highlight(qreal opacity, int timeout);
 //    void    slot_poll();
+
+private:        // typedefs and enums
+    SPECIALIZE_LIST(HeadlinePointer, Headline)   // "HeadlineList"
 
 private:        // methods
     void    file_headline(const QString& data);
@@ -62,6 +67,8 @@ private:        // data members
     ChyronPointer       chyron;
     StoryInfoPointer    story_info;
     StyleListPointer    style_list;
+
+    HeadlineList        headlines;
 };
 
 SPECIALIZE_SHAREDPTR(Producer, Producer)    // "ProducerPointer"

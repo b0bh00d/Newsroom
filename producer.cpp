@@ -12,6 +12,9 @@ Producer::Producer(ChyronPointer chyron,
       style_list(style_list),
       QObject(parent)
 {
+    IReporter2* reporter_draw = dynamic_cast<IReporter2*>(reporter.data());
+    if(reporter_draw && reporter_draw->UseReporterDraw())
+        connect(chyron.data(), &Chyron::signal_headline_going_out_of_scope, this, &Producer::slot_headline_going_out_of_scope);
 }
 
 Producer::~Producer()
@@ -102,9 +105,28 @@ void Producer::file_headline(const QString& data)
     {
         headline->set_reporter_draw(true);
         connect(headline.data(), &Headline::signal_reporter_draw, reporter_draw, &IReporter2::ReporterDraw);
+        connect(reporter_draw, &IReporter2::signal_highlight, this, &Producer::slot_headline_highlight);
+        headlines.append(headline);
     }
 
     emit signal_new_headline(headline);
+}
+
+void Producer::slot_headline_going_out_of_scope(HeadlinePointer headline)
+{
+    foreach(HeadlinePointer hp, headlines)
+    {
+        if(hp.data() == headline.data())
+        {
+            headlines.removeAll(hp);
+            break;
+        }
+    }
+}
+
+void Producer::slot_headline_highlight(qreal opacity, int timeout)
+{
+    chyron->highlight_headline(headlines.front(), opacity, timeout);
 }
 
 void Producer::slot_start_covering_story()
