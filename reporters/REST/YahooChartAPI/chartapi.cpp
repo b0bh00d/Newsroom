@@ -275,10 +275,27 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
     if(lock_to_max_range)
     {
+        bool update = false;
+
         if(volume_low < volume_min)
+        {
             volume_min = volume_low;
+            update = true;
+        }
         if(volume_high > volume_max)
+        {
             volume_max = volume_high;
+            update = true;
+        }
+
+        // keep the indicators accurate on the chart
+        if(update)
+        {
+            chart_data->opening_point.setX(0);
+            chart_data->opening_point.setY(0);
+            chart_data->previous_close_point.setX(0);
+            chart_data->previous_close_point.setY(0);
+        }
     }
     else
     {
@@ -313,21 +330,22 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
     if(chart_data->market_closed)
         current_average_str = QString("<i>%1</i>").arg(report_map["AVERAGE"]);
     QString font_color = QString("%1%2%3")
-                                        .arg(QString::number(LightSkyBlueRed, 16))
-                                        .arg(QString::number(LightSkyBlueGreen, 16))
-                                        .arg(QString::number(LightSkyBlueBlue, 16)).toUpper();
+                            .arg(QString::number(LightSkyBlueRed, 16))
+                            .arg(QString::number(LightSkyBlueGreen, 16))
+                            .arg(QString::number(LightSkyBlueBlue, 16)).toUpper();
+
     td.setHtml(QString("<b>%1</b><br>&#8657;%2 %3<br>&#8659;%4<br><b>%5</b><br>%6 (%7%) %8<br><font color=\"#%9\">%10 (%11%)</font>")
-                                        .arg(report_map["TICKER"])
-                                        .arg(QString::number(volume_max, 'f', 2))
-                                        .arg(report_map["RANGE_LOCKED"])
-                                        .arg(QString::number(volume_min, 'f', 2))
-                                        .arg(current_average_str)
-                                        .arg(report_map["PREVIOUS_CLOSE_OFFSET_AMOUNT"])
-                                        .arg(report_map["PREVIOUS_CLOSE_OFFSET_PERCENTAGE"])
-                                        .arg(report_map["INDICATORS_VISIBLE"])
-                                        .arg(font_color)
-                                        .arg(report_map["OPEN_OFFSET_AMOUNT"])
-                                        .arg(report_map["OPEN_OFFSET_PERCENTAGE"]));
+                            .arg(report_map["TICKER"])
+                            .arg(chart_data->volume_max_str)
+                            .arg(report_map["RANGE_LOCKED"])
+                            .arg(chart_data->volume_min_str)
+                            .arg(current_average_str)
+                            .arg(report_map["PREVIOUS_CLOSE_OFFSET_AMOUNT"])
+                            .arg(report_map["PREVIOUS_CLOSE_OFFSET_PERCENTAGE"])
+                            .arg(report_map["INDICATORS_VISIBLE"])
+                            .arg(font_color)
+                            .arg(report_map["OPEN_OFFSET_AMOUNT"])
+                            .arg(report_map["OPEN_OFFSET_PERCENTAGE"]));
 
     QSizeF doc_size = td.documentLayout()->documentSize();
     QRect new_bounds = QRect(bounds.left(), bounds.top(), bounds.width() - doc_size.width() - 5, bounds.height());
@@ -741,6 +759,29 @@ void YahooChartAPI::ticker_update(const QString& status)
                 chart_data->history.append(qMakePair(timestamp, (chart_data->current_high + chart_data->current_low) / 2.0f));
             }
         }
+    }
+
+    chart_data->volume_max_str = QString::number(chart_data->current_high_high, 'f', 2);
+    chart_data->volume_min_str = QString::number(chart_data->current_low_low, 'f', 2);
+
+    if(lock_to_max_range)
+    {
+        QString font_color = QString("%1%2%3")
+                                .arg(QString::number(LightSkyBlueRed, 16))
+                                .arg(QString::number(LightSkyBlueGreen, 16))
+                                .arg(QString::number(LightSkyBlueBlue, 16)).toUpper();
+
+        if(chart_data->current_low_low != chart_data->previous_low_low)
+            chart_data->volume_min_str = QString("<font color=\"#%1\">%2</font>")
+                        .arg(font_color)
+                        .arg(QString::number(chart_data->current_low_low, 'f', 2));
+        chart_data->previous_low_low = chart_data->current_low_low;
+
+        if(chart_data->current_high_high != chart_data->previous_high_high)
+            chart_data->volume_max_str = QString("<font color=\"#%1\">%2</font>")
+                        .arg(font_color)
+                        .arg(QString::number(chart_data->current_high_high, 'f', 2));
+        chart_data->previous_high_high = chart_data->current_high_high;
     }
 
     QDateTime now = QDateTime::currentDateTime();

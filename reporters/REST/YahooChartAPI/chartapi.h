@@ -27,9 +27,10 @@
 /// Industrial Average, but the user can enter any symbol (e.g., "msft"
 /// for Microsoft) and get information about that stock.
 ///
-/// I don't current know much about the differences and use of the
+/// I don't currently know much about the differences and use of the
 /// various values provided (open, close, low, high), so I'm winging
-/// an average that's not exactly accurate, but informational.
+/// an average that seems to be pretty accurate, and is at least
+/// informational.
 
 class YAHOOCHARTAPISHARED_EXPORT YahooChartAPI : public IReporter2
 {
@@ -97,7 +98,9 @@ private:    // typedefs and enums
     struct ChartData
     {
         float current_high_low, current_high_high;
+        float previous_high_low, previous_high_high;
         float current_low_low, current_low_high;
+        float previous_low_low, previous_low_high;
         float current_high, current_low;
         float open_average;
         float current_average;
@@ -110,6 +113,9 @@ private:    // typedefs and enums
         bool market_closed;
         QDateTime next_open;
 
+        QString volume_max_str;
+        QString volume_min_str;
+
         TickVector history;
 
         ChartData()
@@ -117,8 +123,12 @@ private:    // typedefs and enums
               current_low(0.0f),
               current_high_low(0.0f),
               current_high_high(0.0f),
+              previous_high_low(0.0f),
+              previous_high_high(0.0f),
               current_low_low(0.0f),
               current_low_high(0.0f),
+              previous_low_low(0.0f),
+              previous_low_high(0.0f),
               open_average(0.0f),
               current_average(0.0f),
               previous_close(0.0f),
