@@ -334,7 +334,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
                             .arg(QString::number(LightSkyBlueGreen, 16))
                             .arg(QString::number(LightSkyBlueBlue, 16)).toUpper();
 
-    td.setHtml(QString("<b>%1</b><br>&#8657;%2 %3<br>&#8659;%4<br><b>%5</b><br>%6 (%7%) %8<br><font color=\"#%9\">%10 (%11%)</font>")
+    td.setHtml(QString("<b>%1</b><br>&#8657; %2 %3<br>&#8659; %4<br><b>%5</b><br>%6 (%7%) %8<br><font color=\"#%9\">%10 (%11%)</font>")
                             .arg(report_map["TICKER"])
                             .arg(chart_data->volume_max_str)
                             .arg(report_map["RANGE_LOCKED"])
@@ -350,6 +350,9 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
     QSizeF doc_size = td.documentLayout()->documentSize();
     QRect new_bounds = QRect(bounds.left(), bounds.top(), bounds.width() - doc_size.width() - 5, bounds.height());
     QRect graph_bounds = new_bounds.adjusted(1, 0, -(LatestPointMarkerWidth * 2 + 1), 0);
+
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing);
 
     painter.save();
 
@@ -438,6 +441,8 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
         painter.restore();
     }
+
+    painter.restore();      // Antialiasing
 
     // draw the simple chart on the Headline
     painter.save();
@@ -664,6 +669,8 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
     }
 
     painter.restore();
+
+    painter.restore();  // Antialiasing
 }
 
 // YahooChartAPI
