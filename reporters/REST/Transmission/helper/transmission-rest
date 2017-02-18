@@ -1,0 +1,39 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          transmission-rest
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# X-Interactive:     false
+# Short-Description: Manages the transmission-rest.py daemon
+# Description:       Start/stop the transmission-rest daemon
+### END INIT INFO
+
+DESC="transmission-rest daemon interface"
+# replace this with the path to your transmission-rest.py module
+NAME=/home/pi/transmission-rest.py
+
+test -x $NAME || exit 0
+
+do_start()
+{
+    $NAME start
+}
+
+do_stop()
+{
+    $NAME stop
+}
+
+
+case "$1" in
+   start)
+     do_start
+     ;;
+   stop)
+     do_stop
+     ;;
+esac
+
+exit 0

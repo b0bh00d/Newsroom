@@ -167,5 +167,23 @@ When the market is closed, the chart mode will also indicate this:
 
 ![snap7](https://cloud.githubusercontent.com/assets/4536448/22845777/7e5b9512-efa1-11e6-81b9-2643c60b0251.png)
 
+### Transmission
+
+Transmission is a torrent client which usually runs under Linux.  A Reporter
+is available to for monitoring the state of torrents currently queued in a
+Transmission instance:
+
+The outermost ellipse indicates the total amount of the torrent that has been
+downloaded.  Subsequence inner ellipses indicate the sharing ratio of the torrent.
+Each concentric inner ellipse represents a sharing ratio of 1.0 (100%):
+
+![snap8](https://cloud.githubusercontent.com/assets/4536448/23097786/d5f7e85c-f5fa-11e6-892e-db6b43d7b115.png)
+
+As of this writing, Transmission lacks a real REST interface, so the
+Transmission Reporter includes a "helper", written in Python, that will
+provide a listing of the current Transmission queue so Newsroom can consume
+and display its state.  I've also included an init.d system file for
+integrating the "helper" as a Linux service.
+
 ## Documentation
 You're reading it now.
