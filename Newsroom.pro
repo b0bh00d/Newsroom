@@ -58,7 +58,8 @@ SOURCES += main.cpp \
            settings.cpp \
            seriestree.cpp \
     stylestree.cpp \
-    editseriesdialog.cpp
+    editseriesdialog.cpp \
+    runguard.cpp
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -78,7 +79,8 @@ HEADERS  += mainwindow.h \
             seriesinfo.h \
             seriestree.h \
     stylestree.h \
-    editseriesdialog.h
+    editseriesdialog.h \
+    runguard.h
 
 # Plug-in interface
 HEADERS += \
