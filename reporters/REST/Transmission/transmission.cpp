@@ -14,7 +14,7 @@ Transmission::Transmission(QObject *parent)
     : owner_draw(true),
       my_slot(1),
       max_ratio(0.0f),
-      poll_timeout(60),
+      poll_timeout(10),
       ignore_finished(false),
       ignore_stopped(false),
       ignore_idle(false),
@@ -92,6 +92,10 @@ QStringList Transmission::Requires(int /*version*/) const
 
     // parameter names ending with an asterisk are required
     definitions << "Slot to monitor:" << "integer:1"
+
+                << "Ignore 'Finished' torrents" << QString("check:%1").arg(ignore_finished ? "true" : "false")
+                << "Ignore 'Stopped' torrents" << QString("check:%1").arg(ignore_stopped ? "true" : "false")
+                << "Ignore 'Idle' torrents" << QString("check:%1").arg(ignore_idle ? "true" : "false")
 
                 // how many seconds between polls? (default: 60)
                 << "Polling (sec):"   << QString("integer:%1").arg(poll_timeout)
