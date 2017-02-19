@@ -140,12 +140,11 @@ compacted size.
 
 ### YahooChartAPI
 
-The newest Reporter to Newsroom is the YahooChartAPI Reporter.  When activated
-with the Yahoo Chart API URL (http://chartapi.finance.yahoo.com/instrument/1.0),
-it uses the API to provide minute-by-minute updates on specified New York Stock
-Exchange stock symbols.  The default symbol is "^dji", which provides Dow Jones
-Industrial Average information, but you can specify a stock symbol of your
-choice.
+The YahooChartAPI Reporter uses the Yahoo Chart API URL
+(http://chartapi.finance.yahoo.com/instrument/1.0) to provide minute-by-minute
+updates on specified New York Stock Exchange stock symbols.  The default
+symbol is "^dji", which provides Dow Jones Industrial Average information,
+but you can specify a stock symbol of your choice.
 
 This screen shot shows the "^dji" (Dow Jones Industrial Average) and "msft"
 (Microsoft) symbols displayed using the default, text-based Headline display
@@ -170,12 +169,13 @@ When the market is closed, the chart mode will also indicate this:
 ### Transmission
 
 Transmission is a torrent client which usually runs under Linux.  A Reporter
-is available to for monitoring the state of torrents currently queued in a
-Transmission instance:
+is available for monitoring the state of torrents currently queued in a
+Transmission instance.
 
-The outermost ellipse indicates the total amount of the torrent that has been
-downloaded.  Subsequence inner ellipses indicate the sharing ratio of the torrent.
-Each concentric inner ellipse represents a sharing ratio of 1.0 (100%):
+In the image below, the outermost ellipse indicates the total amount of the
+torrent that has been downloaded.  Subsequence inner ellipses indicate the
+sharing ratio of the torrent.  Each concentric inner ellipse represents a
+sharing ratio of 1.0 (100%):
 
 ![snap8](https://cloud.githubusercontent.com/assets/4536448/23097786/d5f7e85c-f5fa-11e6-892e-db6b43d7b115.png)
 
