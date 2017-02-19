@@ -10,11 +10,11 @@ with Producers who then generate Headlines based on established formatting
 policies for Chyrons to display on the desktop.
 
 Reporters are defined as plug-ins.  Newsroom comes out of the box with
-Reporters designed to cover two "beats": A local text file (e.g., log), and
-a TeamCity v9 REST API.
+Reporters designed to cover two "beats": Local files (e.g., log), and
+REST APIs, but additional Reporter types can easily be added.
 
 ## Qt versions
-This projects was developed with, and tested under, Qt versions 5.4.2 and
+This project was developed with, and tested under, Qt versions 5.4.2 and
 5.6.2.
 
 ## OpenSSL
@@ -32,10 +32,10 @@ the Story's "beat" in order to cover it.  Local text files and REST API
 Reporters are included; others can be created.
 
 Stories can be grouped into Series.  A Series is a collection of related
-Stories (think: TeamCity builds).  Aside from being an organizing tool,
+Stories (e.g., TeamCity builders).  Aside from being an organizing tool,
 Series maintain settings that will be applied to all Stories they are
-assigned.  As of this writing, the Dashboard "compact" settings are now
-per-Series instead of global, meaning you can have Dashboards grouped by
+assigned.  For example, as of this writing, the Dashboard "compact" settings
+are per-Series instead of global, meaning you can have Dashboards grouped by
 Series that are "compact" and others in other Series that are not.
 
 Reporters only know how to file a text report about some recent activity
@@ -52,11 +52,12 @@ can also be "glued" to the desktop, so they are always at the bottom of the
 visible Z-order and will not raise, even if explicitly clicked on by the user.
 
 A particular kind of Chyron "entry" type (which is really more of a grouping
-type) is available, called a "Dashboard".  This "entry" type will group one
-or more Chyron displays into a common group id, where each entry monitors a
-single activity.  This type is handy for employing the TeamCity9 Reporter for
-monitoring multiple builders and their builds.  "Dashboard" types can also be
-"compacted" to provide thousand-foot views of monitored activities.
+type) is the "Dashboard".  This "entry" type will group one or more Chyron
+displays into a common group id, where each entry monitors a single activity.
+This type is handy for displaying a Series of related elements--TeamCity9
+builds, Transmission torrents, etc..  "Dashboard" types can also be "compacted"
+to provide thousand-foot views of monitored activities for saving on screen
+space.
 
 Most GUI items have descriptive tooltips to help you understand their function.
 
@@ -67,8 +68,9 @@ which I am not completely satisfied, and there are some additions I am planning
 to make (e.g., I don't like the available "entry" types for use with incremental
 log monitoring).
 
-In other words, don't be surprised if I change something later that might end up
-being incompatible with your established Stories.
+In other words, I'll try my best to provide a migration path, but don't be
+surprised if I change something later that might end up being incompatible with
+your established Stories.
 
 Some things are not yet hooked up.  For example, auto-start does not yet work.
 
@@ -95,7 +97,7 @@ might be hung).  Styles are in priority order in the list, with "Default"
 having the highest position.  If you have one with a "finish" trigger ahead of
 one with "error", and both keywords appear in the same Headline text, the
 stylesheet for "finish" will be used and not "error".  Plan your styles and
-their relationships to one another carefully.
+their relationships to one another accordingly.
 
 Series can be created by double-clicking on the "Default" series to rename it.
 There is always a "Default" Series to capture all newly added Stories, so
@@ -179,7 +181,7 @@ sharing ratio of 1.0 (100%):
 
 ![snap8](https://cloud.githubusercontent.com/assets/4536448/23098833/a39fb554-f615-11e6-9e1a-98ddbf9cd6f1.png)
 
-As of this writing, Transmission lacks a real REST interface, so the
+As of this writing, Transmission lacks an actual REST interface, so the
 Transmission Reporter includes a "helper", written in Python, that will
 provide a listing of the current Transmission queue so Newsroom can consume
 and display its state.  I've also included an init.d system file for
