@@ -14,7 +14,7 @@ Transmission::Transmission(QObject *parent)
     : owner_draw(true),
       my_slot(1),
       max_ratio(0.0f),
-      poll_timeout(10),
+      poll_timeout(60),
       IReporter2(parent)
 {
     report_template << "Slot <b>${SLOT}</b>";
@@ -88,7 +88,7 @@ QStringList Transmission::Requires(int /*version*/) const
     // "simple" requirements format
 
     // parameter names ending with an asterisk are required
-    definitions << "Slot to monitor:" << "int:1"
+    definitions << "Slot to monitor:" << "integer:1"
 
                 // how many seconds between polls? (default: 60)
                 << "Polling (sec):"   << QString("integer:%1").arg(poll_timeout)
@@ -180,6 +180,10 @@ bool Transmission::UseReporterDraw() const
     return owner_draw;
 }
 
+const int SteelBlue4Red = 54;
+const int SteelBlue4Green = 100;
+const int SteelBlue4Blue = 139;
+
 const int LightSkyBlueRed = 135;
 const int LightSkyBlueGreen = 206;
 const int LightSkyBlueBlue = 250;
@@ -202,7 +206,7 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
     if(latest_status.isEmpty())
     {
-        td.setHtml("(<b>Pending</b>)");
+        td.setHtml(tr("(Slot #%1: <b>Pending</b>)").arg(my_slot));
         QSizeF doc_size = td.documentLayout()->documentSize();
 
         painter.save();
@@ -228,7 +232,7 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
     // "2", there will eventually be three ellipses, one for completeness,
     // and two for the pair of 100% sharing factors.
 
-    QColor done_color(RosyBrownRed, RosyBrownGreen, RosyBrownBlue);
+    QColor done_color(SteelBlue4Red, SteelBlue4Green, SteelBlue4Blue);
 
     int done_angle = 0;
     QString value = report_map["DONE"];
@@ -269,7 +273,10 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
           painter.drawPie(ellipse_rect, 90*16, -(ratio * 360)*16);
         painter.restore();
 
-        ratio_color = ratio_color.darker(115);
+        if(max_ratio != 0.0f)
+            ratio_color = ratio_color.darker(140);
+        else
+            ratio_color = ratio_color.darker(125);
         ratio -= 1.0f;
     }
 

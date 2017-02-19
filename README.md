@@ -177,7 +177,7 @@ torrent that has been downloaded.  Subsequence inner ellipses indicate the
 sharing ratio of the torrent.  Each concentric inner ellipse represents a
 sharing ratio of 1.0 (100%):
 
-![snap8](https://cloud.githubusercontent.com/assets/4536448/23097786/d5f7e85c-f5fa-11e6-892e-db6b43d7b115.png)
+![snap8](https://cloud.githubusercontent.com/assets/4536448/23098833/a39fb554-f615-11e6-9e1a-98ddbf9cd6f1.png)
 
 As of this writing, Transmission lacks a real REST interface, so the
 Transmission Reporter includes a "helper", written in Python, that will
