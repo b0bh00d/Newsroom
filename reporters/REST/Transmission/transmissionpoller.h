@@ -37,7 +37,7 @@ class TRANSMISSIONSHARED_EXPORT TransmissionPoller : public QObject
 {
     Q_OBJECT
 public:
-    TransmissionPoller(const QUrl& target, int timeout, QObject* parent = nullptr);
+    TransmissionPoller(const QUrl& target, int timeout, int flags = 0, QObject* parent = nullptr);
     ~TransmissionPoller();
 
     // this filtering mechanism is used because Qt does not provide
@@ -158,6 +158,10 @@ private:    // data members
     ProjectsMap projects;
 
     InterestedList  interested_parties;
+
+    bool        ignore_finished;
+    bool        ignore_stopped;
+    bool        ignore_idle;
 };
 
 SPECIALIZE_SHAREDPTR(TransmissionPoller, Poller)        // "PollerPointer"

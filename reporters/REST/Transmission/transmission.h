@@ -63,6 +63,9 @@ private:    // typedefs and enums
     typedef enum
     {
         Slot,
+        IgnoreFinished,
+        IgnoreStopped,
+        IgnoreIdle,
         Poll,
         Template,
         Count,
@@ -77,6 +80,10 @@ private:    // methods
 
 private:    // data members
     bool        owner_draw;
+    bool        ignore_finished;
+    bool        ignore_stopped;
+    bool        ignore_idle;
+
     int         my_slot;
     float       max_ratio;
     int         poll_timeout;
@@ -99,6 +106,6 @@ private:    // class-static data
     SPECIALIZE_MAP(QUrl, PollerData, Poller)            // "PollerMap"
 
     static  PollerMap       poller_map;
-    static  PollerPointer   acquire_poller(const QUrl& target, int timeout);
+    static  PollerPointer   acquire_poller(const QUrl& target, int timeout, int flags = 0);
     static  void            release_poller(const QUrl& target);
 };

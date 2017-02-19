@@ -3,11 +3,14 @@
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
-TransmissionPoller::TransmissionPoller(const QUrl& target, int timeout, QObject *parent)
+TransmissionPoller::TransmissionPoller(const QUrl& target, int timeout, int flags, QObject *parent)
     : target(target),
       QNAM(nullptr),
       poll_timer(nullptr),
       poll_timeout(timeout),
+      ignore_finished((flags & Interest::IgnoreFinished) != 0),
+      ignore_stopped((flags & Interest::IgnoreStopped) != 0),
+      ignore_idle((flags & Interest::IgnoreIdle) != 0),
       QObject(parent)
 {
     QNAM = new QNetworkAccessManager(this);
@@ -235,10 +238,22 @@ void TransmissionPoller::process_client_status(const QJsonObject& status, const 
             maxratio = (float)status["maxratio"].toDouble();
         QJsonArray slots_ = status["slots"].toArray();
 
+        int slot_no = 1;
         for(int i = 0;i < count;++i)
         {
             QJsonObject slot = slots_.at(i).toObject();
-            notify_interested_parties(slot["slot"].toInt(), slot, maxratio);
+            QString status(slot["status"].toString());
+            if(ignore_finished && !slot["status"].toString().toLower().compare("finished"))
+                continue;
+            if(ignore_stopped && !slot["status"].toString().toLower().compare("stopped"))
+                continue;
+            if(ignore_idle && !slot["status"].toString().toLower().compare("idle"))
+                continue;
+
+            QJsonValue value(slot_no);
+            slot.insert("slot", value);
+
+            notify_interested_parties(slot_no++, slot, maxratio);
         }
     }
 }

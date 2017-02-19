@@ -15,6 +15,9 @@ Transmission::Transmission(QObject *parent)
       my_slot(1),
       max_ratio(0.0f),
       poll_timeout(60),
+      ignore_finished(false),
+      ignore_stopped(false),
+      ignore_idle(false),
       IReporter2(parent)
 {
     report_template << "Slot <b>${SLOT}</b>";
@@ -109,6 +112,15 @@ bool Transmission::SetRequirements(const QStringList& parameters)
             my_slot = 1;
     }
 
+    if(parameters.count() > Param::IgnoreFinished && !parameters[Param::IgnoreFinished].isEmpty())
+        ignore_finished = !parameters[Param::IgnoreFinished].toLower().compare("true");
+
+    if(parameters.count() > Param::IgnoreStopped && !parameters[Param::IgnoreStopped].isEmpty())
+        ignore_stopped = !parameters[Param::IgnoreStopped].toLower().compare("true");
+
+    if(parameters.count() > Param::IgnoreIdle && !parameters[Param::IgnoreIdle].isEmpty())
+        ignore_idle = !parameters[Param::IgnoreIdle].toLower().compare("true");
+
     if(parameters.count() > Param::Poll && !parameters[Param::Poll].isEmpty())
         poll_timeout = parameters[Param::Poll].toInt();
 
@@ -132,7 +144,15 @@ bool Transmission::CoverStory()
 {
     error_message.clear();
 
-    poller = acquire_poller(story, poll_timeout);
+    int flags = 0;
+    if(ignore_finished)
+        flags |= Interest::IgnoreFinished;
+    if(ignore_stopped)
+        flags |= Interest::IgnoreStopped;
+    if(ignore_idle)
+        flags |= Interest::IgnoreIdle;
+
+    poller = acquire_poller(story, poll_timeout, flags);
     if(poller.isNull())
         return false;
 
@@ -143,8 +163,7 @@ bool Transmission::CoverStory()
     // signals and slots at runtime--we can't construct signals/slots for
     // specific project/builder combinations.
 
-    int flags = 0;
-    poller->add_interest(my_slot, this, flags);
+    poller->add_interest(my_slot, this);
 
     // do an initial "idle" Headline
     QString status = QString("Slot #<b>%1</b>").arg(my_slot);
@@ -206,7 +225,7 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
     if(latest_status.isEmpty())
     {
-        td.setHtml(tr("(Slot #%1: <b>Pending</b>)").arg(my_slot));
+        td.setHtml(tr("(Slot #%1: <b>Available</b>)").arg(my_slot));
         QSizeF doc_size = td.documentLayout()->documentSize();
 
         painter.save();
@@ -373,12 +392,12 @@ QString Transmission::capitalize(const QString& str)
     return tmp;
 }
 
-PollerPointer Transmission::acquire_poller(const QUrl& target, int timeout)
+PollerPointer Transmission::acquire_poller(const QUrl& target, int timeout, int flags)
 {
     if(!poller_map.contains(target))
     {
         PollerData pd;
-        pd.poller = PollerPointer(new TransmissionPoller(target, timeout));
+        pd.poller = PollerPointer(new TransmissionPoller(target, timeout, flags));
         poller_map[target] = pd;
     }
 
