@@ -175,7 +175,7 @@ is available for monitoring the state of torrents currently queued in a
 Transmission instance.
 
 In the image below, the outermost ellipse indicates the total amount of the
-torrent that has been downloaded.  Subsequence inner ellipses indicate the
+torrent that has been downloaded.  Subsequent inner ellipses indicate the
 sharing ratio of the torrent.  Each concentric inner ellipse represents a
 sharing ratio of 1.0 (100%):
 
