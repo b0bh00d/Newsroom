@@ -80,6 +80,22 @@ private:    // typedefs and enums
         Sun
     };
 
+    enum
+    {
+        Jan = 1,    // values returned by QDate::month()
+        Feb,
+        Mar,
+        Apr,
+        May,
+        Jun,
+        Jul,
+        Aug,
+        Sep,
+        Oct,
+        Nov,
+        Dec
+    };
+
     typedef enum
     {
         Ticker,
@@ -148,6 +164,7 @@ private slots:
     void            slot_headline_sleep();
 
 private:    // methods
+    int             market_holiday_offset();
     QString         format_duration(int seconds);
     void            populate_report_map(ReportMap& report_map, ChartDataPointer chart_data);
     QString         render_report(const ReportMap& report_map, const QStringList& report_template);

@@ -689,6 +689,141 @@ QString YahooChartAPI::format_duration(int seconds)
     return duration;
 }
 
+int YahooChartAPI::market_holiday_offset()
+{
+    QDateTime now = QDateTime::currentDateTime();
+    QDate today = now.date();
+
+    if(today.month() == Jan)
+    {
+        // "New Years Day"/"Martin Luther King, Jr. Day"
+
+        if(today.day() == 1)
+            return 1;   // "New Years Day"
+
+        // "Martin Luther King, Jr. Day" is third Monday in January
+        if(today.dayOfWeek() == Mon)
+        {
+            int mondays = 0;
+            QDate jan(today.year(), today.month(), 1);
+            while(jan <= today)
+            {
+                if(jan.dayOfWeek() == Mon)
+                    ++mondays;
+                jan = jan.addDays(1);
+            }
+
+            return mondays == 3 ? 1 : 0;
+        }
+    }
+
+    else if(today.month() == Feb)
+    {
+        // "President's Day" is third Monday in January
+        if(today.dayOfWeek() == Mon)
+        {
+            int mondays = 0;
+            QDate feb(today.year(), today.month(), 1);
+            while(feb <= today)
+            {
+                if(feb.dayOfWeek() == Mon)
+                    ++mondays;
+                feb = feb.addDays(1);
+            }
+
+            return mondays == 3 ? 1 : 0;
+        }
+    }
+
+    else if(today.month() == Mar)
+    {
+        // "Good Friday"
+        if((today.year() == 2018 && today.day() == 30) ||
+           (today.year() == 2024 && today.day() == 29))
+            return 1;
+    }
+
+    else if(today.month() == Apr)
+    {
+        // "Good Friday"
+        if((today.year() == 2017 && today.day() == 14) ||
+           (today.year() == 2019 && today.day() == 19) ||
+           (today.year() == 2020 && today.day() == 10) ||
+           (today.year() == 2021 && today.day() == 2) ||
+           (today.year() == 2022 && today.day() == 15) ||
+           (today.year() == 2023 && today.day() == 7))
+            return 1;
+    }
+
+    else if(today.month() == May)
+    {
+        // "Memorial Day" is last Monday in May
+        if(today.dayOfWeek() == Mon)
+        {
+            int mondays = 0;    // if this is > 1 when we're done, then this is not the last Monday
+            while(today.month() == May)
+            {
+                if(today.dayOfWeek() == Mon)
+                    ++mondays;
+                today = today.addDays(1);
+            }
+
+            return mondays == 1 ? 1 : 0;
+        }
+    }
+
+    else if(today.month() == Jul)
+    {
+        // "Independence Day" is July 4th
+        if(today.day() == 4)// && (today.dayOfWeek() >= Mon && today.dayOfWeek() <= Fri))
+            return 1;
+    }
+
+    else if(today.month() == Sep)
+    {
+        // "Labor Day" is first Monday in September
+        if(today.dayOfWeek() == Mon)
+        {
+            int mondays = 0;
+            QDate sep(today.year(), today.month(), 1);
+            while(sep <= today)
+            {
+                if(sep.dayOfWeek() == Mon)
+                    ++mondays;
+                sep = sep.addDays(1);
+            }
+
+            return mondays == 1 ? 1 : 0;
+        }
+    }
+
+    else if(today.month() == Nov)
+    {
+        // "Thanksgiving Day" is fourth Thursday in November
+        if(today.dayOfWeek() == Thu)
+        {
+            int thursdays = 0;
+            QDate nov(today.year(), today.month(), 1);
+            while(nov <= today)
+            {
+                if(nov.dayOfWeek() == Mon)
+                    ++thursdays;
+                nov = nov.addDays(1);
+            }
+
+            return thursdays == 4 ? 1 : 0;
+        }
+    }
+
+    else if(today.month() == Dec)
+    {
+        if(today.day() == 25)// && (today.dayOfWeek() >= Mon && today.dayOfWeek() <= Fri))
+            return 1;
+    }
+
+    return 0;
+}
+
 void YahooChartAPI::ticker_update(const QString& status)
 {
     // 'status' is in CSV format
@@ -807,15 +942,19 @@ void YahooChartAPI::ticker_update(const QString& status)
         // QDateTime seems to be adjusting the time_t values automatically
         // for the local gmtoffset, so we don't have to do it ourselves
 
+        int holiday_offset = market_holiday_offset();
+
         QDateTime open_datetime = QDateTime::fromTime_t(chart_data->open_timestamp);
         QTime open_time = open_datetime.time();
 
-        // account for weekends when the market is closed
+        // account for weekends when the market is closed (we also account
+        // for market holidays)
+
         int dow = close_datetime.date().dayOfWeek();
-        chart_data->next_open = open_datetime.addDays((dow < Fri) ? 1 : 3).toLocalTime();
+        chart_data->next_open = open_datetime.addDays(holiday_offset + ((dow < Fri) ? 1 : 3)).toLocalTime();
 
         // do we need to sleep until the market is actually open?
-        if(my_time < open_time || my_time > close_time)
+        if(holiday_offset || my_time < open_time || my_time > close_time)
         {
             int seconds_till_open = chart_data->next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
             QString duration = format_duration(seconds_till_open);
@@ -872,7 +1011,7 @@ void YahooChartAPI::ticker_update(const QString& status)
             // we need to sleep until the market is open again
 
             QDateTime open_datetime = QDateTime::fromTime_t(chart_data->open_timestamp);
-            QDateTime next_open = open_datetime.addDays(1).toLocalTime();
+            QDateTime next_open = open_datetime.addDays(market_holiday_offset() + 1).toLocalTime();
             int seconds_till_open = next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
 
             QStringList wait_template;
