@@ -257,11 +257,15 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
     QColor done_color(SteelBlue4Red, SteelBlue4Green, SteelBlue4Blue);
 
+    int done_amount = 0;
     int done_angle = 0;
     QString value = report_map["DONE"];
     QRegExp regex("(\\d+)%");
     if(regex.indexIn(value) != -1)
-        done_angle = (int)(360 * (regex.cap(1).toInt() / 100.0f) * -1);
+    {
+        done_amount = regex.cap(1).toInt();
+        done_angle = (int)(360 * (done_amount / 100.0f) * -1);
+    }
 
     int diameter = bounds.height() - (bounds.height() * .05);
     QRect ellipse_rect(bounds.left(), bounds.top(), diameter, diameter);
@@ -274,18 +278,18 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
     QColor ratio_color(LightSkyBlueRed, LightSkyBlueGreen, LightSkyBlueBlue);
 
-    // if we know the max sharing ratio, then we will adjust the reduction
-    // based on it; otherwise, we do a more conservative reduction and hope
-    // they aren't crazy generous (and we run out of slices)...
-
-    int reduction = diameter * 0.08;
-    if(max_ratio != 0.0f)
-    {
-        int slices = round(max_ratio + 0.5f);
-        reduction = diameter / (slices + 3);
-    }
+    // "share" indicators are scaled by the level of sharing.
 
     float ratio = report_map["RATIO"].toFloat();
+    int slices = 2;
+    while(ratio > 1.0f)
+    {
+        ++slices;
+        ratio -= 1.0f;
+    }
+    int reduction = (diameter / 2) / slices;
+
+    ratio = report_map["RATIO"].toFloat();
     while(ratio > 1.0f)
     {
         ellipse_rect.adjust(reduction, reduction, -reduction, -reduction);
@@ -312,13 +316,22 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
     painter.restore();
 
     QString status(report_map["STATUS"]);
+    bool is_active = (status.toLower().compare("finished") && status.toLower().compare("stopped"));
     QString name(report_map["NAME"]);
     QString label = QString("%1: <i>%2</i>").arg(status).arg(name);
+    if(is_active)
+    {
+        label = QString("%1<br>&#8593; %2").arg(label).arg(report_map["UP"]);
+        if(done_amount < 100)
+            label = QString("%1 &#8595; %2").arg(label).arg(report_map["DOWN"]);
+    }
     td.setHtml(label);
+
+    // elide the text until it fits
 
     int left_margin = diameter + (bounds.width() * 0.03);
     int text_width = bounds.width() - left_margin;
-    QSizeF doc_size = td.documentLayout()->documentSize();
+    QSizeF doc_size;
     for(;;)
     {
         doc_size = td.documentLayout()->documentSize();
@@ -326,6 +339,12 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
             break;
         name = QString("%1...").arg(name.left(name.length() - 4));
         label = QString("%1: <i>%2</i>").arg(status).arg(name);
+        if(is_active)
+        {
+            label = QString("%1<br>&#8593; %2").arg(label).arg(report_map["UP"]);
+            if(done_amount < 100)
+                label = QString("%1 &#8595; %2").arg(label).arg(report_map["DOWN"]);
+        }
         td.setHtml(label);
     }
 
