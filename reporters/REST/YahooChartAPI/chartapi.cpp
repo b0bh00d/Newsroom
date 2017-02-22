@@ -640,9 +640,9 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
             const TickPair& p = chart_data->history.front();
             if(p.second < volume_min)
-                  painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.bottom()));
+                  painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.bottom() - 1));
             else if(p.second > volume_max)
-                  painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.top()));
+                  painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.top() + 1));
             painter.restore();
         }
 
@@ -653,9 +653,9 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
             painter.setPen(QPen(painter.pen().color().darker(), 1, Qt::DashLine));
 
             if(chart_data->previous_close < volume_min)
-                painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.bottom()));
+                painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.bottom() - 1));
             else if(chart_data->previous_close > volume_max)
-                painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.top()));
+                painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.top() + 1));
 
             painter.restore();
         }
@@ -698,8 +698,11 @@ int YahooChartAPI::market_holiday_offset()
     {
         // "New Years Day"/"Martin Luther King, Jr. Day"
 
-        if(today.day() == 1)
-            return 1;   // "New Years Day"
+        if(today.day() == 2 && today.dayOfWeek() == Mon)
+            return 1;   // fell on a Sunday this year; assume Monday closed
+        // Note: the Saturday case for "New Years" is handled in December
+        if(today.day() == 1 && today.dayOfWeek() >= Mon && today.dayOfWeek() <= Fri)
+            return 1;
 
         // "Martin Luther King, Jr. Day" is third Monday in January
         if(today.dayOfWeek() == Mon)
@@ -775,6 +778,10 @@ int YahooChartAPI::market_holiday_offset()
     else if(today.month() == Jul)
     {
         // "Independence Day" is July 4th
+        if(today.day() == 5 && today.dayOfWeek() == Mon)
+            return 1;
+        if(today.day() == 3 && today.dayOfWeek() == Fri)
+            return 1;
         if(today.day() == 4)// && (today.dayOfWeek() >= Mon && today.dayOfWeek() <= Fri))
             return 1;
     }
@@ -817,8 +824,17 @@ int YahooChartAPI::market_holiday_offset()
 
     else if(today.month() == Dec)
     {
-        if(today.day() == 25)// && (today.dayOfWeek() >= Mon && today.dayOfWeek() <= Fri))
+        // "Christmas"
+        if(today.day() == 26 && today.dayOfWeek() == Mon)
+            return 1;       // fell on a Sunday this year; assume Monday closed
+        if(today.day() == 24 && today.dayOfWeek() == Fri)
+            return 1;       // falls on a Saturday this year; assume Friday closed
+        if(today.day() == 25 && today.dayOfWeek() >= Mon && today.dayOfWeek() <= Fri)
             return 1;
+
+        // "New Years"
+        if(today.day() == 31 && today.dayOfWeek() == Fri)
+            return 1;       // falls on Saturday this year; assume Friday closed
     }
 
     return 0;
