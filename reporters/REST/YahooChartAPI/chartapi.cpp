@@ -632,6 +632,44 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
             last_point.setY(graph_bounds.bottom() - volume_offset);
         }
 
+        // if both indicators are off the screen, and they are both on the
+        // same side, offset the X so they can both be visible instead of
+        // drawing on top of each other
+
+        int open_x_offset = 0;
+        int close_x_offset = 0;
+
+        if(chart_data->history.length())
+        {
+            const TickPair& p = chart_data->history.front();
+            if(p.second < volume_min)
+            {
+                // opening indicator is offscreen below
+                if(chart_data->previous_close_point.isNull())
+                {
+                    if(chart_data->previous_close < volume_min)
+                    {
+                        // closing indicator is offscreen below
+                        open_x_offset = -1;
+                        close_x_offset = 1;
+                    }
+                }
+            }
+            else if(p.second > volume_max)
+            {
+                // opening indicator is offscreen above
+                if(chart_data->previous_close_point.isNull())
+                {
+                    if(chart_data->previous_close > volume_max)
+                    {
+                        // closing indicator is offscreen above
+                        open_x_offset = -1;
+                        close_x_offset = 1;
+                    }
+                }
+            }
+        }
+
         // draw a line to the opening indicator, if it is off the screen
         if(chart_data->history.length())
         {
@@ -640,9 +678,9 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
             const TickPair& p = chart_data->history.front();
             if(p.second < volume_min)
-                  painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.bottom() - 1));
+                painter.drawLine(last_point,QPoint(last_point.x() + open_x_offset, graph_bounds.bottom() - 1));
             else if(p.second > volume_max)
-                  painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.top() + 1));
+                painter.drawLine(last_point,QPoint(last_point.x() + open_x_offset, graph_bounds.top() + 1));
             painter.restore();
         }
 
@@ -653,9 +691,9 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
             painter.setPen(QPen(painter.pen().color().darker(), 1, Qt::DashLine));
 
             if(chart_data->previous_close < volume_min)
-                painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.bottom() - 1));
+                painter.drawLine(last_point,QPoint(last_point.x() + close_x_offset, graph_bounds.bottom() - 1));
             else if(chart_data->previous_close > volume_max)
-                painter.drawLine(last_point,QPoint(last_point.x(), graph_bounds.top() + 1));
+                painter.drawLine(last_point,QPoint(last_point.x() + close_x_offset, graph_bounds.top() + 1));
 
             painter.restore();
         }

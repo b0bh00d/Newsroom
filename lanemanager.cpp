@@ -41,7 +41,6 @@ void LaneManager::subscribe(Chyron* chyron)
 
         if(dashboard_group.isNull())
         {
-
             int w = 0;
             int h = 0;
             story_info->get_dimensions(w, h);
