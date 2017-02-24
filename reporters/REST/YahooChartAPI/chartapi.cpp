@@ -707,8 +707,6 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
     }
 
     painter.restore();
-
-    painter.restore();  // Antialiasing
 }
 
 // YahooChartAPI
