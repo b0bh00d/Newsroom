@@ -725,9 +725,22 @@ QString YahooChartAPI::format_duration(int seconds)
     return duration;
 }
 
-int YahooChartAPI::market_holiday_offset()
+QDateTime YahooChartAPI::calculate_next_open(const QDateTime& open_datetime)
 {
-    QDateTime now = QDateTime::currentDateTime();
+    QDateTime next_open = open_datetime.addDays(1);
+
+    // account for weekends and holidays when the market is closed
+
+    while(next_open.date().dayOfWeek() == Sat ||
+          next_open.date().dayOfWeek() == Sun ||
+          is_market_holiday(next_open))
+        next_open = next_open.addDays(1);
+
+    return next_open.toLocalTime();
+}
+
+bool YahooChartAPI::is_market_holiday(const QDateTime& now)
+{
     QDate today = now.date();
 
     if(today.month() == Jan)
@@ -981,6 +994,11 @@ void YahooChartAPI::ticker_update(const QString& status)
     QDateTime now = QDateTime::currentDateTime();
     QTime my_time = now.time();
 
+    // QDateTime seems to be adjusting the time_t values automatically
+    // for the local gmtoffset, so we don't have to do it ourselves
+
+    QDateTime open_datetime = QDateTime::fromTime_t(chart_data->open_timestamp);
+    QTime open_time = open_datetime.time();
     QDateTime close_datetime = QDateTime::fromTime_t(chart_data->close_timestamp);
     QTime close_time = close_datetime.time();
 
@@ -991,22 +1009,10 @@ void YahooChartAPI::ticker_update(const QString& status)
         // no reason to keep asking for data.  we'll "go to sleep" until
         // the market is supposed to be open.
 
-        // QDateTime seems to be adjusting the time_t values automatically
-        // for the local gmtoffset, so we don't have to do it ourselves
-
-        int holiday_offset = market_holiday_offset();
-
-        QDateTime open_datetime = QDateTime::fromTime_t(chart_data->open_timestamp);
-        QTime open_time = open_datetime.time();
-
-        // account for weekends when the market is closed (we also account
-        // for market holidays)
-
-        int dow = close_datetime.date().dayOfWeek();
-        chart_data->next_open = open_datetime.addDays(holiday_offset + ((dow < Fri) ? 1 : 3)).toLocalTime();
+        chart_data->next_open = calculate_next_open(open_datetime);
 
         // do we need to sleep until the market is actually open?
-        if(holiday_offset || my_time < open_time || my_time > close_time)
+        if(now.date() != chart_data->next_open.date() || my_time < open_time || my_time > close_time)
         {
             int seconds_till_open = chart_data->next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
             QString duration = format_duration(seconds_till_open);
@@ -1062,8 +1068,8 @@ void YahooChartAPI::ticker_update(const QString& status)
         {
             // we need to sleep until the market is open again
 
-            QDateTime open_datetime = QDateTime::fromTime_t(chart_data->open_timestamp);
-            QDateTime next_open = open_datetime.addDays(market_holiday_offset() + 1).toLocalTime();
+            QDateTime next_open = calculate_next_open(open_datetime);
+
             int seconds_till_open = next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
 
             QStringList wait_template;

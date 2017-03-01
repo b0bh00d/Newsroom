@@ -164,11 +164,12 @@ private slots:
     void            slot_headline_sleep();
 
 private:    // methods
-    int             market_holiday_offset();
+    bool            is_market_holiday(const QDateTime &now);
     QString         format_duration(int seconds);
     void            populate_report_map(ReportMap& report_map, ChartDataPointer chart_data);
     QString         render_report(const ReportMap& report_map, const QStringList& report_template);
     QString         capitalize(const QString& str);
+    QDateTime       calculate_next_open(const QDateTime &open_datetime);
 
 private:    // data members
     QString     ticker;
