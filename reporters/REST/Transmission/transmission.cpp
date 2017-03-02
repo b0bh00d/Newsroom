@@ -14,10 +14,11 @@ Transmission::Transmission(QObject *parent)
     : owner_draw(true),
       my_slot(1),
       max_ratio(0.0f),
-      poll_timeout(10),
+      poll_timeout(5),          // match the Transmission web interface
       ignore_finished(false),
       ignore_stopped(false),
       ignore_idle(false),
+      ignore_empty(false),
       IReporter2(parent)
 {
     report_template << "Slot <b>${SLOT}</b>";
@@ -93,9 +94,10 @@ QStringList Transmission::Requires(int /*version*/) const
     // parameter names ending with an asterisk are required
     definitions << "Slot to monitor:" << "integer:1"
 
-                << "Ignore 'Finished' torrents" << QString("check:%1").arg(ignore_finished ? "true" : "false")
-                << "Ignore 'Stopped' torrents" << QString("check:%1").arg(ignore_stopped ? "true" : "false")
-                << "Ignore 'Idle' torrents" << QString("check:%1").arg(ignore_idle ? "true" : "false")
+                << "Hide 'Finished' torrents" << QString("check:%1").arg(ignore_finished ? "true" : "false")
+                << "Hide 'Stopped' torrents" << QString("check:%1").arg(ignore_stopped ? "true" : "false")
+                << "Hide 'Idle' torrents" << QString("check:%1").arg(ignore_idle ? "true" : "false")
+                << "Hide unassigned slots" << QString("check:%1").arg(ignore_empty ? "true" : "false")
 
                 // how many seconds between polls? (default: 60)
                 << "Polling (sec):"   << QString("integer:%1").arg(poll_timeout)
@@ -124,6 +126,9 @@ bool Transmission::SetRequirements(const QStringList& parameters)
 
     if(parameters.count() > Param::IgnoreIdle && !parameters[Param::IgnoreIdle].isEmpty())
         ignore_idle = !parameters[Param::IgnoreIdle].toLower().compare("true");
+
+    if(parameters.count() > Param::IgnoreEmpty && !parameters[Param::IgnoreEmpty].isEmpty())
+        ignore_empty = !parameters[Param::IgnoreEmpty].toLower().compare("true");
 
     if(parameters.count() > Param::Poll && !parameters[Param::Poll].isEmpty())
         poll_timeout = parameters[Param::Poll].toInt();
@@ -229,7 +234,7 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
     if(latest_status.isEmpty())
     {
-        td.setHtml(tr("(Slot #%1: <b>Available</b>)").arg(my_slot));
+        td.setHtml(tr("(Slot #%1: <b>Empty</b>)").arg(my_slot));
         QSizeF doc_size = td.documentLayout()->documentSize();
 
         painter.save();
@@ -240,105 +245,93 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
         td.documentLayout()->draw(&painter, ctx);
 
         painter.restore();
-
-        return;
     }
-
-    painter.setClipRect(bounds);
-
-    // draw an ellipse with angle indicators.
-    //
-    // the top (outermost) ellipse indicates how much of the torrent we
-    // have ("DONE"). concentric inner ellipses indicate multiples of
-    // the sharing amount ("RATIO"), with each complete ellipse representing
-    // a sharing factor of 100%.  so, for a torrent with a sharing factor of
-    // "2", there will eventually be three ellipses, one for completeness,
-    // and two for the pair of 100% sharing factors.
-
-    QColor done_color(SteelBlue4Red, SteelBlue4Green, SteelBlue4Blue);
-
-    int done_amount = 0;
-    int done_angle = 0;
-    QString value = report_map["DONE"];
-    QRegExp regex("(\\d+)%");
-    if(regex.indexIn(value) != -1)
+    else
     {
-        done_amount = regex.cap(1).toInt();
-        done_angle = (int)(360 * (done_amount / 100.0f) * -1);
-    }
+        painter.setClipRect(bounds);
 
-    int diameter = bounds.height() - (bounds.height() * .05);
-    QRect ellipse_rect(bounds.left(), bounds.top(), diameter, diameter);
-    painter.save();
-      painter.setPen(done_color);
-      painter.drawEllipse(ellipse_rect);
-      painter.setBrush(QBrush(done_color));
-      painter.drawPie(ellipse_rect, 90*16, -(done_angle - 90)*16);
-    painter.restore();
+        // draw an ellipse with angle indicators.
+        //
+        // the top (outermost) ellipse indicates how much of the torrent we
+        // have ("DONE"). concentric inner ellipses indicate multiples of
+        // the sharing amount ("RATIO"), with each complete ellipse representing
+        // a sharing factor of 100%.  so, for a torrent with a sharing factor of
+        // "2", there will eventually be three ellipses, one for completeness,
+        // and two for the pair of 100% sharing factors.
 
-    QColor ratio_color(LightSkyBlueRed, LightSkyBlueGreen, LightSkyBlueBlue);
+        QColor done_color(SteelBlue4Red, SteelBlue4Green, SteelBlue4Blue);
+        QColor ratio_color(LightSkyBlueRed, LightSkyBlueGreen, LightSkyBlueBlue);
 
-    // "share" indicators are scaled by the level of sharing.
+        int done_amount = 0;
+        int done_angle = 0;
+        QString value = report_map["DONE"];
+        QRegExp regex("(\\d+)%");
+        if(regex.indexIn(value) != -1)
+        {
+            done_amount = regex.cap(1).toInt();
+            done_angle = (int)(360 * (done_amount / 100.0f));
+        }
 
-    float ratio = report_map["RATIO"].toFloat();
-    int slices = 2;
-    while(ratio > 1.0f)
-    {
-        ++slices;
-        ratio -= 1.0f;
-    }
-    int reduction = (diameter / 2) / slices;
-
-    ratio = report_map["RATIO"].toFloat();
-    while(ratio > 1.0f)
-    {
-        ellipse_rect.adjust(reduction, reduction, -reduction, -reduction);
-
+        int diameter = bounds.height() - (bounds.height() * .05);
+        QRect ellipse_rect(bounds.left(), bounds.top(), diameter, diameter);
         painter.save();
-          painter.setPen(ratio_color);
-          painter.setBrush(QBrush(ratio_color));
-          painter.drawPie(ellipse_rect, 90*16, -(ratio * 360)*16);
+          painter.setPen(done_color);
+          painter.setBrush(QBrush(done_color));
+          painter.drawPie(ellipse_rect, 90*16, -(done_angle*16));
         painter.restore();
+//        if(done_amount < 100)
+//        {
+//            painter.save();
+//              painter.setPen(ratio_color);
+//              painter.setBrush(QBrush(ratio_color));
+//              painter.drawEllipse(ellipse_rect);
+//            painter.restore();
+//        }
 
-        if(max_ratio != 0.0f)
-            ratio_color = ratio_color.darker(140);
-        else
-            ratio_color = ratio_color.darker(125);
-        ratio -= 1.0f;
-    }
+        // "share" indicators are scaled by the level of sharing.
 
-    ellipse_rect.adjust(reduction, reduction, -reduction, -reduction);
+        float ratio = report_map["RATIO"].toFloat();    // 0.0-1.0
+        if(ratio > 0.01f)
+        {
+            int slices = 2;
+            while(ratio > 1.0f)
+            {
+                ++slices;
+                ratio -= 1.0f;
+            }
+            int reduction = (diameter / 2) / slices;
 
-    painter.save();
-      painter.setPen(ratio_color);
-      painter.setBrush(QBrush(ratio_color));
-      painter.drawPie(ellipse_rect, 90*16, -(ratio * 360)*16);
-    painter.restore();
+            ratio = report_map["RATIO"].toFloat();
+            while(ratio > 1.0f)
+            {
+                ellipse_rect.adjust(reduction, reduction, -reduction, -reduction);
 
-    QString status(report_map["STATUS"]);
-    bool is_active = (status.toLower().compare("finished") && status.toLower().compare("stopped"));
-    QString name(report_map["NAME"]);
-    QString label = QString("%1: <i>%2</i>").arg(status).arg(name);
-    if(is_active)
-    {
-        label = QString("%1<br>&#8593; %2").arg(label).arg(report_map["UP"]);
-        if(done_amount < 100)
-            label = QString("%1 &#8595; %2").arg(label).arg(report_map["DOWN"]);
-    }
-    td.setHtml(label);
+                painter.save();
+                  painter.setPen(ratio_color);
+                  painter.setBrush(QBrush(ratio_color));
+                  painter.drawPie(ellipse_rect, 90*16, -(ratio * 360)*16);
+                painter.restore();
 
-    // elide the text until it fits
+                if(max_ratio != 0.0f)
+                    ratio_color = ratio_color.darker(140);
+                else
+                    ratio_color = ratio_color.darker(125);
+                ratio -= 1.0f;
+            }
 
-    int left_margin = diameter + (bounds.width() * 0.03);
-    int text_width = bounds.width() - left_margin;
-    QSizeF doc_size;
-    for(;;)
-    {
-        doc_size = td.documentLayout()->documentSize();
-        if(doc_size.width() < text_width)
-            break;
-        name = QString("%1...").arg(name.left(name.length() - 4));
-        label = QString("%1: <i>%2</i>").arg(status).arg(name);
+            ellipse_rect.adjust(reduction, reduction, -reduction, -reduction);
+
+            painter.save();
+              painter.setPen(ratio_color);
+              painter.setBrush(QBrush(ratio_color));
+              painter.drawPie(ellipse_rect, 90*16, -(ratio * 360)*16);
+            painter.restore();
+        }
+
+        QString status(report_map["STATUS"]);
+        bool is_active = (status.toLower().compare("finished") && status.toLower().compare("stopped"));
+        QString name(report_map["NAME"]);
+        QString label = QString("%1: <i>%2</i>").arg(status).arg(name);
         if(is_active)
         {
             label = QString("%1<br>&#8593; %2").arg(label).arg(report_map["UP"]);
@@ -346,14 +339,35 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
                 label = QString("%1 &#8595; %2").arg(label).arg(report_map["DOWN"]);
         }
         td.setHtml(label);
-    }
 
-    painter.save();
-      painter.translate(bounds.left() + left_margin, bounds.top() + ((bounds.height() - doc_size.height()) / 2));
-      QAbstractTextDocumentLayout::PaintContext ctx;
-      ctx.palette.setColor(QPalette::Text, painter.pen().color());
-      td.documentLayout()->draw(&painter, ctx);
-    painter.restore();
+        // elide the text until it fits
+
+        int left_margin = diameter + (bounds.width() * 0.03);
+        int text_width = bounds.width() - left_margin;
+        QSizeF doc_size;
+        for(;;)
+        {
+            doc_size = td.documentLayout()->documentSize();
+            if(doc_size.width() < text_width)
+                break;
+            name = QString("%1...").arg(name.left(name.length() - 4));
+            label = QString("%1: <i>%2</i>").arg(status).arg(name);
+            if(is_active)
+            {
+                label = QString("%1<br>&#8593; %2").arg(label).arg(report_map["UP"]);
+                if(done_amount < 100)
+                    label = QString("%1 &#8595; %2").arg(label).arg(report_map["DOWN"]);
+            }
+            td.setHtml(label);
+        }
+
+        painter.save();
+          painter.translate(bounds.left() + left_margin, bounds.top() + ((bounds.height() - doc_size.height()) / 2));
+          QAbstractTextDocumentLayout::PaintContext ctx;
+          ctx.palette.setColor(QPalette::Text, painter.pen().color());
+          td.documentLayout()->draw(&painter, ctx);
+        painter.restore();
+    }
 
     painter.restore();  // Antialiasing
 }
@@ -391,8 +405,8 @@ void Transmission::populate_report_map(ReportMap& report_map, const QJsonObject&
     report_map["DOWN"]   = status["down"].toString();
     report_map["RATIO"]  = status["ratio"].toString();
     report_map["STATUS"] = status["status"].toString();
-    if(!report_map["STATUS"].toLower().compare("stopped") && !max_ratio_str.compare(report_map["RATIO"]))
-        report_map["STATUS"] = "Finished";  // consider this complete
+//    if(!report_map["STATUS"].toLower().compare("stopped") && !max_ratio_str.compare(report_map["RATIO"]))
+//        report_map["STATUS"] = "Finished";  // consider this complete
     report_map["NAME"]   = status["name"].toString();
 }
 

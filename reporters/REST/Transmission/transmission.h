@@ -66,6 +66,7 @@ private:    // typedefs and enums
         IgnoreFinished,
         IgnoreStopped,
         IgnoreIdle,
+        IgnoreEmpty,
         Poll,
         Template,
         Count,
@@ -83,6 +84,8 @@ private:    // data members
     bool        ignore_finished;
     bool        ignore_stopped;
     bool        ignore_idle;
+    bool        ignore_empty;
+    bool        active;
 
     int         my_slot;
     float       max_ratio;
