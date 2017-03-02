@@ -209,6 +209,7 @@ void YahooChartAPI::SetStory(const QUrl& url)
 bool YahooChartAPI::CoverStory()
 {
     error_message.clear();
+    last_timestamp = 0;
 
     if(!chart_data.isNull())
         chart_data.clear();
