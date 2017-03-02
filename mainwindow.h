@@ -113,6 +113,7 @@ private:    // data members
 
     bool                auto_start;
     bool                continue_coverage;
+    bool                autostart_coverage;
     bool                edit_story_first_time;
 
     QSystemTrayIcon*    trayIcon;

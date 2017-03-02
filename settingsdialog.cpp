@@ -60,6 +60,11 @@ void SettingsDialog::set_continue_coverage(bool continue_coverage)
     ui->check_ContinueCoverage->setChecked(continue_coverage);
 }
 
+void SettingsDialog::set_autostart_coverage(bool autostart)
+{
+    ui->check_AutoStartCoverage->setChecked(autostart);
+}
+
 void SettingsDialog::set_font(const QFont& font)
 {
     QSignalBlocker blocker(ui->combo_FontFamily);
@@ -151,6 +156,11 @@ bool SettingsDialog::get_autostart()
 bool SettingsDialog::get_continue_coverage()
 {
     return ui->check_ContinueCoverage->isChecked();
+}
+
+bool SettingsDialog::get_autostart_coverage()
+{
+    return ui->check_AutoStartCoverage->isChecked();
 }
 
 QFont SettingsDialog::get_font()

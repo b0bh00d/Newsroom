@@ -25,6 +25,7 @@ public:     // methods
 
     void            set_autostart(bool autostart);
     void            set_continue_coverage(bool continue_coverage);
+    void            set_autostart_coverage(bool autostart);
     void            set_font(const QFont& font);
     void            set_styles(const HeadlineStyleList& style_list);
     void            set_stories(const QList<QString>& stories, const QList<ProducerPointer> producers);
@@ -32,6 +33,7 @@ public:     // methods
 
     bool            get_autostart();
     bool            get_continue_coverage();
+    bool            get_autostart_coverage();
     QFont           get_font();
     void            get_styles(HeadlineStyleList& style_list);
     SeriesInfoList  get_series();

@@ -30,6 +30,7 @@ MainWindow* mainwindow;
 MainWindow::MainWindow(QWidget *parent)
     : auto_start(false),
       continue_coverage(false),
+      autostart_coverage(true),
       edit_story_first_time(true),
       trayIconMenu(0),
       window_geometry_save_enabled(true),
@@ -592,7 +593,7 @@ void MainWindow::dropEvent(QDropEvent* event)
                     story_info->dashboard_compression = (*iter)->compact_compression;
 
                     ProducerPointer producer;
-                    if(cover_story(producer, story_info, CoverageStart::Immediate, reporters_info))
+                    if(cover_story(producer, story_info, autostart_coverage ? CoverageStart::Immediate : CoverageStart::None, reporters_info))
                     {
                         (*iter)->producers.append(producer);
                         story_accepted = true;
@@ -673,6 +674,7 @@ void MainWindow::save_application_settings()
 
     application_settings->set_item("auto_start", auto_start);
     application_settings->set_item("continue_coverage", continue_coverage);
+    application_settings->set_item("autostart_coverage", autostart_coverage);
     application_settings->set_item("chyron.font", headline_font.toString());
 
     application_settings->clear_section("HeadlineStyles");
@@ -743,6 +745,7 @@ void MainWindow::load_application_settings()
 
     auto_start = application_settings->get_item("auto_start", false).toBool();
     continue_coverage = application_settings->get_item("continue_coverage", false).toBool();
+    autostart_coverage = application_settings->get_item("autostart_coverage", true).toBool();
     QFont f = ui->label->font();
     QString font_str = application_settings->get_item("chyron.font", f.toString()).toString();
     if(!font_str.isEmpty())
@@ -1222,6 +1225,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     settings_dlg->set_autostart(auto_start);
     settings_dlg->set_continue_coverage(continue_coverage);
+    settings_dlg->set_autostart_coverage(autostart_coverage);
     settings_dlg->set_font(headline_font);
     settings_dlg->set_styles(*(headline_style_list.data()));
     settings_dlg->set_series(series_ordered);
@@ -1236,9 +1240,10 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 
     if(settings_dlg->exec() == QDialog::Accepted)
     {
-        auto_start                       = settings_dlg->get_autostart();
-        continue_coverage                = settings_dlg->get_continue_coverage();
-        headline_font                    = settings_dlg->get_font();
+        auto_start         = settings_dlg->get_autostart();
+        continue_coverage  = settings_dlg->get_continue_coverage();
+        autostart_coverage = settings_dlg->get_autostart_coverage();
+        headline_font      = settings_dlg->get_font();
         settings_dlg->get_styles(*(headline_style_list.data()));
 
         // get a list of the Story ids that will deleted by the call
