@@ -276,27 +276,16 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
     if(lock_to_max_range)
     {
-        bool update = false;
-
         if(volume_low < volume_min)
-        {
             volume_min = volume_low;
-            update = true;
-        }
         if(volume_high > volume_max)
-        {
             volume_max = volume_high;
-            update = true;
-        }
 
         // keep the indicators accurate on the chart
-        if(update)
-        {
-            chart_data->opening_point.setX(0);
-            chart_data->opening_point.setY(0);
-            chart_data->previous_close_point.setX(0);
-            chart_data->previous_close_point.setY(0);
-        }
+        chart_data->opening_point.setX(0);
+        chart_data->opening_point.setY(0);
+        chart_data->previous_close_point.setX(0);
+        chart_data->previous_close_point.setY(0);
     }
     else
     {
@@ -728,11 +717,13 @@ QString YahooChartAPI::format_duration(int seconds)
 
 QDateTime YahooChartAPI::calculate_next_open(const QDateTime& open_datetime, const QDateTime& close_datetime)
 {
-    QTime close_time = close_datetime.time();
-    QTime my_time = QDateTime::currentDateTime().time();
-
+    QDateTime now = QDateTime::currentDateTime();
     QDateTime next_open = open_datetime;
-    if(my_time > close_time)
+
+    QTime my_time = now.time();
+    QTime close_time = close_datetime.time();
+
+    if(now.date() > open_datetime.date() || my_time > close_time)
         next_open = open_datetime.addDays(1);
 
     // account for weekends and holidays when the market is closed
@@ -1018,7 +1009,7 @@ void YahooChartAPI::ticker_update(const QString& status)
         chart_data->next_open = calculate_next_open(open_datetime, close_datetime);
 
         // do we need to sleep until the market is actually open?
-        if(now.date() != open_datetime.date() && (my_time < open_time || my_time > close_time))
+        if((now.date() == chart_data->next_open.date() && my_time < open_time) || my_time > close_time)
         {
             int seconds_till_open = chart_data->next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
             QString duration = format_duration(seconds_till_open);
