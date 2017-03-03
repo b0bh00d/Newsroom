@@ -1065,15 +1065,15 @@ void YahooChartAPI::ticker_update(const QString& status)
         {
             // we need to sleep until the market is open again
 
-            QDateTime next_open = calculate_next_open(open_datetime, close_datetime);
+            chart_data->next_open = calculate_next_open(open_datetime, close_datetime);
 
-            int seconds_till_open = next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
+            int seconds_till_open = chart_data->next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
 
             QStringList wait_template;
             wait_template << "Ticker: <b>${TICKER}</b> (${ALIAS})";
             wait_template << "Closed: ${TIMESTAMP}";
             wait_template << "Final: ${PREVIOUS_CLOSE} / ${PREVIOUS_CLOSE_OFFSET_AMOUNT} (${PREVIOUS_CLOSE_OFFSET_PERCENTAGE}%)<br>";
-            wait_template << QString("<b>Market closed; re-opens %1</b>").arg(next_open.toString());
+            wait_template << QString("<b>Market closed; re-opens %1</b>").arg(chart_data->next_open.toString());
 
             ReportMap report_map;
             populate_report_map(report_map, chart_data);
