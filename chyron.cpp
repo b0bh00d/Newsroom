@@ -248,6 +248,16 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     if((y + height) > lane_boundaries.bottom())
         lane_boundaries.setBottom(y + height);
 
+    // there's a calculation error somewhere that is causing
+    // the width/height values to exceed the correct values
+    // by 1.  it manifests when Chyrons are animated by the
+    // LaneManager.  until I can track that down, this puts
+    // a band-aid on it.
+
+    // TODO: Locate the 1-off calculation error.
+    lane_boundaries.setWidth(qMin(width + story_info->margin, lane_boundaries.width()));
+    lane_boundaries.setHeight(qMin(height + story_info->margin, lane_boundaries.height()));
+
 #ifdef HIGHLIGHT_LANES
     highlight->setGeometry(lane_boundaries);
     highlight->show();
