@@ -169,7 +169,7 @@ private:    // methods
     void            populate_report_map(ReportMap& report_map, ChartDataPointer chart_data);
     QString         render_report(const ReportMap& report_map, const QStringList& report_template);
     QString         capitalize(const QString& str);
-    QDateTime       calculate_next_open(const QDateTime &open_datetime, const QDateTime &close_datetime);
+    QDateTime       calculate_next_open(const QDateTime &open_datetime, const QDateTime &close_datetime, bool &closed_today);
 
 private:    // data members
     QString     ticker;
