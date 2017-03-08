@@ -15,6 +15,7 @@ CONFIG += C++11
 
 CONFIG(debug, debug|release) {
     #CONFIG += highlight_lanes
+    DEFINES += QT_DEBUG
     DESTDIR = deploy/debug
 } else {
     DESTDIR = deploy/release

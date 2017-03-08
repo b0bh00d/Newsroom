@@ -56,8 +56,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     headline_style_list = StyleListPointer(new HeadlineStyleList());
 
-    application_settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom")
-                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    application_settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom%2")
+                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0])
+#ifdef QT_DEBUG
+                                    .arg("_db")
+#else
+                                    .arg("")
+#endif
+                                    );
     application_settings = SettingsPointer(new SettingsXML("Newsroom", application_settings_file_name));
     application_settings->init();
 
@@ -95,7 +101,11 @@ MainWindow::MainWindow(QWidget *parent)
     ASSERT_UNUSED(connected);
 
     trayIcon->setIcon(QIcon(":/images/Newsroom16.png"));
+#ifdef QT_DEBUG
+    trayIcon->setToolTip(tr("Newsroom_db"));
+#else
     trayIcon->setToolTip(tr("Newsroom"));
+#endif
 
     build_tray_menu();
 
