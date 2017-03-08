@@ -56,21 +56,20 @@ MainWindow::MainWindow(QWidget *parent)
 
     headline_style_list = StyleListPointer(new HeadlineStyleList());
 
-    application_settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom%2")
-                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0])
+    application_settings_folder_name = QDir::toNativeSeparators(QString("%1/Newsroom%2")
+                                    .arg(QStandardPaths::standardLocations(QStandardPaths::GenericConfigLocation)[0])
 #ifdef QT_DEBUG
                                     .arg("_db")
 #else
                                     .arg("")
 #endif
                                     );
+    application_settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom").arg(application_settings_folder_name));
     application_settings = SettingsPointer(new SettingsXML("Newsroom", application_settings_file_name));
     application_settings->init();
 
-    series_folder = QDir::toNativeSeparators(QString("%1/Series")
-                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
-    parameters_base_folder = QDir::toNativeSeparators(QString("%1/Parameters")
-                                    .arg(QStandardPaths::standardLocations(QStandardPaths::ConfigLocation)[0]));
+    series_folder = QDir::toNativeSeparators(QString("%1/Series").arg(application_settings_folder_name));
+    parameters_base_folder = QDir::toNativeSeparators(QString("%1/Parameters").arg(application_settings_folder_name));
     parameters_defaults_folder = QDir::toNativeSeparators(QString("%1/Defaults").arg(parameters_base_folder));
     parameters_stories_folder = QDir::toNativeSeparators(QString("%1/Stories").arg(parameters_base_folder));
 

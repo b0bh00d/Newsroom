@@ -141,6 +141,7 @@ private:    // data members
     BeatsMap            beats;
 
     SettingsPointer     application_settings;
+    QString             application_settings_folder_name;
     QString             application_settings_file_name;
 
     StyleListPointer    headline_style_list;
