@@ -1017,7 +1017,10 @@ void YahooChartAPI::ticker_update(const QString& status)
         chart_data->next_open = calculate_next_open(open_datetime, close_datetime, closed_today);
 
         // do we need to sleep until the market is actually open?
-        if(closed_today || (now.date() == chart_data->next_open.date() && my_time < open_time) || my_time > close_time)
+        if(closed_today ||
+           (now.date() > open_datetime.date()) ||
+           (now.date() == chart_data->next_open.date() && my_time < open_time) ||
+           my_time > close_time)
         {
             int seconds_till_open = chart_data->next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
             QString duration = format_duration(seconds_till_open);
