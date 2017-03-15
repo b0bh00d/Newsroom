@@ -3,14 +3,11 @@
 
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
-TransmissionPoller::TransmissionPoller(const QUrl& target, int timeout, int flags, QObject *parent)
+TransmissionPoller::TransmissionPoller(const QUrl& target, int timeout, QObject *parent)
     : target(target),
       QNAM(nullptr),
       poll_timer(nullptr),
       poll_timeout(timeout),
-      ignore_finished((flags & Interest::IgnoreFinished) != 0),
-      ignore_stopped((flags & Interest::IgnoreStopped) != 0),
-      ignore_idle((flags & Interest::IgnoreIdle) != 0),
       QObject(parent)
 {
     QNAM = new QNetworkAccessManager(this);
@@ -117,7 +114,10 @@ void TransmissionPoller::notify_interested_parties(int slot, const QJsonObject& 
     {
         Transmission* transmission = dynamic_cast<Transmission*>(data.party);
         if(transmission)
+        {
             transmission->status(status, maxratio);
+            data.notified = true;
+        }
     }
 }
 
@@ -232,6 +232,10 @@ void TransmissionPoller::process_client_status(const QJsonObject& status, const 
         notify_interested_parties(-1, status["data"].toString());
     else if(!status["type"].toString().compare("status"))
     {
+        InterestedList::iterator iter;
+        for(iter = interested_parties.begin();iter != interested_parties.end();++iter)
+            iter->notified = false;
+
         int count = status["count"].toInt();
         float maxratio = 0.0f;
         if(status.contains("maxratio"))
@@ -242,18 +246,21 @@ void TransmissionPoller::process_client_status(const QJsonObject& status, const 
         for(int i = 0;i < count;++i)
         {
             QJsonObject slot = slots_.at(i).toObject();
-            QString status(slot["status"].toString());
-            if(ignore_finished && !slot["status"].toString().toLower().compare("finished"))
-                continue;
-            if(ignore_stopped && !slot["status"].toString().toLower().compare("stopped"))
-                continue;
-            if(ignore_idle && !slot["status"].toString().toLower().compare("idle"))
-                continue;
 
             QJsonValue value(slot_no);
             slot.insert("slot", value);
 
             notify_interested_parties(slot_no++, slot, maxratio);
+        }
+
+        for(iter = interested_parties.begin();iter != interested_parties.end();++iter)
+        {
+            if(!iter->notified && iter->party)
+            {
+                Transmission* transmission = dynamic_cast<Transmission*>(iter->party);
+                if(transmission)
+                    transmission->reset();
+            }
         }
     }
 }

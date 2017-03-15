@@ -81,6 +81,7 @@ private:    // typedefs and enums
     SPECIALIZE_LIST(StoryInfoPointer, Story)                // "StoryList"
     SPECIALIZE_MAP(QString, QString, String)                // "StringMap"
     SPECIALIZE_MAP(QString, QStringList, StringList)        // "StringListMap"
+    SPECIALIZE_QUEUE(ProducerPointer, Producer)             // "ProducerQueue"
 
 private slots:
     void                slot_quit();
@@ -90,6 +91,10 @@ private slots:
     void                slot_restore();
     void                slot_edit_settings(bool checked);
     void                slot_edit_story(const QString& story_id);
+    void                slot_shelve_story();
+    void                slot_unshelve_story();
+    void                slot_process_shelve_queue();
+    void                slot_process_unshelve_queue();
 
 private:    // methods
     bool                configure_reporters();
@@ -156,4 +161,7 @@ private:    // data members
     QString             parameters_base_folder;
     QString             parameters_defaults_folder;
     QString             parameters_stories_folder;
+
+    ProducerQueue       shelve_queue;
+    ProducerQueue       unshelve_queue;
 };

@@ -1,3 +1,6 @@
+#include <QtCore/QDebug>
+#include <QtCore/QDateTime>
+
 #include "producer.h"
 
 Producer::Producer(ChyronPointer chyron,
@@ -8,6 +11,7 @@ Producer::Producer(ChyronPointer chyron,
     : chyron(chyron),
       reporter(reporter),
       covering_story(false),
+      story_shelved(false),
       story_info(story_info),
       style_list(style_list),
       QObject(parent)
@@ -28,6 +32,13 @@ Producer::~Producer()
 
 bool Producer::start_covering_story()
 {
+    if(story_shelved)
+    {
+        chyron->display();
+        story_shelved = false;
+        return true;
+    }
+
     if(covering_story)
         return true;
 
@@ -58,11 +69,30 @@ bool Producer::stop_covering_story()
         return false;
 
     disconnect(this, &Producer::signal_new_headline, chyron.data(), &Chyron::slot_file_headline);
-    chyron->hide();
+    if(!story_shelved)
+        chyron->hide();
+    story_shelved = false;
 
     disconnect(reporter.data(), &IReporter::signal_new_data, this, &Producer::slot_new_data);
     covering_story = !reporter->FinishStory();
     return !covering_story;
+}
+
+bool Producer::shelve_story()
+{
+    // we have to already be covering a story to go into
+    // 'shelved' mode
+
+    if(!covering_story)
+        return false;
+
+    if(reporter.isNull() || chyron.isNull())
+        return false;
+
+    chyron->shelve();
+    story_shelved = true;
+
+    return story_shelved;
 }
 
 void Producer::file_headline(const QString& data)
@@ -107,6 +137,9 @@ void Producer::file_headline(const QString& data)
         connect(headline.data(), &Headline::signal_reporter_draw, reporter_draw, &IReporter2::ReporterDraw);
         connect(reporter_draw, &IReporter2::signal_highlight, this, &Producer::slot_headline_highlight);
         headlines.append(headline);
+
+        connect(reporter_draw, &IReporter2::signal_shelve_story, this, &Producer::signal_shelve_story);
+        connect(reporter_draw, &IReporter2::signal_unshelve_story, this, &Producer::signal_unshelve_story);
     }
 
     emit signal_new_headline(headline);
@@ -136,6 +169,9 @@ void Producer::slot_start_covering_story()
 
 void Producer::slot_new_data(const QByteArray& data)
 {
+    if(story_shelved)
+        return;
+
     if(!story_info->limit_content)
     {
         file_headline(QString(data));

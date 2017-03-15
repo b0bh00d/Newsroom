@@ -15,10 +15,11 @@ Transmission::Transmission(QObject *parent)
       my_slot(1),
       max_ratio(0.0f),
       poll_timeout(5),          // match the Transmission web interface
-      ignore_finished(false),
-      ignore_stopped(false),
-      ignore_idle(false),
-      ignore_empty(false),
+      shelve_finished(false),
+      shelve_stopped(false),
+      shelve_idle(false),
+      shelve_empty(false),
+      active(true),
       IReporter2(parent)
 {
     report_template << "Slot <b>${SLOT}</b>";
@@ -94,12 +95,12 @@ QStringList Transmission::Requires(int /*version*/) const
     // parameter names ending with an asterisk are required
     definitions << "Slot to monitor:" << "integer:1"
 
-                << "Hide 'Finished' torrents" << QString("check:%1").arg(ignore_finished ? "true" : "false")
-                << "Hide 'Stopped' torrents" << QString("check:%1").arg(ignore_stopped ? "true" : "false")
-                << "Hide 'Idle' torrents" << QString("check:%1").arg(ignore_idle ? "true" : "false")
-                << "Hide unassigned slots" << QString("check:%1").arg(ignore_empty ? "true" : "false")
+                << "Shelve 'Finished' torrents" << QString("check:%1").arg(shelve_finished ? "true" : "false")
+                << "Shelve 'Stopped' torrents" << QString("check:%1").arg(shelve_stopped ? "true" : "false")
+                << "Shelve 'Idle' torrents" << QString("check:%1").arg(shelve_idle ? "true" : "false")
+                << "Shelve unassigned slots" << QString("check:%1").arg(shelve_empty ? "true" : "false")
 
-                // how many seconds between polls? (default: 60)
+                // how many seconds between polls?
                 << "Polling (sec):"   << QString("integer:%1").arg(poll_timeout)
 
                 << "Format:"          << QString("multiline:%1").arg(report_template.join("<br>\n"));
@@ -118,17 +119,17 @@ bool Transmission::SetRequirements(const QStringList& parameters)
             my_slot = 1;
     }
 
-    if(parameters.count() > Param::IgnoreFinished && !parameters[Param::IgnoreFinished].isEmpty())
-        ignore_finished = !parameters[Param::IgnoreFinished].toLower().compare("true");
+    if(parameters.count() > Param::ShelveFinished && !parameters[Param::ShelveFinished].isEmpty())
+        shelve_finished = !parameters[Param::ShelveFinished].toLower().compare("true");
 
-    if(parameters.count() > Param::IgnoreStopped && !parameters[Param::IgnoreStopped].isEmpty())
-        ignore_stopped = !parameters[Param::IgnoreStopped].toLower().compare("true");
+    if(parameters.count() > Param::ShelveStopped && !parameters[Param::ShelveStopped].isEmpty())
+        shelve_stopped = !parameters[Param::ShelveStopped].toLower().compare("true");
 
-    if(parameters.count() > Param::IgnoreIdle && !parameters[Param::IgnoreIdle].isEmpty())
-        ignore_idle = !parameters[Param::IgnoreIdle].toLower().compare("true");
+    if(parameters.count() > Param::ShelveIdle && !parameters[Param::ShelveIdle].isEmpty())
+        shelve_idle = !parameters[Param::ShelveIdle].toLower().compare("true");
 
-    if(parameters.count() > Param::IgnoreEmpty && !parameters[Param::IgnoreEmpty].isEmpty())
-        ignore_empty = !parameters[Param::IgnoreEmpty].toLower().compare("true");
+    if(parameters.count() > Param::ShelveEmpty && !parameters[Param::ShelveEmpty].isEmpty())
+        shelve_empty = !parameters[Param::ShelveEmpty].toLower().compare("true");
 
     if(parameters.count() > Param::Poll && !parameters[Param::Poll].isEmpty())
         poll_timeout = parameters[Param::Poll].toInt();
@@ -153,15 +154,7 @@ bool Transmission::CoverStory()
 {
     error_message.clear();
 
-    int flags = 0;
-    if(ignore_finished)
-        flags |= Interest::IgnoreFinished;
-    if(ignore_stopped)
-        flags |= Interest::IgnoreStopped;
-    if(ignore_idle)
-        flags |= Interest::IgnoreIdle;
-
-    poller = acquire_poller(story, poll_timeout, flags);
+    poller = acquire_poller(story, poll_timeout);
     if(poller.isNull())
         return false;
 
@@ -175,7 +168,7 @@ bool Transmission::CoverStory()
     poller->add_interest(my_slot, this);
 
     // do an initial "idle" Headline
-    QString status = QString("Slot #<b>%1</b>").arg(my_slot);
+    QString status = tr("(Slot #%1: <b>Empty</b>)").arg(my_slot);
     emit signal_new_data(status.toUtf8());
 
     return true;
@@ -279,14 +272,6 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
           painter.setBrush(QBrush(done_color));
           painter.drawPie(ellipse_rect, 90*16, -(done_angle*16));
         painter.restore();
-//        if(done_amount < 100)
-//        {
-//            painter.save();
-//              painter.setPen(ratio_color);
-//              painter.setBrush(QBrush(ratio_color));
-//              painter.drawEllipse(ellipse_rect);
-//            painter.restore();
-//        }
 
         // "share" indicators are scaled by the level of sharing.
 
@@ -330,13 +315,19 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
         QString status(report_map["STATUS"]);
         bool is_active = (status.toLower().compare("finished") && status.toLower().compare("stopped"));
+        bool is_uploading = (!status.toLower().compare("seeding") || !status.toLower().compare("up & down"));
         QString name(report_map["NAME"]);
         QString label = QString("%1: <i>%2</i>").arg(status).arg(name);
         if(is_active)
         {
-            label = QString("%1<br>&#8593; %2").arg(label).arg(report_map["UP"]);
+            QString uploading, downloading;
+
+            if(is_uploading)
+                uploading = QString("&#8593; %1").arg(report_map["UP"]);
             if(done_amount < 100)
-                label = QString("%1 &#8595; %2").arg(label).arg(report_map["DOWN"]);
+                downloading = QString("&#8595; %1").arg(report_map["DOWN"]);
+
+            label = QString("%1<br>%2%3%4").arg(label).arg(uploading).arg(uploading.isEmpty() ? "" : " ").arg(downloading);
         }
         td.setHtml(label);
 
@@ -376,16 +367,61 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
 void Transmission::status(const QJsonObject& status, float maxratio)
 {
+    QString status_str(status["status"].toString().toLower());
+
+    bool shelve_triggered = false;
+
+    if(shelve_finished && !status_str.compare("finished"))
+        shelve_triggered = true;
+    if(shelve_stopped && !status_str.compare("stopped"))
+        shelve_triggered = true;
+    if(shelve_idle && !status_str.compare("idle"))
+        shelve_triggered = true;
+
+    if(active)
+    {
+        if(shelve_triggered)
+        {
+            emit signal_shelve_story();
+            active = false;
+            return;
+        }
+    }
+    else    // !active
+    {
+        if(!shelve_triggered)
+        {
+            emit signal_unshelve_story();
+            active = true;
+        }
+
+        return;
+    }
+
     latest_status = status;
     max_ratio = maxratio;
-
-    QString status_str;
 
     ReportMap report_map;
     populate_report_map(report_map, status);
     status_str = render_report(report_map);
 
     emit signal_new_data(status_str.toUtf8());
+}
+
+void Transmission::reset()
+{
+    latest_status = QJsonObject();
+
+    if(active)
+    {
+        if(shelve_empty)
+        {
+            emit signal_shelve_story();
+            active = false;
+        }
+        else
+            emit signal_new_data(QByteArray());
+    }
 }
 
 void Transmission::error(const QString& error_message)
@@ -405,8 +441,6 @@ void Transmission::populate_report_map(ReportMap& report_map, const QJsonObject&
     report_map["DOWN"]   = status["down"].toString();
     report_map["RATIO"]  = status["ratio"].toString();
     report_map["STATUS"] = status["status"].toString();
-//    if(!report_map["STATUS"].toLower().compare("stopped") && !max_ratio_str.compare(report_map["RATIO"]))
-//        report_map["STATUS"] = "Finished";  // consider this complete
     report_map["NAME"]   = status["name"].toString();
 }
 
@@ -429,12 +463,12 @@ QString Transmission::capitalize(const QString& str)
     return tmp;
 }
 
-PollerPointer Transmission::acquire_poller(const QUrl& target, int timeout, int flags)
+PollerPointer Transmission::acquire_poller(const QUrl& target, int timeout)
 {
     if(!poller_map.contains(target))
     {
         PollerData pd;
-        pd.poller = PollerPointer(new TransmissionPoller(target, timeout, flags));
+        pd.poller = PollerPointer(new TransmissionPoller(target, timeout));
         poller_map[target] = pd;
     }
 

@@ -16,6 +16,7 @@ CONFIG += C++11
 CONFIG(debug, debug|release) {
     #CONFIG += highlight_lanes
     DEFINES += QT_DEBUG
+    #DEFINES += CM_ENABLE_TRACING
     DESTDIR = deploy/debug
 } else {
     DESTDIR = deploy/release
@@ -58,9 +59,10 @@ SOURCES += main.cpp \
            editheadlinedialog.cpp \
            settings.cpp \
            seriestree.cpp \
-    stylestree.cpp \
-    editseriesdialog.cpp \
-    runguard.cpp
+           stylestree.cpp \
+           editseriesdialog.cpp \
+           runguard.cpp \
+           dashboard.cpp \
 
 HEADERS  += mainwindow.h \
             types.h \
@@ -79,9 +81,11 @@ HEADERS  += mainwindow.h \
             settings.h \
             seriesinfo.h \
             seriestree.h \
-    stylestree.h \
-    editseriesdialog.h \
-    runguard.h
+            stylestree.h \
+            editseriesdialog.h \
+            runguard.h \
+            dashboard.h \
+            lanedata.h \
 
 # Plug-in interface
 HEADERS += \
@@ -90,7 +94,7 @@ FORMS    += mainwindow.ui \
             settingsdialog.ui \
             addstorydialog.ui \
             editheadlinedialog.ui \
-    editseriesdialog.ui
+            editseriesdialog.ui
 
 highlight_lanes {
     SOURCES += highlightwidget.cpp

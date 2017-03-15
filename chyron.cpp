@@ -4,6 +4,7 @@
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QGraphicsOpacityEffect>
 
+#include <QtCore/QDebug>
 #include <QtCore/QUrl>
 #include <QtCore/QDateTime>
 
@@ -18,6 +19,8 @@ Chyron::Chyron(StoryInfoPointer story_info, LaneManagerPointer lane_manager, QOb
 #ifdef HIGHLIGHT_LANES
       highlight(nullptr),
 #endif
+      visible(true),
+      suspended(false),
       QObject(parent)
 {
     age_timer = new QTimer(this);
@@ -33,29 +36,60 @@ Chyron::~Chyron()
 
 void Chyron::display()
 {
-    age_timer->start();
-
     lane_manager->subscribe(this);
 
 #ifdef HIGHLIGHT_LANES
     highlight = new HighlightWidget();
 #endif
+
+    if(age_timer && !age_timer->isActive())
+        age_timer->start();
+
+    visible = true;
 }
 
 void Chyron::hide()
+{
+    if(age_timer)
+        age_timer->stop();
+
+    lane_manager->unsubscribe(this);
+}
+
+void Chyron::shelve()
+{
+    if(age_timer)
+        age_timer->stop();
+
+    visible = false;
+    lane_manager->shelve(this);
+}
+
+void Chyron::suspend()
+{
+    suspended = true;
+}
+
+void Chyron::resume()
+{
+    suspended = false;
+}
+
+void Chyron::unsubscribed()
 {
 #ifdef HIGHLIGHT_LANES
     if(highlight)
         highlight->deleteLater();
 #endif
 
-    lane_manager->unsubscribe(this);
-
     foreach(HeadlinePointer headline, headline_list)
     {
         headline->hide();
         headline.clear();
     }
+
+    visible = false;
+    suspended = false;
 }
 
 void Chyron::highlight_headline(HeadlinePointer hl, qreal opacity, int timeout)
@@ -78,6 +112,9 @@ void Chyron::highlight_headline(HeadlinePointer hl, qreal opacity, int timeout)
 
 void Chyron::initialize_headline(HeadlinePointer headline)
 {
+    if(!visible)
+        return;
+
 #ifdef HIGHLIGHT_LANES
     highlight->hide();
 #endif
@@ -266,6 +303,9 @@ void Chyron::initialize_headline(HeadlinePointer headline)
 
 void Chyron::start_headline_entry(HeadlinePointer headline)
 {
+    if(!visible || suspended)
+        return;
+
     int speed = story_info->anim_motion_duration;
 
     QParallelAnimationGroup* animation_group = nullptr;
@@ -306,10 +346,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             {
                 animation_group = new QParallelAnimationGroup();
                 foreach(HeadlinePointer posted_headline, headline_list)
-                {
                     posted_headline->animation = new QPropertyAnimation(posted_headline.data(), "geometry");
-                    connect(posted_headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
-                }
 
                 if(IS_TRAIN(story_info->entry_type))
                     connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_train_expire_headlines);
@@ -321,14 +358,6 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         case AnimEntryType::PopRightTop:
         case AnimEntryType::PopLeftBottom:
         case AnimEntryType::PopRightBottom:
-        case AnimEntryType::DashboardDownLeftTop:
-        case AnimEntryType::DashboardDownRightTop:
-        case AnimEntryType::DashboardInLeftTop:
-        case AnimEntryType::DashboardInRightTop:
-        case AnimEntryType::DashboardInLeftBottom:
-        case AnimEntryType::DashboardInRightBottom:
-        case AnimEntryType::DashboardUpLeftBottom:
-        case AnimEntryType::DashboardUpRightBottom:
             // create a dummy effect for these types so slot_headline_posted()
             // is triggered
             if(headline->animation)
@@ -341,9 +370,26 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
             prop_anim_map[headline->animation] = headline;
             entering_map[headline] = true;
+            break;
+
+        case AnimEntryType::DashboardDownLeftTop:
+        case AnimEntryType::DashboardDownRightTop:
+        case AnimEntryType::DashboardInLeftTop:
+        case AnimEntryType::DashboardInRightTop:
+        case AnimEntryType::DashboardInLeftBottom:
+        case AnimEntryType::DashboardInRightBottom:
+        case AnimEntryType::DashboardUpLeftBottom:
+        case AnimEntryType::DashboardUpRightBottom:
+            if(headline->animation)
+                headline->animation->deleteLater();
+            headline->animation = nullptr;
             headline->viewed = QDateTime::currentDateTime().toTime_t();
             headline->show();
-            break;
+            // slot_headline_posted() will never be hit with this, so the
+            // shift_*() methods will abort because no headlines are visible,
+            // so we call headline_posted() directly
+            headline_posted(headline);
+            return;
 
         case AnimEntryType::FadeCenter:
         case AnimEntryType::FadeLeftTop:
@@ -491,24 +537,30 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             break;
     }
 
-    entering_map[headline] = true;
     headline->viewed = QDateTime::currentDateTime().toTime_t();
     headline->show();
 
-    if(animation_group)
+    if(animation_group || headline->animation)
     {
-        animation_group->addAnimation(headline->animation);
-        foreach(HeadlinePointer posted_headline, headline_list)
-            animation_group->addAnimation(posted_headline->animation);
-       animation_group->start();
+        entering_map[headline] = true;
+
+        if(animation_group)
+        {
+            animation_group->addAnimation(headline->animation);
+            foreach(HeadlinePointer posted_headline, headline_list)
+                animation_group->addAnimation(posted_headline->animation);
+            lane_manager->anim_queue(this, animation_group);
+        }
+        else if(headline->animation)
+            lane_manager->anim_queue(this, headline->animation);
     }
-    else if(headline->animation)
-        headline->animation->start();
 }
 
-//
 void Chyron::start_headline_exit(HeadlinePointer headline)
 {
+    if(!visible || suspended)
+        return;
+
     // the time-to-display has expired
 
     QParallelAnimationGroup* animation_group = nullptr;
@@ -530,9 +582,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 headline->animation->setStartValue(1.0);
                 headline->animation->setEndValue(story_info->train_age_percent / 100.0);
                 headline->animation->setEasingCurve(story_info->fading_curve);
-                connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
-
-                headline->animation->start();
+                lane_manager->anim_queue(this, headline->animation);
             }
         }
 
@@ -549,9 +599,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 headline->animation->setStartValue(1.0);
                 headline->animation->setEndValue(story_info->dashboard_age_percent / 100.0);
                 headline->animation->setEasingCurve(story_info->fading_curve);
-                connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
-
-                headline->animation->start();
+                lane_manager->anim_queue(this, headline->animation);
             }
         }
 
@@ -644,18 +692,18 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         headline_list.removeAll(headline);
 
         if(animation_group)
-            animation_group->start(QAbstractAnimation::DeleteWhenStopped);
+            lane_manager->anim_queue(this, animation_group);
         else
-            headline->animation->start();
+            lane_manager->anim_queue(this, headline->animation);
     }
 }
 
-void Chyron::shift_left(int amount)
+QAbstractAnimation* Chyron::shift_left(int amount, bool auto_start)
 {
-    if(!headline_list.length())
-        return;     // no headlines visible
+    if(!visible || !headline_list.length())
+        return nullptr; // no headlines visible
 
-    QParallelAnimationGroup* animation_group = new QParallelAnimationGroup();
+    QParallelAnimationGroup* animation_group = nullptr;
     foreach(HeadlinePointer headline, headline_list)
     {
         QRect r = headline->geometry();
@@ -665,21 +713,29 @@ void Chyron::shift_left(int amount)
         headline->animation->setEasingCurve(story_info->motion_curve);
         headline->animation->setEndValue(QRect(r.x() - amount, r.y(), r.width(), r.height()));
 
-        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
-
+        if(auto_start)
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+        if(!animation_group)
+            animation_group = new QParallelAnimationGroup();
         animation_group->addAnimation(headline->animation);
     }
 
-    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
-    animation_group->start();
+    if(auto_start)
+    {
+        connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
+        animation_group->start();
+        return nullptr;
+    }
+
+    return animation_group;
 }
 
-void Chyron::shift_right(int amount)
+QAbstractAnimation* Chyron::shift_right(int amount, bool auto_start)
 {
-    if(!headline_list.length())
-        return;     // no headlines visible
+    if(!visible || !headline_list.length())
+        return nullptr; // no headlines visible
 
-    QParallelAnimationGroup* animation_group = new QParallelAnimationGroup();
+    QParallelAnimationGroup* animation_group = nullptr;
     foreach(HeadlinePointer headline, headline_list)
     {
         QRect r = headline->geometry();
@@ -689,21 +745,29 @@ void Chyron::shift_right(int amount)
         headline->animation->setEasingCurve(story_info->motion_curve);
         headline->animation->setEndValue(QRect(r.x() + amount, r.y(), r.width(), r.height()));
 
-        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
-
+        if(auto_start)
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+        if(!animation_group)
+            animation_group = new QParallelAnimationGroup();
         animation_group->addAnimation(headline->animation);
     }
 
-    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
-    animation_group->start();
+    if(auto_start)
+    {
+        connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
+        animation_group->start();
+        return nullptr;
+    }
+
+    return animation_group;
 }
 
-void Chyron::shift_up(int amount)
+QAbstractAnimation* Chyron::shift_up(int amount, bool auto_start)
 {
-    if(!headline_list.length())
-        return;     // no headlines visible
+    if(!visible || !headline_list.length())
+        return nullptr; // no headlines visible
 
-    QParallelAnimationGroup* animation_group = new QParallelAnimationGroup();
+    QParallelAnimationGroup* animation_group = nullptr;
     foreach(HeadlinePointer headline, headline_list)
     {
         QRect r = headline->geometry();
@@ -713,21 +777,29 @@ void Chyron::shift_up(int amount)
         headline->animation->setEasingCurve(story_info->motion_curve);
         headline->animation->setEndValue(QRect(r.x(), r.y() - amount, r.width(), r.height()));
 
-        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
-
+        if(auto_start)
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+        if(!animation_group)
+            animation_group = new QParallelAnimationGroup();
         animation_group->addAnimation(headline->animation);
     }
 
-    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
-    animation_group->start();
+    if(auto_start)
+    {
+        connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
+        animation_group->start();
+        return nullptr;
+    }
+
+    return animation_group;
 }
 
-void Chyron::shift_down(int amount)
+QAbstractAnimation* Chyron::shift_down(int amount, bool auto_start)
 {
-    if(!headline_list.length())
-        return;     // no headlines visible
+    if(!visible || !headline_list.length())
+        return nullptr; // no headlines visible
 
-    QParallelAnimationGroup* animation_group = new QParallelAnimationGroup();
+    QParallelAnimationGroup* animation_group = nullptr;
     foreach(HeadlinePointer headline, headline_list)
     {
         QRect r = headline->geometry();
@@ -737,17 +809,28 @@ void Chyron::shift_down(int amount)
         headline->animation->setEasingCurve(story_info->motion_curve);
         headline->animation->setEndValue(QRect(r.x(), r.y() + amount, r.width(), r.height()));
 
-        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
-
+        if(auto_start)
+            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+        if(!animation_group)
+            animation_group = new QParallelAnimationGroup();
         animation_group->addAnimation(headline->animation);
     }
 
-    connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
-    animation_group->start();
+    if(auto_start)
+    {
+        connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
+        animation_group->start();
+        return nullptr;
+    }
+
+    return animation_group;
 }
 
 void Chyron::dashboard_expire_headlines()
 {
+    if(suspended)
+        return;
+
     // all headlines that are not in the front (i.e., tail of the list)
     // need to be expired
 
@@ -772,6 +855,9 @@ void Chyron::dashboard_expire_headlines()
 
 void Chyron::slot_file_headline(HeadlinePointer headline)
 {
+    if(!visible || suspended)
+        return;
+
     Q_ASSERT(headline->story_info->story == story_info->story);
 
     // for some reason, the Producer signal 'signal_new_headline' is
@@ -782,12 +868,8 @@ void Chyron::slot_file_headline(HeadlinePointer headline)
         incoming_headlines.enqueue(headline);
 }
 
-void Chyron::slot_headline_posted()
+void Chyron::headline_posted(HeadlinePointer headline)
 {
-    QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(sender());
-    HeadlinePointer headline = prop_anim_map[anim];
-
-    prop_anim_map.remove(anim);
     entering_map.remove(headline);
 
     if(headline->animation)
@@ -801,7 +883,36 @@ void Chyron::slot_headline_posted()
     headline_list.append(headline);
 
     if(IS_DASHBOARD(story_info->entry_type))
-        dashboard_expire_headlines();
+        // give the new headline time to appear before removing old ones...
+        QTimer::singleShot(50, this, [this] () { this->dashboard_expire_headlines(); });
+}
+
+void Chyron::slot_headline_posted()
+{
+    HeadlinePointer headline;
+    QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(sender());
+    if(anim)
+    {
+        headline = prop_anim_map[anim];
+        prop_anim_map.remove(anim);
+    }
+    else
+    {
+        Headline* headline_ptr = qobject_cast<Headline*>(sender());
+        if(!headline_ptr)
+            return;
+        foreach(HeadlinePointer hp, headline_list)
+        {
+            if(hp.data() == headline_ptr)
+            {
+                headline = hp;
+                break;
+            }
+        }
+    }
+
+    if(!headline.isNull())
+        headline_posted(headline);
 }
 
 void Chyron::slot_headline_expired()
@@ -824,18 +935,12 @@ void Chyron::slot_release_animation()
     QPropertyAnimation* prop_anim = qobject_cast<QPropertyAnimation*>(sender());
     if(prop_anim)
         prop_anim->deleteLater();
-    else
-    {
-        QParallelAnimationGroup* group_anim = qobject_cast<QParallelAnimationGroup*>(sender());
-        if(group_anim)
-            group_anim->deleteLater();
-    }
 }
 
 void Chyron::slot_age_headlines()
 {
-    if(entering_map.count() || exiting_map.count())
-        return;     // let any running animation finish
+    if(suspended || entering_map.count() || exiting_map.count())
+        return;     // let any in-progress actions complete
 
     uint now = QDateTime::currentDateTime().toTime_t();
 
@@ -866,6 +971,9 @@ void Chyron::slot_age_headlines()
 
 void Chyron::slot_train_expire_headlines()
 {
+    if(suspended)
+        return;
+
     // each headline that is no longer visible on the primary
     // display will be expired
 
@@ -952,7 +1060,6 @@ void Chyron::slot_headline_mouse_enter()
         headline->animation->setEndValue(1.0);
         headline->animation->setEasingCurve(story_info->motion_curve);
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
-
         headline->animation->start();
     }
 }
@@ -968,7 +1075,6 @@ void Chyron::slot_headline_mouse_exit()
         headline->animation->setEndValue(opacity_map[headline]);
         headline->animation->setEasingCurve(story_info->motion_curve);
         connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
-
         headline->animation->start();
 
         opacity_map.remove(headline);

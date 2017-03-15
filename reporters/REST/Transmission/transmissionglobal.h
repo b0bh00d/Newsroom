@@ -11,7 +11,8 @@
 typedef enum
 {
     None           = 0x0,
-    IgnoreFinished = 0x1,
-    IgnoreStopped  = 0x2,
-    IgnoreIdle     = 0x4,
+    ShelveFinished = 0x1,
+    ShelveStopped  = 0x2,
+    ShelveIdle     = 0x4,
+    ShelveEmpty    = 0x8,
 } Interest;

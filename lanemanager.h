@@ -1,16 +1,10 @@
 #pragma once
 
-#include <QObject>
-
-#include <QtCore/QRect>
-
 #include "types.h"
 #include "specialize.h"
 
+#include "dashboard.h"
 #include "headline.h"
-#include "storyinfo.h"
-
-class Chyron;
 
 /// @class LaneManager
 /// @brief Manages lane positions for Chyrons
@@ -24,30 +18,26 @@ class LaneManager : public QObject
     Q_OBJECT
 public:
     explicit LaneManager(const QFont& font, const QString& stylesheet, QObject *parent = 0);
+    ~LaneManager();
 
     void    subscribe(Chyron* chyron);
-    void    unsubscribe(Chyron* chyron);
+    void    unsubscribe(Chyron* chyron, UnsubscribeAction action = UnsubscribeAction::Immediate);
+    void    shelve(Chyron* chyron);
+
+    void    anim_queue(Chyron *chyron, QAbstractAnimation* anim);
+    void    anim_clear(Chyron* chyron);
+    bool    anim_in_progress();
 
     const QRect&  get_base_lane_position(Chyron* chyron);
     QRect&  get_lane_boundaries(Chyron* chyron);
 
-private:    // typedefs and enums
-    struct LaneData
-    {
-        Chyron*     owner;
-        QRect       lane;               // This is a static value that marks the lane position
-        QRect       lane_boundaries;    // This is passed to the Chyron for modification, and is based on 'lane'
-    };
-    SPECIALIZE_SHAREDPTR(LaneData, LaneData)        // "LaneDataPointer"
-    SPECIALIZE_LIST(LaneDataPointer, Lane)          // "LaneList"
+private slots:
+    void    slot_dashboard_chyron_unsubscribed(LaneDataPointer lane);
+    void    slot_dashboard_empty(LaneDataPointer lane);
+    void    slot_animation_started();
+    void    slot_animation_completed();
 
-    struct DashboardData
-    {
-        QString     id;
-        LaneList    chyrons;
-        HeadlinePointer lane_header;    // Small headline that will display the group id
-    };
-    SPECIALIZE_SHAREDPTR(DashboardData, Dashboard)  // "DashboardPointer"
+private:    // typedefs and enums
     SPECIALIZE_LIST(DashboardPointer, Dashboard)    // "DashboardList"
     SPECIALIZE_MAP(AnimEntryType, DashboardList, Dashboard)    // "DashboardMap"
 
@@ -64,6 +54,8 @@ private:    // datamembers
 
     QFont           headline_font;
     QString         headline_stylesheet;
+
+    int             animation_count;
 };
 
 SPECIALIZE_SHAREDPTR(LaneManager, LaneManager)      // "LaneManagerPointer"

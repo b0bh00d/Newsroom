@@ -5,6 +5,8 @@
 #include <QtGui/QFontMetrics>
 #include <QtGui/QPainter>
 
+#include <QtCore/QDebug>
+#include <QtCore/QDateTime>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QDir>
@@ -327,30 +329,6 @@ void MainWindow::closeEvent(QCloseEvent* event)
     }
 }
 
-//void MainWindow::fix_identity_duplication(StoryInfoPointer story_info)
-//{
-//    int next_dupe = 0;
-//    QRegExp dupe_value("\\:\\:(\\d+)$");
-
-//    foreach(StoryInfoPointer key, staff.keys())
-//    {
-//        if(key->identity.startsWith(story_info->identity))
-//        {
-//            QString identity = key->identity;
-//            identity.remove(0, story_info->identity.length());
-//            if(dupe_value.indexIn(identity) != -1)
-//            {
-//                int this_dupe = dupe_value.cap(1).toInt();
-//                if(this_dupe > next_dupe)
-//                    next_dupe = this_dupe;
-//            }
-//        }
-//    }
-
-//    if(next_dupe)
-//        story_info->identity = QString("%1_%2").arg(story_info->identity).arg(next_dupe + 1);
-//}
-
 void MainWindow::fix_angle_duplication(StoryInfoPointer story_info)
 {
     QString prefix = QString("%1::").arg(story_info->angle);
@@ -429,6 +407,9 @@ bool MainWindow::cover_story(ProducerPointer& producer,
         // assign a staff Producer to receive Reporter filings and create Headlines
 
         producer = ProducerPointer(new Producer(chyron, reporter, story_info, headline_style_list, this));
+
+        connect(producer.data(), &Producer::signal_shelve_story, this, &MainWindow::slot_shelve_story);
+        connect(producer.data(), &Producer::signal_unshelve_story, this, &MainWindow::slot_unshelve_story);
     }
 
     if(coverage_start == CoverageStart::Delayed)
@@ -1371,4 +1352,100 @@ void MainWindow::slot_edit_story(const QString& story_id)
     }
 
     save_window_data(&addstory_dlg);
+}
+
+void MainWindow::slot_shelve_story()
+{
+    Producer* producer_raw = qobject_cast<Producer*>(sender());
+
+    // find this Producer shared pointer so we don't cling to the raw pointer
+
+    ProducerPointer producer;
+    foreach(SeriesInfoPointer si, series_ordered)
+    {
+        foreach(ProducerPointer pp, si->producers)
+        {
+            if(pp.data() == producer_raw)
+            {
+                producer = pp;
+                break;
+            }
+        }
+
+        if(!producer.isNull())
+            break;
+    }
+
+    if(!shelve_queue.contains(producer))
+        shelve_queue.enqueue(producer);
+    if(shelve_queue.length() == 1)
+        QTimer::singleShot(100, this, &MainWindow::slot_process_shelve_queue);
+}
+
+void MainWindow::slot_unshelve_story()
+{
+    Producer* producer_raw = qobject_cast<Producer*>(sender());
+
+    // find this Producer shared pointer so we don't cling to the raw pointer
+
+    ProducerPointer producer;
+    foreach(SeriesInfoPointer si, series_ordered)
+    {
+        foreach(ProducerPointer pp, si->producers)
+        {
+            if(pp.data() == producer_raw)
+            {
+                producer = pp;
+                break;
+            }
+        }
+
+        if(!producer.isNull())
+            break;
+    }
+
+    if(!unshelve_queue.contains(producer))
+        unshelve_queue.enqueue(producer);
+    if(unshelve_queue.length() == 1)
+        QTimer::singleShot(100, this, &MainWindow::slot_process_unshelve_queue);
+}
+
+void MainWindow::slot_process_shelve_queue()
+{
+    if(!shelve_queue.length())
+        return;     // shouldn't happen, but just in case...
+
+    if(!lane_manager->anim_in_progress())
+    {
+        ProducerPointer producer = shelve_queue.head();
+        if(!producer.isNull())
+        {
+            if(producer->is_covering_story() && !producer->is_story_shelved())
+                producer->shelve_story();
+        }
+        (void)shelve_queue.dequeue();
+    }
+
+    if(shelve_queue.length())
+        QTimer::singleShot(100, this, &MainWindow::slot_process_shelve_queue);
+}
+
+void MainWindow::slot_process_unshelve_queue()
+{
+    if(!unshelve_queue.length())
+        return;     // shouldn't happen, but just in case...
+
+    if(!lane_manager->anim_in_progress())
+    {
+        ProducerPointer producer = unshelve_queue.head();
+        if(!producer.isNull())
+        {
+            if(producer->is_story_shelved())
+                producer->start_covering_story();
+        }
+        (void)unshelve_queue.dequeue();
+    }
+
+    if(unshelve_queue.length())
+        QTimer::singleShot(100, this, &MainWindow::slot_process_unshelve_queue);
 }

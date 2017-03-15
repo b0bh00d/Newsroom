@@ -36,6 +36,7 @@ public:
     // cannot create dynamic run-time signals and slots in a canonical
     // fashion
     void    status(const QJsonObject& status, float maxratio = 0.0f);
+    void    reset();
     void    error(const QString& message);
 
     // IReporter
@@ -63,10 +64,10 @@ private:    // typedefs and enums
     typedef enum
     {
         Slot,
-        IgnoreFinished,
-        IgnoreStopped,
-        IgnoreIdle,
-        IgnoreEmpty,
+        ShelveFinished,
+        ShelveStopped,
+        ShelveIdle,
+        ShelveEmpty,
         Poll,
         Template,
         Count,
@@ -81,10 +82,10 @@ private:    // methods
 
 private:    // data members
     bool        owner_draw;
-    bool        ignore_finished;
-    bool        ignore_stopped;
-    bool        ignore_idle;
-    bool        ignore_empty;
+    bool        shelve_finished;
+    bool        shelve_stopped;
+    bool        shelve_idle;
+    bool        shelve_empty;
     bool        active;
 
     int         my_slot;
@@ -109,6 +110,6 @@ private:    // class-static data
     SPECIALIZE_MAP(QUrl, PollerData, Poller)            // "PollerMap"
 
     static  PollerMap       poller_map;
-    static  PollerPointer   acquire_poller(const QUrl& target, int timeout, int flags = 0);
+    static  PollerPointer   acquire_poller(const QUrl& target, int timeout);
     static  void            release_poller(const QUrl& target);
 };

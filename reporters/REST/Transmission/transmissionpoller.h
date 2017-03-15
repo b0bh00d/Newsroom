@@ -37,7 +37,7 @@ class TRANSMISSIONSHARED_EXPORT TransmissionPoller : public QObject
 {
     Q_OBJECT
 public:
-    TransmissionPoller(const QUrl& target, int timeout, int flags = 0, QObject* parent = nullptr);
+    TransmissionPoller(const QUrl& target, int timeout, QObject* parent = nullptr);
     ~TransmissionPoller();
 
     // this filtering mechanism is used because Qt does not provide
@@ -120,8 +120,9 @@ private:    // classes
     {
         QObject*        party;
         int             flags;
+        bool            notified;
 
-        InterestData() : party(nullptr), flags(0) {}
+        InterestData() : party(nullptr), flags(0), notified(false) {}
     };
 
 private:    // typedefs and enums
@@ -131,7 +132,6 @@ private:    // typedefs and enums
     SPECIALIZE_LIST(RequestData, Request)               // "RequestList"
     SPECIALIZE_MAP(QString, bool, PendingRequests)      // "PendingRequestsMap"
     SPECIALIZE_LIST(InterestData, Interested)           // "InterestedList"
-//    SPECIALIZE_MAP(QString, InterestedList, Interested) // "InterestedMap"
 
 private:    // methods
     void            notify_interested_parties(int slot, const QJsonObject& status = QJsonObject(), float maxratio = 0.0f);
@@ -158,10 +158,5 @@ private:    // data members
     ProjectsMap projects;
 
     InterestedList  interested_parties;
-
-    bool        ignore_finished;
-    bool        ignore_stopped;
-    bool        ignore_idle;
 };
-
 SPECIALIZE_SHAREDPTR(TransmissionPoller, Poller)        // "PollerPointer"

@@ -309,6 +309,19 @@ signals:
         from where the Headline is right now.
      */
     void        signal_highlight(qreal opacity, int timeout);
+
+    /*!
+      This signal will be emitted by the Reporter when it determines that
+      the Story being covered needs to be "shelved" for a time until
+      it begins producing interesting developments once again.
+     */
+    void        signal_shelve_story();
+
+    /*!
+      This signal will be emitted by the Reporter when it determines that
+      a shelved Story has become interesting enough to cover again.
+     */
+    void        signal_unshelve_story();
 };
 
 /// @class IReporterFactory

@@ -4,7 +4,6 @@
 #include <QtWidgets/QDesktopWidget>
 
 #include <QtCore/QPluginLoader>
-//#include <QtCore/QSettings>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 
@@ -39,6 +38,12 @@ enum class FixedText
     None,
     ScaleToFit,
     ClipToFit
+};
+
+enum class UnsubscribeAction
+{
+    Immediate,
+    Graceful
 };
 
 SPECIALIZE_SHAREDPTR(QPluginLoader, Factory)            // "FactoryPointer"

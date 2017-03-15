@@ -34,21 +34,27 @@ public:
 
     void        display();      // Begins displaying Headlines
     void        hide();         // Stops displaying Headlines (and destroys existing)
+    void        shelve();       // Stops displaying Headlines (and destroys existing)
+
+    void        suspend();      // Temporarily stops accepting new Headlines
+    void        resume();       // Starts accepting new Headlines
 
     StoryInfoPointer get_settings()      const   { return story_info; }
 
-    // These methods are used by the Lane Manager to adjust lanes
+    // These methods are used by the Dashboard to adjust lanes
     // when a Chyron is deleted.  This does an immediate move of
     // any visible Headlines in the current lane.
 
-    void        shift_left(int amount);
-    void        shift_right(int amount);
-    void        shift_up(int amount);
-    void        shift_down(int amount);
+    void                unsubscribed();
+    QAbstractAnimation* shift_left(int amount, bool auto_start = true);
+    QAbstractAnimation* shift_right(int amount, bool auto_start = true);
+    QAbstractAnimation* shift_up(int amount, bool auto_start = true);
+    QAbstractAnimation* shift_down(int amount, bool auto_start = true);
 
     // This method is used by the Producer to signal to the Chyron that a
     // Reporter-drawn Headline needs to be highlighted by adjusting its opacity.
     void        highlight_headline(HeadlinePointer hl, qreal opacity, int timeout);
+
 
 signals:
     void        signal_headline_going_out_of_scope(HeadlinePointer headline);
@@ -79,6 +85,7 @@ protected:  // methods
     void        start_headline_entry(HeadlinePointer headline);
     void        start_headline_exit(HeadlinePointer headline);
     void        dashboard_expire_headlines();
+    void        headline_posted(HeadlinePointer headline);
 
 protected:  // data members
     StoryInfoPointer story_info;
@@ -100,6 +107,8 @@ protected:  // data members
 #ifdef HIGHLIGHT_LANES
     HighlightWidget*    highlight;
 #endif
-};
 
+    bool            visible;
+    bool            suspended;
+};
 SPECIALIZE_SHAREDPTR(Chyron, Chyron)        // "ChyronPointer"

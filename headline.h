@@ -156,7 +156,7 @@ protected:  // data members
     QWidget*        bottom_window;  // Chyron
 
     friend class Chyron;        // manages the Headline's life cycle and appearance
-    friend class LaneManager;   // needs to access initialize() for its Dashboard Headline banner
+    friend class Dashboard;     // needs to access initialize() for its Dashboard Headline banner
 };
 
 class PortraitHeadline : public Headline

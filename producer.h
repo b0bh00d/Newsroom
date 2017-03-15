@@ -39,11 +39,16 @@ public:
     ChyronPointer    get_chyron()   const { return chyron; }
 
     bool    is_covering_story()     const { return covering_story; }
+    bool    is_story_shelved()      const { return story_shelved; }
+
     bool    start_covering_story();
     bool    stop_covering_story();
+    bool    shelve_story();
 
 signals:
     void    signal_new_headline(HeadlinePointer headline);
+    void    signal_shelve_story();
+    void    signal_unshelve_story();
 
 public slots:
     void    slot_start_covering_story();        // used for delayed starts
@@ -52,7 +57,6 @@ protected slots:
     void    slot_new_data(const QByteArray& data);
     void    slot_headline_going_out_of_scope(HeadlinePointer);
     void    slot_headline_highlight(qreal opacity, int timeout);
-//    void    slot_poll();
 
 private:        // typedefs and enums
     SPECIALIZE_LIST(HeadlinePointer, Headline)   // "HeadlineList"
@@ -62,6 +66,7 @@ private:        // methods
 
 private:        // data members
     bool                covering_story;
+    bool                story_shelved;   // this is like a low-power standby mode
 
     IReporterPointer    reporter;
     ChyronPointer       chyron;
@@ -72,4 +77,3 @@ private:        // data members
 };
 
 SPECIALIZE_SHAREDPTR(Producer, Producer)    // "ProducerPointer"
-//Q_DECLARE_METATYPE(ProducerPointer)
