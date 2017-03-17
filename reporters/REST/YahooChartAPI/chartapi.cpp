@@ -443,7 +443,9 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
 //    painter.setClipRect(new_bounds);
 
-    if(volume_min != volume_max)
+    if(chart_data->open_timestamp &&
+       chart_data->close_timestamp &&
+       (volume_min != volume_max))
     {
         VolumeVector volume_ticks;
 
