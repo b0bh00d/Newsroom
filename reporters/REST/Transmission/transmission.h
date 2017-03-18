@@ -60,6 +60,9 @@ public:
     bool UseReporterDraw() const Q_DECL_OVERRIDE;
     void ReporterDraw(const QRect& bounds, QPainter& painter) Q_DECL_OVERRIDE;
 
+private slots:
+    void slot_shelve_delay();
+
 private:    // typedefs and enums
     typedef enum
     {
@@ -68,6 +71,8 @@ private:    // typedefs and enums
         ShelveStopped,
         ShelveIdle,
         ShelveEmpty,
+        ShelveDelay,
+        ShelveFade,
         Poll,
         Template,
         Count,
@@ -86,11 +91,19 @@ private:    // data members
     bool        shelve_stopped;
     bool        shelve_idle;
     bool        shelve_empty;
+    bool        shelve_delay;
+    bool        shelve_fade;
     bool        active;
 
     int         my_slot;
     float       max_ratio;
     int         poll_timeout;
+
+    qint64      shelve_delay_target;
+    QTimer*     shelve_delay_timer;
+
+    qreal       start_opacity;
+    qreal       step_opacity;
 
     QJsonObject latest_status;
 

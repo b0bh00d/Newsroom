@@ -698,7 +698,8 @@ void AddStoryDialog::slot_beat_changed(int index)
             current_reporter_index = index;
        }
     }
-    else
+
+    if(plugin_reporter.isNull())
     {
         ui->combo_AvailableReporters->setToolTip(plugin_beats[story_info->reporter_beat][0].tooltip);
 

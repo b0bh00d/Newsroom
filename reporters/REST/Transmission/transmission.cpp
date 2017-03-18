@@ -15,10 +15,13 @@ Transmission::Transmission(QObject *parent)
       my_slot(1),
       max_ratio(0.0f),
       poll_timeout(5),          // match the Transmission web interface
+      shelve_delay_timer(nullptr),
       shelve_finished(false),
       shelve_stopped(false),
       shelve_idle(false),
       shelve_empty(false),
+      shelve_delay(false),
+      shelve_fade(true),
       active(true),
       IReporter2(parent)
 {
@@ -100,6 +103,9 @@ QStringList Transmission::Requires(int /*version*/) const
                 << "Shelve 'Idle' torrents" << QString("check:%1").arg(shelve_idle ? "true" : "false")
                 << "Shelve unassigned slots" << QString("check:%1").arg(shelve_empty ? "true" : "false")
 
+                << "Hold shelve-able states for one polling period" << QString("check:%1").arg(shelve_delay)
+                << "Fade shelve-able states on hold" << QString("check:%1").arg(shelve_fade)
+
                 // how many seconds between polls?
                 << "Polling (sec):"   << QString("integer:%1").arg(poll_timeout)
 
@@ -119,6 +125,8 @@ bool Transmission::SetRequirements(const QStringList& parameters)
             my_slot = 1;
     }
 
+    poll_timeout = 5;
+
     if(parameters.count() > Param::ShelveFinished && !parameters[Param::ShelveFinished].isEmpty())
         shelve_finished = !parameters[Param::ShelveFinished].toLower().compare("true");
 
@@ -130,6 +138,12 @@ bool Transmission::SetRequirements(const QStringList& parameters)
 
     if(parameters.count() > Param::ShelveEmpty && !parameters[Param::ShelveEmpty].isEmpty())
         shelve_empty = !parameters[Param::ShelveEmpty].toLower().compare("true");
+
+    if(parameters.count() > Param::ShelveDelay && !parameters[Param::ShelveDelay].isEmpty())
+        shelve_delay = !parameters[Param::ShelveDelay].toLower().compare("true");
+
+    if(parameters.count() > Param::ShelveFade && !parameters[Param::ShelveFade].isEmpty())
+        shelve_fade = !parameters[Param::ShelveFade].toLower().compare("true");
 
     if(parameters.count() > Param::Poll && !parameters[Param::Poll].isEmpty())
         poll_timeout = parameters[Param::Poll].toInt();
@@ -365,6 +379,22 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
 // Transmission
 
+void Transmission::slot_shelve_delay()
+{
+    if(QDateTime::currentDateTime().toMSecsSinceEpoch() >= shelve_delay_target)
+    {
+        emit signal_shelve_story();
+        active = false;
+        shelve_delay_timer->deleteLater();
+        shelve_delay_timer = nullptr;
+    }
+    else if(shelve_fade)
+    {
+        start_opacity -= step_opacity;
+        emit signal_highlight(start_opacity >= 0.0 ? start_opacity : 0.0, 100);
+    }
+}
+
 void Transmission::status(const QJsonObject& status, float maxratio)
 {
     QString status_str(status["status"].toString().toLower());
@@ -382,9 +412,35 @@ void Transmission::status(const QJsonObject& status, float maxratio)
     {
         if(shelve_triggered)
         {
-            emit signal_shelve_story();
-            active = false;
-            return;
+            if(shelve_delay)
+            {
+                if(!shelve_delay_timer)
+                {
+                    start_opacity = 1.0;    // assumes headline is at 100% opacity
+                    step_opacity = (start_opacity / (((poll_timeout * 1000) - 200) / 100));
+                    shelve_delay_target = QDateTime::currentDateTime().toMSecsSinceEpoch() + (poll_timeout * 1000);
+                    shelve_delay_timer = new QTimer(this);
+                    shelve_delay_timer->setInterval(100);
+                    connect(shelve_delay_timer, &QTimer::timeout, this, &Transmission::slot_shelve_delay);
+                    shelve_delay_timer->start();
+                }
+            }
+            else
+            {
+                emit signal_shelve_story();
+                active = false;
+                return;
+            }
+        }
+        else if(shelve_delay_timer)
+        {
+            // we WERE shelf-triggered, but the state has changed
+            // while we were delaying...
+            shelve_delay_timer->stop();
+            shelve_delay_timer->deleteLater();
+            shelve_delay_timer = nullptr;
+
+            emit signal_highlight(1.0, 10);
         }
     }
     else    // !active
@@ -416,8 +472,24 @@ void Transmission::reset()
     {
         if(shelve_empty)
         {
-            emit signal_shelve_story();
-            active = false;
+            if(shelve_delay)
+            {
+                if(!shelve_delay_timer)
+                {
+                    start_opacity = 1.0;    // assumes headline is at 100% opacity
+                    step_opacity = (start_opacity / (((poll_timeout * 1000) - 200) / 100));
+                    shelve_delay_target = QDateTime::currentDateTime().toMSecsSinceEpoch() + (poll_timeout * 1000);
+                    shelve_delay_timer = new QTimer(this);
+                    shelve_delay_timer->setInterval(100);
+                    connect(shelve_delay_timer, &QTimer::timeout, this, &Transmission::slot_shelve_delay);
+                    shelve_delay_timer->start();
+                }
+            }
+            else
+            {
+                emit signal_shelve_story();
+                active = false;
+            }
         }
         else
             emit signal_new_data(QByteArray());
