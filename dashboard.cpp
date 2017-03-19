@@ -177,7 +177,6 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
     // than the one that is unsubscribing
 
     QParallelAnimationGroup* animation_group = nullptr;
-    QAbstractAnimation* anim = nullptr;
 
     bool shifting = false;
 
@@ -192,6 +191,7 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
 
         StoryInfoPointer data_story_info = lane_data->owner->get_settings();
 
+        QAbstractAnimation* anim = nullptr;
         switch(data_story_info->entry_type)
         {
             case AnimEntryType::DashboardInLeftTop:
@@ -287,7 +287,8 @@ void Dashboard::shift(LaneDataPointer exiting)
     // don't forget to move the dashboard header as well
 
     QRect r = get_header_geometry();
-    lane_header->animation = new QPropertyAnimation(lane_header.data(), "geometry");
+    lane_header->animation = AnimationPointer(new QPropertyAnimation(lane_header.data(), "geometry"),
+                                [] (QAbstractAnimation* anim) { anim->deleteLater(); });
     lane_header->animation->setDuration(data_story_info->anim_motion_duration);
     lane_header->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
     lane_header->animation->setEasingCurve(data_story_info->motion_curve);
@@ -312,7 +313,7 @@ void Dashboard::shift(LaneDataPointer exiting)
             break;
     }
 
-    lane_header->animation->start(QAbstractAnimation::DeleteWhenStopped);
+    lane_header->animation->start();//QAbstractAnimation::DeleteWhenStopped);
 }
 
 void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& r_desktop, int r_offset_w, int r_offset_h)

@@ -98,14 +98,20 @@ void Chyron::highlight_headline(HeadlinePointer hl, qreal opacity, int timeout)
     {
         if(headline.data() == hl.data())
         {
-            headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
-            headline->animation->setDuration(timeout);
-            headline->animation->setStartValue(headline->windowOpacity());
-            headline->animation->setEndValue(opacity < 0.0 ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity));
-            headline->animation->setEasingCurve(story_info->fading_curve);
-            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
+            if(timeout == 0)
+                // no animation required
+                headline->setWindowOpacity(opacity < 0.0 ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity));
+            else
+            {
+                headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "windowOpacity"),
+                        [] (QAbstractAnimation* anim) { anim->deleteLater(); });
+                headline->animation->setDuration(timeout);
+                headline->animation->setStartValue(headline->windowOpacity());
+                headline->animation->setEndValue(opacity < 0.0 ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity));
+                headline->animation->setEasingCurve(story_info->fading_curve);
 
-            headline->animation->start();
+                headline->animation->start();
+            }
         }
     }
 }
@@ -335,18 +341,20 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         case AnimEntryType::TrainUpLeftBottom:
         case AnimEntryType::TrainUpRightBottom:
         case AnimEntryType::TrainUpCenterBottom:
-            headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+            headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "geometry"),
+                                [] (QAbstractAnimation* anim) { anim->deleteLater(); });
             headline->animation->setDuration(speed);
             headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
             headline->animation->setEasingCurve(story_info->motion_curve);
-            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
-            prop_anim_map[headline->animation] = headline;
+            connect(headline->animation.data(), &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
+            prop_anim_map[headline->animation.data()] = headline;
 
             if(headline_list.length())
             {
                 animation_group = new QParallelAnimationGroup();
                 foreach(HeadlinePointer posted_headline, headline_list)
-                    posted_headline->animation = new QPropertyAnimation(posted_headline.data(), "geometry");
+                    posted_headline->animation = AnimationPointer(new QPropertyAnimation(posted_headline.data(), "geometry"),
+                                [] (QAbstractAnimation* anim) { anim->deleteLater(); });
 
                 if(IS_TRAIN(story_info->entry_type))
                     connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_train_expire_headlines);
@@ -360,15 +368,15 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         case AnimEntryType::PopRightBottom:
             // create a dummy effect for these types so slot_headline_posted()
             // is triggered
-            if(headline->animation)
-                headline->animation->deleteLater();
-            headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+            headline->animation.clear();
+            headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "geometry"),
+                                [] (QAbstractAnimation* anim) { anim->deleteLater(); });
             headline->animation->setDuration(speed);
             headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
             headline->animation->setEndValue(QRect(r.x(), r.y(), r.width(), r.height()));
             headline->animation->setEasingCurve(story_info->motion_curve);
-            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
-            prop_anim_map[headline->animation] = headline;
+            connect(headline->animation.data(), &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
+            prop_anim_map[headline->animation.data()] = headline;
             entering_map[headline] = true;
             break;
 
@@ -380,9 +388,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         case AnimEntryType::DashboardInRightBottom:
         case AnimEntryType::DashboardUpLeftBottom:
         case AnimEntryType::DashboardUpRightBottom:
-            if(headline->animation)
-                headline->animation->deleteLater();
-            headline->animation = nullptr;
+            headline->animation.clear();
             headline->viewed = QDateTime::currentDateTime().toTime_t();
             headline->show();
             // slot_headline_posted() will never be hit with this, so the
@@ -397,13 +403,14 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         case AnimEntryType::FadeLeftBottom:
         case AnimEntryType::FadeRightBottom:
             {
-                headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "windowOpacity"),
+                                [] (QAbstractAnimation* anim) { anim->deleteLater(); });
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(0.0);
                 headline->animation->setEndValue(1.0);
                 headline->animation->setEasingCurve(story_info->motion_curve);
-                connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
-                prop_anim_map[headline->animation] = headline;
+                connect(headline->animation.data(), &QPropertyAnimation::finished, this, &Chyron::slot_headline_posted);
+                prop_anim_map[headline->animation.data()] = headline;
             }
             break;
     }
@@ -430,7 +437,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 foreach(HeadlinePointer posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
-                    configure_group_item(posted_headline->animation, speed, posted_r,
+                    configure_group_item(posted_headline->animation.data(), speed, posted_r,
                                          QRect(posted_r.x(), posted_r.y() + r.height() + story_info->margin, posted_r.width(), posted_r.height()),
                                          story_info->motion_curve);
                 }
@@ -445,7 +452,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 foreach(HeadlinePointer posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
-                    configure_group_item(posted_headline->animation, speed, posted_r,
+                    configure_group_item(posted_headline->animation.data(), speed, posted_r,
                                          QRect(posted_r.x() + r.width() + story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()),
                                          story_info->motion_curve);
                 }
@@ -460,7 +467,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 foreach(HeadlinePointer posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
-                    configure_group_item(posted_headline->animation, speed, posted_r,
+                    configure_group_item(posted_headline->animation.data(), speed, posted_r,
                                          QRect(posted_r.x() - r.width() - story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()),
                                          story_info->motion_curve);
                 }
@@ -475,7 +482,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 foreach(HeadlinePointer posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
-                    configure_group_item(posted_headline->animation, speed, posted_r,
+                    configure_group_item(posted_headline->animation.data(), speed, posted_r,
                                          QRect(posted_r.x() + r.width() + story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()),
                                          story_info->motion_curve);
                 }
@@ -490,7 +497,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 foreach(HeadlinePointer posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
-                    configure_group_item(posted_headline->animation, speed, posted_r,
+                    configure_group_item(posted_headline->animation.data(), speed, posted_r,
                                          QRect(posted_r.x() - r.width() - story_info->margin, posted_r.y(), posted_r.width(), posted_r.height()),
                                          story_info->motion_curve);
                 }
@@ -509,7 +516,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
                 foreach(HeadlinePointer posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
-                    configure_group_item(posted_headline->animation, speed, posted_r,
+                    configure_group_item(posted_headline->animation.data(), speed, posted_r,
                                          QRect(posted_r.x(), posted_r.y() - r.height() - story_info->margin, posted_r.width(), posted_r.height()),
                                          story_info->motion_curve);
                 }
@@ -546,13 +553,13 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
 
         if(animation_group)
         {
-            animation_group->addAnimation(headline->animation);
+            animation_group->addAnimation(headline->animation.data());
             foreach(HeadlinePointer posted_headline, headline_list)
-                animation_group->addAnimation(posted_headline->animation);
+                animation_group->addAnimation(posted_headline->animation.data());
             lane_manager->anim_queue(this, animation_group);
         }
         else if(headline->animation)
-            lane_manager->anim_queue(this, headline->animation);
+            lane_manager->anim_queue(this, headline->animation.data());
     }
 }
 
@@ -577,12 +584,13 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         {
             if(story_info->train_age_effect == AgeEffects::ReduceOpacityFixed)
             {
-                headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "windowOpacity"),
+                                    [] (QAbstractAnimation* anim) { anim->deleteLater(); });
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(1.0);
                 headline->animation->setEndValue(story_info->train_age_percent / 100.0);
                 headline->animation->setEasingCurve(story_info->fading_curve);
-                lane_manager->anim_queue(this, headline->animation);
+                lane_manager->anim_queue(this, headline->animation.data());
             }
         }
 
@@ -594,12 +602,13 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         {
             if(story_info->dashboard_age_percent)
             {
-                headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "windowOpacity"),
+                                    [] (QAbstractAnimation* anim) { anim->deleteLater(); });
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(1.0);
                 headline->animation->setEndValue(story_info->dashboard_age_percent / 100.0);
                 headline->animation->setEasingCurve(story_info->fading_curve);
-                lane_manager->anim_queue(this, headline->animation);
+                lane_manager->anim_queue(this, headline->animation.data());
             }
         }
 
@@ -617,22 +626,24 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
             case AnimExitType::SlideFadeRight:
             case AnimExitType::SlideFadeUp:
             case AnimExitType::SlideFadeDown:
-                headline->animation = new QPropertyAnimation(headline.data(), "geometry");
+                headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "geometry"),
+                                    [] (QAbstractAnimation* anim) { anim->deleteLater(); });
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
                 headline->animation->setEasingCurve(story_info->motion_curve);
-                connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
-                prop_anim_map[headline->animation] = headline;
+                connect(headline->animation.data(), &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
+                prop_anim_map[headline->animation.data()] = headline;
                 break;
 
             case AnimExitType::Fade:
-                headline->animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "windowOpacity"),
+                                    [] (QAbstractAnimation* anim) { anim->deleteLater(); });
                 headline->animation->setDuration(speed);
                 headline->animation->setStartValue(1.0);
                 headline->animation->setEndValue(0.0);
                 headline->animation->setEasingCurve(story_info->motion_curve);
-                connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
-                prop_anim_map[headline->animation] = headline;
+                connect(headline->animation.data(), &QPropertyAnimation::finished, this, &Chyron::slot_headline_expired);
+                prop_anim_map[headline->animation.data()] = headline;
                 break;
 
             case AnimExitType::Pop:
@@ -675,7 +686,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
             {
                 animation_group = new QParallelAnimationGroup(this);
 
-                animation_group->addAnimation(headline->animation);
+                animation_group->addAnimation(headline->animation.data());
 
                 QPropertyAnimation* opacity_animation = new QPropertyAnimation(headline.data(), "windowOpacity");
                 opacity_animation->setDuration(speed);
@@ -694,7 +705,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         if(animation_group)
             lane_manager->anim_queue(this, animation_group);
         else
-            lane_manager->anim_queue(this, headline->animation);
+            lane_manager->anim_queue(this, headline->animation.data());
     }
 }
 
@@ -707,17 +718,15 @@ QAbstractAnimation* Chyron::shift_left(int amount, bool auto_start)
     foreach(HeadlinePointer headline, headline_list)
     {
         QRect r = headline->geometry();
-        headline->animation = new QPropertyAnimation(headline.data(), "geometry");
-        headline->animation->setDuration(story_info->anim_motion_duration);
-        headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(story_info->motion_curve);
-        headline->animation->setEndValue(QRect(r.x() - amount, r.y(), r.width(), r.height()));
+        QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "geometry");
+        animation->setDuration(story_info->anim_motion_duration);
+        animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+        animation->setEasingCurve(story_info->motion_curve);
+        animation->setEndValue(QRect(r.x() - amount, r.y(), r.width(), r.height()));
 
-        if(auto_start)
-            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
         if(!animation_group)
             animation_group = new QParallelAnimationGroup();
-        animation_group->addAnimation(headline->animation);
+        animation_group->addAnimation(animation);
     }
 
     if(auto_start)
@@ -739,17 +748,15 @@ QAbstractAnimation* Chyron::shift_right(int amount, bool auto_start)
     foreach(HeadlinePointer headline, headline_list)
     {
         QRect r = headline->geometry();
-        headline->animation = new QPropertyAnimation(headline.data(), "geometry");
-        headline->animation->setDuration(story_info->anim_motion_duration);
-        headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(story_info->motion_curve);
-        headline->animation->setEndValue(QRect(r.x() + amount, r.y(), r.width(), r.height()));
+        QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "geometry");
+        animation->setDuration(story_info->anim_motion_duration);
+        animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+        animation->setEasingCurve(story_info->motion_curve);
+        animation->setEndValue(QRect(r.x() + amount, r.y(), r.width(), r.height()));
 
-        if(auto_start)
-            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
         if(!animation_group)
             animation_group = new QParallelAnimationGroup();
-        animation_group->addAnimation(headline->animation);
+        animation_group->addAnimation(animation);
     }
 
     if(auto_start)
@@ -771,17 +778,15 @@ QAbstractAnimation* Chyron::shift_up(int amount, bool auto_start)
     foreach(HeadlinePointer headline, headline_list)
     {
         QRect r = headline->geometry();
-        headline->animation = new QPropertyAnimation(headline.data(), "geometry");
-        headline->animation->setDuration(story_info->anim_motion_duration);
-        headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(story_info->motion_curve);
-        headline->animation->setEndValue(QRect(r.x(), r.y() - amount, r.width(), r.height()));
+        QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "geometry");
+        animation->setDuration(story_info->anim_motion_duration);
+        animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+        animation->setEasingCurve(story_info->motion_curve);
+        animation->setEndValue(QRect(r.x(), r.y() - amount, r.width(), r.height()));
 
-        if(auto_start)
-            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
         if(!animation_group)
             animation_group = new QParallelAnimationGroup();
-        animation_group->addAnimation(headline->animation);
+        animation_group->addAnimation(animation);
     }
 
     if(auto_start)
@@ -803,17 +808,15 @@ QAbstractAnimation* Chyron::shift_down(int amount, bool auto_start)
     foreach(HeadlinePointer headline, headline_list)
     {
         QRect r = headline->geometry();
-        headline->animation = new QPropertyAnimation(headline.data(), "geometry");
-        headline->animation->setDuration(story_info->anim_motion_duration);
-        headline->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-        headline->animation->setEasingCurve(story_info->motion_curve);
-        headline->animation->setEndValue(QRect(r.x(), r.y() + amount, r.width(), r.height()));
+        QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "geometry");
+        animation->setDuration(story_info->anim_motion_duration);
+        animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+        animation->setEasingCurve(story_info->motion_curve);
+        animation->setEndValue(QRect(r.x(), r.y() + amount, r.width(), r.height()));
 
-        if(auto_start)
-            connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
         if(!animation_group)
             animation_group = new QParallelAnimationGroup();
-        animation_group->addAnimation(headline->animation);
+        animation_group->addAnimation(animation);
     }
 
     if(auto_start)
@@ -1054,12 +1057,12 @@ void Chyron::slot_headline_mouse_enter()
     {
         opacity_map[headline] = headline->windowOpacity();
 
-        headline->animation = new QPropertyAnimation(headline, "windowOpacity");
+        headline->animation = AnimationPointer(new QPropertyAnimation(headline, "windowOpacity"),
+                                [] (QAbstractAnimation* anim) { anim->deleteLater(); });
         headline->animation->setDuration(150);
         headline->animation->setStartValue(headline->windowOpacity());
         headline->animation->setEndValue(1.0);
         headline->animation->setEasingCurve(story_info->motion_curve);
-        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
         headline->animation->start();
     }
 }
@@ -1069,12 +1072,12 @@ void Chyron::slot_headline_mouse_exit()
     Headline* headline = qobject_cast<Headline*>(sender());
     if(opacity_map.contains(headline))
     {
-        headline->animation = new QPropertyAnimation(headline, "windowOpacity");
+        headline->animation = AnimationPointer(new QPropertyAnimation(headline, "windowOpacity"),
+                                [] (QAbstractAnimation* anim) { anim->deleteLater(); });
         headline->animation->setDuration(150);
         headline->animation->setStartValue(1.0);
         headline->animation->setEndValue(opacity_map[headline]);
         headline->animation->setEasingCurve(story_info->motion_curve);
-        connect(headline->animation, &QPropertyAnimation::finished, this, &Chyron::slot_release_animation);
         headline->animation->start();
 
         opacity_map.remove(headline);

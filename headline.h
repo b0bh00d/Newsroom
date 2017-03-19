@@ -113,36 +113,36 @@ protected:  // methods
      */
 
 protected:  // data members
-    bool            stay_visible;
-    bool            was_stay_visible;
-    bool            mouse_in_widget;
-    bool            is_zoomed;
-    int             margin;
-    StoryInfoPointer story_info;
-    QString         headline;
-    QFont           font;
-    QString         stylesheet;
+    bool                stay_visible;
+    bool                was_stay_visible;
+    bool                mouse_in_widget;
+    bool                is_zoomed;
+    int                 margin;
+    StoryInfoPointer    story_info;
+    QString             headline;
+    QFont               font;
+    QString             stylesheet;
 
-    bool            shrink_text_to_fit;
-    bool            compact_mode;
-    bool            reporter_draw;
-    int             original_w;
-    int             original_h;
+    bool                shrink_text_to_fit;
+    bool                compact_mode;
+    bool                reporter_draw;
+    int                 original_w;
+    int                 original_h;
 
-    bool            ignore;         // Chyron
-    uint            viewed;         // Chyron
-    QPropertyAnimation* animation;  // Chyron
+    bool                ignore;     // Chyron
+    uint                viewed;     // Chyron
+    AnimationPointer    animation;  // Chyron
 
-    QLabel*         label;
+    QLabel*             label;
 
-    bool            include_progress_bar;
-    QString         progress_text_re;
-    bool            progress_on_top;
+    bool                include_progress_bar;
+    QString             progress_text_re;
+    bool                progress_on_top;
 
-    QRect           starting_geometry, target_geometry;
-    QTimer*         hover_timer;
+    QRect               starting_geometry, target_geometry;
+    QTimer*             hover_timer;
 
-    qreal           old_opacity;
+    qreal               old_opacity;
 
     // in the '!stay_visible' case, because of the way the nativeEvent()
     // function works, a new window will end up displaying BENEATH the
@@ -153,7 +153,7 @@ protected:  // data members
     // function will use it to place the new window precisely at the top
     // of the Dashboard Z-order.
 
-    QWidget*        bottom_window;  // Chyron
+    QWidget*            bottom_window;  // Chyron
 
     friend class Chyron;        // manages the Headline's life cycle and appearance
     friend class Dashboard;     // needs to access initialize() for its Dashboard Headline banner
