@@ -391,7 +391,7 @@ void Transmission::slot_shelve_delay()
     else if(shelve_fade)
     {
         start_opacity -= step_opacity;
-        emit signal_highlight(start_opacity >= 0.0 ? start_opacity : 0.0, 100);
+        emit signal_highlight(start_opacity >= 0.0 ? start_opacity : 0.0, 90);
     }
 }
 
@@ -417,8 +417,8 @@ void Transmission::status(const QJsonObject& status, float maxratio)
                 if(!shelve_delay_timer)
                 {
                     start_opacity = 1.0;    // assumes headline is at 100% opacity
-                    step_opacity = (start_opacity / (((poll_timeout * 1000) - 200) / 100));
-                    shelve_delay_target = QDateTime::currentDateTime().toMSecsSinceEpoch() + (poll_timeout * 1000);
+                    step_opacity = (start_opacity / (((poll_timeout * 1000) - 500) / 100));
+                    shelve_delay_target = QDateTime::currentDateTime().toMSecsSinceEpoch() + ((poll_timeout * 1000) - 500);
                     shelve_delay_timer = new QTimer(this);
                     shelve_delay_timer->setInterval(100);
                     connect(shelve_delay_timer, &QTimer::timeout, this, &Transmission::slot_shelve_delay);
@@ -477,8 +477,8 @@ void Transmission::reset()
                 if(!shelve_delay_timer)
                 {
                     start_opacity = 1.0;    // assumes headline is at 100% opacity
-                    step_opacity = (start_opacity / (((poll_timeout * 1000) - 200) / 100));
-                    shelve_delay_target = QDateTime::currentDateTime().toMSecsSinceEpoch() + (poll_timeout * 1000);
+                    step_opacity = (start_opacity / (((poll_timeout * 1000) - 500) / 100));
+                    shelve_delay_target = QDateTime::currentDateTime().toMSecsSinceEpoch() + ((poll_timeout * 1000) - 500);
                     shelve_delay_timer = new QTimer(this);
                     shelve_delay_timer->setInterval(100);
                     connect(shelve_delay_timer, &QTimer::timeout, this, &Transmission::slot_shelve_delay);
