@@ -645,7 +645,7 @@ void LaneManager::anim_queue(Chyron* chyron, QAbstractAnimation* anim)
         (*iter)->anim_queue(data_map[chyron], anim);
     }
     else
-        anim->start();
+        anim->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 void LaneManager::anim_clear(Chyron *chyron)

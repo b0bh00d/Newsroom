@@ -66,7 +66,6 @@ protected slots:
     void        slot_age_headlines();
     void        slot_headline_posted();
     void        slot_headline_expired();
-    void        slot_release_animation();
     void        slot_train_expire_headlines();
 
     void        slot_headline_mouse_enter();

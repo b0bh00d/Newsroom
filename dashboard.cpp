@@ -287,33 +287,32 @@ void Dashboard::shift(LaneDataPointer exiting)
     // don't forget to move the dashboard header as well
 
     QRect r = get_header_geometry();
-    lane_header->animation = AnimationPointer(new QPropertyAnimation(lane_header.data(), "geometry"),
-                                [] (QAbstractAnimation* anim) { anim->deleteLater(); });
-    lane_header->animation->setDuration(data_story_info->anim_motion_duration);
-    lane_header->animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
-    lane_header->animation->setEasingCurve(data_story_info->motion_curve);
+    QPropertyAnimation* animation = new QPropertyAnimation(lane_header.data(), "geometry");
+    animation->setDuration(data_story_info->anim_motion_duration);
+    animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
+    animation->setEasingCurve(data_story_info->motion_curve);
 
     switch(entry_type)
     {
         case AnimEntryType::DashboardInLeftTop:
         case AnimEntryType::DashboardInRightTop:
-            lane_header->animation->setEndValue(QRect(r.x(), r.y() - shift, r.width(), r.height()));
+            animation->setEndValue(QRect(r.x(), r.y() - shift, r.width(), r.height()));
             break;
         case AnimEntryType::DashboardInLeftBottom:
         case AnimEntryType::DashboardInRightBottom:
-            lane_header->animation->setEndValue(QRect(r.x(), r.y() + shift, r.width(), r.height()));
+            animation->setEndValue(QRect(r.x(), r.y() + shift, r.width(), r.height()));
             break;
         case AnimEntryType::DashboardDownLeftTop:
         case AnimEntryType::DashboardUpLeftBottom:
-            lane_header->animation->setEndValue(QRect(r.x() - shift, r.y(), r.width(), r.height()));
+            animation->setEndValue(QRect(r.x() - shift, r.y(), r.width(), r.height()));
             break;
         case AnimEntryType::DashboardDownRightTop:
         case AnimEntryType::DashboardUpRightBottom:
-            lane_header->animation->setEndValue(QRect(r.x() + shift, r.y(), r.width(), r.height()));
+            animation->setEndValue(QRect(r.x() + shift, r.y(), r.width(), r.height()));
             break;
     }
 
-    lane_header->animation->start();//QAbstractAnimation::DeleteWhenStopped);
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& r_desktop, int r_offset_w, int r_offset_h)

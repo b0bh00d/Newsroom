@@ -14,6 +14,17 @@ CONFIG(debug, debug|release) {
     DLLDESTDIR = ../../../deploy/debug/reporters
 } else {
     DLLDESTDIR = ../../../deploy/release/reporters
+    #CONFIG += drmemory
+}
+
+drmemory {
+    CONFIG(debug, debug|release) {
+        DESTDIR = ../../../deploy/debug/reporters
+    } else {
+        DESTDIR = ../../../deploy/release/reporters
+    }
+    QMAKE_CXXFLAGS_RELEASE += $$QMAKE_CFLAGS_RELEASE_WITH_DEBUGINFO
+    QMAKE_LFLAGS_RELEASE += $$QMAKE_LFLAGS_RELEASE_WITH_DEBUGINFO
 }
 
 mac {

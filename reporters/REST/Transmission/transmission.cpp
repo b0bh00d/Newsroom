@@ -391,7 +391,7 @@ void Transmission::slot_shelve_delay()
     else if(shelve_fade)
     {
         start_opacity -= step_opacity;
-        emit signal_highlight(start_opacity >= 0.0 ? start_opacity : 0.0, 90);
+        emit signal_highlight(start_opacity >= 0.0 ? start_opacity : 0.0, 100);
     }
 }
 
@@ -440,7 +440,7 @@ void Transmission::status(const QJsonObject& status, float maxratio)
             shelve_delay_timer->deleteLater();
             shelve_delay_timer = nullptr;
 
-            emit signal_highlight(1.0, 10);
+            emit signal_highlight(1.0, 0);
         }
     }
     else    // !active

@@ -20,6 +20,7 @@ CONFIG(debug, debug|release) {
     DESTDIR = deploy/debug
 } else {
     DESTDIR = deploy/release
+    #CONFIG += drmemory
 }
 
 INCLUDEPATH += reporters/interfaces
@@ -27,6 +28,12 @@ INCLUDEPATH += reporters/interfaces
 RESOURCES += ./Newsroom.qrc
 
 DEFINES += QT_DLL QT_NETWORK_LIB
+
+drmemory {
+    # drmemory.exe -report_leak_max -1 -delay_frees UINT_MAX Newsroom.exe
+    QMAKE_CXXFLAGS_RELEASE += $$QMAKE_CFLAGS_RELEASE_WITH_DEBUGINFO
+    QMAKE_LFLAGS_RELEASE += $$QMAKE_LFLAGS_RELEASE_WITH_DEBUGINFO
+}
 
 mac {
     DEFINES += QT_OSX

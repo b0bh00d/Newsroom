@@ -103,14 +103,13 @@ void Chyron::highlight_headline(HeadlinePointer hl, qreal opacity, int timeout)
                 headline->setWindowOpacity(opacity < 0.0 ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity));
             else
             {
-                headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "windowOpacity"),
-                        [] (QAbstractAnimation* anim) { anim->deleteLater(); });
-                headline->animation->setDuration(timeout);
-                headline->animation->setStartValue(headline->windowOpacity());
-                headline->animation->setEndValue(opacity < 0.0 ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity));
-                headline->animation->setEasingCurve(story_info->fading_curve);
+                QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                animation->setDuration(timeout);
+                animation->setStartValue(headline->windowOpacity());
+                animation->setEndValue(opacity < 0.0 ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity));
+                animation->setEasingCurve(story_info->fading_curve);
 
-                headline->animation->start();
+                animation->start(QAbstractAnimation::DeleteWhenStopped);
             }
         }
     }
@@ -584,13 +583,12 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         {
             if(story_info->train_age_effect == AgeEffects::ReduceOpacityFixed)
             {
-                headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "windowOpacity"),
-                                    [] (QAbstractAnimation* anim) { anim->deleteLater(); });
-                headline->animation->setDuration(speed);
-                headline->animation->setStartValue(1.0);
-                headline->animation->setEndValue(story_info->train_age_percent / 100.0);
-                headline->animation->setEasingCurve(story_info->fading_curve);
-                lane_manager->anim_queue(this, headline->animation.data());
+                QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                animation->setDuration(speed);
+                animation->setStartValue(1.0);
+                animation->setEndValue(story_info->train_age_percent / 100.0);
+                animation->setEasingCurve(story_info->fading_curve);
+                lane_manager->anim_queue(this, animation);
             }
         }
 
@@ -602,13 +600,12 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         {
             if(story_info->dashboard_age_percent)
             {
-                headline->animation = AnimationPointer(new QPropertyAnimation(headline.data(), "windowOpacity"),
-                                    [] (QAbstractAnimation* anim) { anim->deleteLater(); });
-                headline->animation->setDuration(speed);
-                headline->animation->setStartValue(1.0);
-                headline->animation->setEndValue(story_info->dashboard_age_percent / 100.0);
-                headline->animation->setEasingCurve(story_info->fading_curve);
-                lane_manager->anim_queue(this, headline->animation.data());
+                QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                animation->setDuration(speed);
+                animation->setStartValue(1.0);
+                animation->setEndValue(story_info->dashboard_age_percent / 100.0);
+                animation->setEasingCurve(story_info->fading_curve);
+                lane_manager->anim_queue(this, animation);
             }
         }
 
@@ -731,8 +728,7 @@ QAbstractAnimation* Chyron::shift_left(int amount, bool auto_start)
 
     if(auto_start)
     {
-        connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
-        animation_group->start();
+        animation_group->start(QAbstractAnimation::DeleteWhenStopped);
         return nullptr;
     }
 
@@ -761,8 +757,7 @@ QAbstractAnimation* Chyron::shift_right(int amount, bool auto_start)
 
     if(auto_start)
     {
-        connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
-        animation_group->start();
+        animation_group->start(QAbstractAnimation::DeleteWhenStopped);
         return nullptr;
     }
 
@@ -791,8 +786,7 @@ QAbstractAnimation* Chyron::shift_up(int amount, bool auto_start)
 
     if(auto_start)
     {
-        connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
-        animation_group->start();
+        animation_group->start(QAbstractAnimation::DeleteWhenStopped);
         return nullptr;
     }
 
@@ -821,8 +815,7 @@ QAbstractAnimation* Chyron::shift_down(int amount, bool auto_start)
 
     if(auto_start)
     {
-        connect(animation_group, &QParallelAnimationGroup::finished, this, &Chyron::slot_release_animation);
-        animation_group->start();
+        animation_group->start(QAbstractAnimation::DeleteWhenStopped);
         return nullptr;
     }
 
@@ -931,13 +924,6 @@ void Chyron::slot_headline_expired()
     headline->hide();
     emit signal_headline_going_out_of_scope(headline);
     headline.clear();
-}
-
-void Chyron::slot_release_animation()
-{
-    QPropertyAnimation* prop_anim = qobject_cast<QPropertyAnimation*>(sender());
-    if(prop_anim)
-        prop_anim->deleteLater();
 }
 
 void Chyron::slot_age_headlines()
