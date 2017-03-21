@@ -535,8 +535,9 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
             int last_volume_offset = 0;
             foreach(const VolumePair& tick, volume_ticks)
             {
-                if(!last_volume_offset)
-                    tick.second;
+                // What was I thinking here?  o.O
+                //if(!last_volume_offset)
+                //    tick.second;
 
                 if(tick.first > chart_data->previous_close)
                 {

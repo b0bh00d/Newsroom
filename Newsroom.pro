@@ -41,6 +41,7 @@ mac {
 
 unix:!mac {
     DEFINES += QT_LINUX
+    QMAKE_CXXFLAGS += -Wno-reorder -Wno-switch
 }
 
 win32 {

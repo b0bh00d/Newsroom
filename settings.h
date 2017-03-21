@@ -31,6 +31,7 @@ class Settings
 {
 public:
     Settings(const QString& application, const QString& base_filename);
+    virtual ~Settings() {}
 
     virtual bool init(bool = false) { return false; }
     virtual bool flush()            { return false; }

@@ -32,6 +32,7 @@ public:
                       Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
                       QWidget* parent = nullptr);
     explicit Headline(const Headline& source)
+        : QLabel()
     {
         story_info = source.story_info;
         headline = source.headline;

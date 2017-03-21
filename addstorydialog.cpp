@@ -302,7 +302,7 @@ void AddStoryDialog::load_settings()
     ui->combo_ReporterBeats->setCurrentIndex(index_of_beat);
     slot_beat_changed(index_of_beat);
 
-    if(ui->edit_TTL->placeholderText().toInt() == story_info->ttl)
+    if(ui->edit_TTL->placeholderText().toUInt() == story_info->ttl)
         ui->edit_TTL->setText(QString());
     else
         ui->edit_TTL->setText(QString::number(story_info->ttl));

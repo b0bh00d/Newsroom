@@ -196,7 +196,8 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
         {
             case AnimEntryType::DashboardInLeftTop:
             case AnimEntryType::DashboardInLeftBottom:
-                if(anim = lane_data->owner->shift_left(shift, false))
+                anim = lane_data->owner->shift_left(shift, false);
+                if(anim)
                 {
                     if(!animation_group)
                         animation_group = new QParallelAnimationGroup();
@@ -207,7 +208,8 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
                 break;
             case AnimEntryType::DashboardInRightTop:
             case AnimEntryType::DashboardInRightBottom:
-                if(anim = lane_data->owner->shift_right(shift, false))
+                anim = lane_data->owner->shift_right(shift, false);
+                if(anim)
                 {
                     if(!animation_group)
                         animation_group = new QParallelAnimationGroup();
@@ -218,7 +220,8 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
                 break;
             case AnimEntryType::DashboardDownLeftTop:
             case AnimEntryType::DashboardDownRightTop:
-                if(anim = lane_data->owner->shift_up(shift, false))
+                anim = lane_data->owner->shift_up(shift, false);
+                if(anim)
                 {
                     if(!animation_group)
                         animation_group = new QParallelAnimationGroup();
@@ -229,7 +232,8 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
                 break;
             case AnimEntryType::DashboardUpLeftBottom:
             case AnimEntryType::DashboardUpRightBottom:
-                if(anim = lane_data->owner->shift_down(shift, false))
+                anim = lane_data->owner->shift_down(shift, false);
+                if(anim)
                 {
                     if(!animation_group)
                         animation_group = new QParallelAnimationGroup();
