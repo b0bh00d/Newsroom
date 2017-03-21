@@ -66,6 +66,20 @@ MainWindow::MainWindow(QWidget *parent)
                                     .arg("")
 #endif
                                     );
+
+    QDir settings_dir(application_settings_folder_name);
+    if(!settings_dir.exists())
+    {
+        if(!settings_dir.mkdir("."))
+        {
+            QMessageBox::critical(0,
+                                  tr("Newsroom: Error"),
+                                  tr("Could not create application settings folder:\n%1").arg(application_settings_folder_name));
+            QTimer::singleShot(100, qApp, &QApplication::quit);
+            return;
+        }
+    }
+
     application_settings_file_name = QDir::toNativeSeparators(QString("%1/Newsroom").arg(application_settings_folder_name));
     application_settings = SettingsPointer(new SettingsXML("Newsroom", application_settings_file_name));
     application_settings->init();
