@@ -70,7 +70,7 @@ MainWindow::MainWindow(QWidget *parent)
     QDir settings_dir(application_settings_folder_name);
     if(!settings_dir.exists())
     {
-        if(!settings_dir.mkdir("."))
+        if(!settings_dir.mkpath("."))
         {
             QMessageBox::critical(0,
                                   tr("Newsroom: Error"),
@@ -174,11 +174,11 @@ bool MainWindow::configure_reporters()
     QDir parameters_dir(parameters_base_folder);
     if(!parameters_dir.exists())
     {
-        if(!parameters_dir.mkdir("."))
+        if(!parameters_dir.mkpath("."))
             return false;
-        if(!parameters_dir.mkdir("Defaults"))
+        if(!parameters_dir.mkpath("Defaults"))
             return false;
-        if(!parameters_dir.mkdir("Stories"))
+        if(!parameters_dir.mkpath("Stories"))
             return false;
     }
     else
@@ -891,7 +891,7 @@ void MainWindow::save_series(SeriesInfoPointer series_info)
     if(!QFile::exists(series_folder))
     {
         QDir d(series_folder);
-        if(!d.mkdir("."))
+        if(!d.mkpath("."))
             return;
     }
 
@@ -1071,7 +1071,7 @@ void MainWindow::save_story(SettingsPointer settings, StoryInfoPointer story_inf
     QDir story_dir(story_filename);
     if(!story_dir.exists())
     {
-        if(!story_dir.mkdir("."))
+        if(!story_dir.mkpath("."))
             return;     // TODO: need to handle this error
     }
 
