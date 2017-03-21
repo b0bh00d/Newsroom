@@ -12,10 +12,20 @@ DEFINES += TRANSMISSION_LIBRARY
 INCLUDEPATH += ../../interfaces
 
 CONFIG(debug, debug|release) {
-    DLLDESTDIR = ../../../deploy/debug/reporters
+    win32 {
+        DLLDESTDIR = ../../../deploy/debug/reporters
+    }
+    unix {
+        DESTDIR = ../../../deploy/debug/reporters
+    }
     DEFINES += QT_DEBUG
 } else {
-    DLLDESTDIR = ../../../deploy/release/reporters
+    win32 {
+        DLLDESTDIR = ../../../deploy/release/reporters
+    }
+    unix {
+        DESTDIR = ../../../deploy/release/reporters
+    }
     #CONFIG += drmemory
 }
 
