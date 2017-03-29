@@ -999,6 +999,10 @@ void YahooChartAPI::ticker_update(const QString& status)
 
     bool closed_today = false;
 
+#if 0
+    QDateTime now(QDate::currentDate(), QTime(7, 30, 15));
+#endif
+
     QDateTime now = QDateTime::currentDateTime();
     QTime my_time = now.time();
 
@@ -1014,18 +1018,33 @@ void YahooChartAPI::ticker_update(const QString& status)
     {
         // first update.  check to see if we are within the market's
         // operating timeframe (daily and weekly).  if not, then there's
-        // no reason to keep asking for data.  we'll "go to sleep" until
-        // the market is supposed to be open.
+        // no reason to keep asking for data.  we'll "sleep" until the
+        // market is supposed to be open.
 
         chart_data->next_open = calculate_next_open(open_datetime, close_datetime, closed_today);
 
         // do we need to sleep until the market is actually open?
+        int seconds_till_open = 0;
+
         if(closed_today ||
            (now.date() > open_datetime.date()) ||
            (now.date() == chart_data->next_open.date() && my_time < open_time) ||
            my_time > close_time)
         {
-            int seconds_till_open = chart_data->next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
+            seconds_till_open = chart_data->next_open.toTime_t() - now.toLocalTime().toTime_t();
+            if(seconds_till_open < 0)
+                seconds_till_open = 0;      // we're open now
+            else if(seconds_till_open > 0)
+                // add 15 seconds to offset from the top of the minute,
+                // giving the chart data time to catch up with the actual
+                // open data
+                seconds_till_open += 15;
+        }
+
+        Q_ASSERT(seconds_till_open >= 0);
+
+        if(seconds_till_open > 0)
+        {
             QString duration = format_duration(seconds_till_open);
 
             QStringList wait_template;
@@ -1102,7 +1121,7 @@ void YahooChartAPI::ticker_update(const QString& status)
 
             chart_data->market_closed = true;
         }
-        else
+        else if(chart_data->current_high_high != chart_data->current_low_low)
         {
             last_timestamp = timestamp;
 
