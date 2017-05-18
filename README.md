@@ -142,7 +142,7 @@ compacted size.
 
 ### YahooChartAPI
 
-*NOTE*: At some point during the week of 15 May 2017, Yahoo Financial officially
+**NOTE**: At some point during the week of 15 May 2017, Yahoo Financial officially
 discontinued the public Yahoo Chart API.  This plug-in is now useless.
 
 The YahooChartAPI Reporter uses the Yahoo Chart API URL
