@@ -177,6 +177,7 @@ private:    // data members
 
     int         poll_timeout;
     int         last_timestamp;
+    QByteArray  last_hash;
 
     bool        display_graph;
 

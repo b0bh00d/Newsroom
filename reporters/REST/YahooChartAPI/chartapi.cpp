@@ -5,6 +5,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QThread>
 #include <QtCore/QCoreApplication>
+#include <QtCore/QCryptographicHash>
 
 #include "chartapi.h"
 
@@ -901,6 +902,12 @@ void YahooChartAPI::ticker_update(const QString& status)
     //   - lines with colons are key:value pairs
     //   - the first line without a colon is the first ticker report
 
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    hash.addData(status.toUtf8());
+    if(!last_hash.isEmpty() && last_hash == hash.result())
+        return;     // only process if the data has changed
+    last_hash = hash.result();
+
     QStringList values;
     int timestamp = 0;
 
@@ -1035,10 +1042,10 @@ void YahooChartAPI::ticker_update(const QString& status)
             if(seconds_till_open < 0)
                 seconds_till_open = 0;      // we're open now
             else if(seconds_till_open > 0)
-                // add 15 seconds to offset from the top of the minute,
+                // add 30 seconds to offset from the top of the minute,
                 // giving the chart data time to catch up with the actual
                 // open data
-                seconds_till_open += 15;
+                seconds_till_open += 30;
         }
 
         Q_ASSERT(seconds_till_open >= 0);

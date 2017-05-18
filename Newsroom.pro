@@ -30,7 +30,7 @@ RESOURCES += ./Newsroom.qrc
 DEFINES += QT_DLL QT_NETWORK_LIB
 
 drmemory {
-    # drmemory.exe -report_leak_max -1 -delay_frees UINT_MAX Newsroom.exe
+    # drmemory.exe -report_leak_max -1 -delay_frees 10000 Newsroom.exe
     QMAKE_CXXFLAGS_RELEASE += $$QMAKE_CFLAGS_RELEASE_WITH_DEBUGINFO
     QMAKE_LFLAGS_RELEASE += $$QMAKE_LFLAGS_RELEASE_WITH_DEBUGINFO
 }
