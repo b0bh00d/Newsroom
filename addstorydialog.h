@@ -45,7 +45,7 @@ public:
                             SettingsPointer settings,
                             const QString& defaults_folder,
                             Mode edit_mode = Mode::Add,
-                            QWidget *parent = 0);
+                            QWidget *parent = nullptr);
     ~AddStoryDialog();
 
 protected:
@@ -103,7 +103,7 @@ private:
 
     Mode                edit_mode;
 
-    int                 current_reporter_index;
+    int                 current_reporter_index{0};
 
     QString             defaults_folder;
 };

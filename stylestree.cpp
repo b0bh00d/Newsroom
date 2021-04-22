@@ -7,7 +7,7 @@ StylesTree::StylesTree(QWidget *parent)
 
 void StylesTree::dropEvent(QDropEvent* event)
 {
-    QModelIndex index = indexAt(event->pos());
+    auto index = indexAt(event->pos());
     if(!index.isValid())
     {
         // just in case
@@ -15,8 +15,8 @@ void StylesTree::dropEvent(QDropEvent* event)
         return;
     }
 
-    QTreeWidgetItem* destination_item = itemFromIndex(index);
-    int index_of_destination = indexOfTopLevelItem(destination_item);
+    auto destination_item = itemFromIndex(index);
+    auto index_of_destination = indexOfTopLevelItem(destination_item);
     if(index_of_destination <= 0)
     {
         event->setDropAction(Qt::IgnoreAction);
@@ -24,7 +24,7 @@ void StylesTree::dropEvent(QDropEvent* event)
     }
 
     // get the list of the items that are about to be dragged
-    QList<QTreeWidgetItem*> dragItems = selectedItems();
+    auto dragItems = selectedItems();
     if(indexOfTopLevelItem(dragItems[0]) == 0)
     {
         // the "Default" item cannot be moved
@@ -38,7 +38,7 @@ void StylesTree::dropEvent(QDropEvent* event)
     if(indexOfTopLevelItem(dragItems[0]) == -1)
     {
         // Styles cannot be parented to other Styles
-        QTreeWidgetItem* parent = dragItems[0]->parent();
+        auto parent = dragItems[0]->parent();
         parent->takeChild(parent->indexOfChild(dragItems[0]));
         insertTopLevelItem(indexOfTopLevelItem(parent), dragItems[0]);
     }

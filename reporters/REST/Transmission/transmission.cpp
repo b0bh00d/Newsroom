@@ -11,19 +11,7 @@
 Transmission::PollerMap Transmission::poller_map;
 
 Transmission::Transmission(QObject *parent)
-    : owner_draw(true),
-      my_slot(1),
-      max_ratio(0.0f),
-      poll_timeout(5),          // match the Transmission web interface
-      shelve_delay_timer(nullptr),
-      shelve_finished(false),
-      shelve_stopped(false),
-      shelve_idle(false),
-      shelve_empty(false),
-      shelve_delay(false),
-      shelve_fade(true),
-      active(true),
-      IReporter2(parent)
+    : IReporter2(parent)
 {
     report_template << "Slot <b>${SLOT}</b>";
     report_template << "Name: ${NAME}";
@@ -56,7 +44,7 @@ float Transmission::Supports(const QUrl& entity) const
 
     // ensure they aren't handing us an incorrect path...
 
-    QString entity_str = entity.toString().toLower();
+    auto entity_str = entity.toString().toLower();
     if(entity_str.endsWith(".htm") || entity_str.endsWith(".html"))
         return 0.0f;
 
@@ -150,7 +138,7 @@ bool Transmission::SetRequirements(const QStringList& parameters)
 
     if(parameters.count() > Param::Template && !parameters[Param::Template].isEmpty())
     {
-        QString report_template_str = parameters[Param::Template];
+        auto report_template_str = parameters[Param::Template];
         report_template_str.remove('\r');
         report_template_str.remove('\n');
         report_template = report_template_str.split("<br>");
@@ -182,7 +170,7 @@ bool Transmission::CoverStory()
     poller->add_interest(my_slot, this);
 
     // do an initial "idle" Headline
-    QString status = tr("(Slot #%1: <b>Empty</b>)").arg(my_slot);
+    auto status = tr("(Slot #%1: <b>Empty</b>)").arg(my_slot);
     emit signal_new_data(status.toUtf8());
 
     return true;
@@ -242,7 +230,7 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
     if(latest_status.isEmpty())
     {
         td.setHtml(tr("(Slot #%1: <b>Empty</b>)").arg(my_slot));
-        QSizeF doc_size = td.documentLayout()->documentSize();
+        auto doc_size = td.documentLayout()->documentSize();
 
         painter.save();
         painter.translate((bounds.width() - doc_size.width()) / 2, (bounds.height() - doc_size.height()) / 2);
@@ -269,17 +257,17 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
         QColor done_color(SteelBlue4Red, SteelBlue4Green, SteelBlue4Blue);
         QColor ratio_color(LightSkyBlueRed, LightSkyBlueGreen, LightSkyBlueBlue);
 
-        int done_amount = 0;
-        int done_angle = 0;
-        QString value = report_map["DONE"];
+        auto done_amount{0};
+        auto done_angle{0};
+        auto value = report_map["DONE"];
         QRegExp regex("(\\d+)%");
         if(regex.indexIn(value) != -1)
         {
             done_amount = regex.cap(1).toInt();
-            done_angle = (int)(360 * (done_amount / 100.0f));
+            done_angle = static_cast<int>(360 * (done_amount / 100.0f));
         }
 
-        int diameter = bounds.height() - (bounds.height() * .05);
+        auto diameter = static_cast<int>(bounds.height() - (bounds.height() * .05));
         QRect ellipse_rect(bounds.left(), bounds.top(), diameter, diameter);
         painter.save();
           painter.setPen(done_color);
@@ -289,16 +277,16 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
         // "share" indicators are scaled by the level of sharing.
 
-        float ratio = report_map["RATIO"].toFloat();    // 0.0-1.0
+        auto ratio = report_map["RATIO"].toFloat();    // 0.0-1.0
         if(ratio > 0.01f)
         {
-            int slices = 2;
+            auto slices = 2;
             while(ratio > 1.0f)
             {
                 ++slices;
                 ratio -= 1.0f;
             }
-            int reduction = (diameter / 2) / slices;
+            auto reduction = (diameter / 2) / slices;
 
             ratio = report_map["RATIO"].toFloat();
             while(ratio > 1.0f)
@@ -308,7 +296,7 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
                 painter.save();
                   painter.setPen(ratio_color);
                   painter.setBrush(QBrush(ratio_color));
-                  painter.drawPie(ellipse_rect, 90*16, -(ratio * 360)*16);
+                  painter.drawPie(ellipse_rect, 90*16, -(static_cast<int>((ratio * 360)*16)));
                 painter.restore();
 
                 if(max_ratio != 0.0f)
@@ -323,15 +311,15 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
             painter.save();
               painter.setPen(ratio_color);
               painter.setBrush(QBrush(ratio_color));
-              painter.drawPie(ellipse_rect, 90*16, -(ratio * 360)*16);
+              painter.drawPie(ellipse_rect, 90*16, -(static_cast<int>((ratio * 360)*16)));
             painter.restore();
         }
 
         QString status(report_map["STATUS"]);
-        bool is_active = (status.toLower().compare("finished") && status.toLower().compare("stopped"));
-        bool is_uploading = (!status.toLower().compare("seeding") || !status.toLower().compare("up & down"));
+        auto is_active = (status.toLower().compare("finished") && status.toLower().compare("stopped"));
+        auto is_uploading = (!status.toLower().compare("seeding") || !status.toLower().compare("up & down"));
         QString name(report_map["NAME"]);
-        QString label = QString("%1: <i>%2</i>").arg(status).arg(name);
+        auto label = QString("%1: <i>%2</i>").arg(status).arg(name);
         if(is_active)
         {
             QString uploading, downloading;
@@ -347,8 +335,8 @@ void Transmission::ReporterDraw(const QRect& bounds, QPainter& painter)
 
         // elide the text until it fits
 
-        int left_margin = diameter + (bounds.width() * 0.03);
-        int text_width = bounds.width() - left_margin;
+        auto left_margin = static_cast<int>(diameter + (bounds.width() * 0.03));
+        auto text_width = bounds.width() - left_margin;
         QSizeF doc_size;
         for(;;)
         {
@@ -496,14 +484,14 @@ void Transmission::reset()
     }
 }
 
-void Transmission::error(const QString& error_message)
+void Transmission::error(const QString& error_message_)
 {
-    emit signal_new_data(error_message.toUtf8());
+    emit signal_new_data(error_message_.toUtf8());
 }
 
 void Transmission::populate_report_map(ReportMap& report_map, const QJsonObject& status)
 {
-    QString max_ratio_str = QString::number(max_ratio, 'f', 2);
+    auto max_ratio_str = QString::number(static_cast<double>(max_ratio), 'f', 2);
 
     report_map["SLOT"]   = QString::number(my_slot);
     report_map["DONE"]   = status["done"].toString();
@@ -518,10 +506,10 @@ void Transmission::populate_report_map(ReportMap& report_map, const QJsonObject&
 
 QString Transmission::render_report(const ReportMap& report_map)
 {
-    QString report = report_template.join("<br>");
+    auto report = report_template.join("<br>");
     foreach(const QString& key, report_map.keys())
     {
-        QString token = QString("${%1}").arg(key);
+        auto token = QString("${%1}").arg(key);
         report.replace(token, report_map[key]);
     }
 
@@ -530,7 +518,7 @@ QString Transmission::render_report(const ReportMap& report_map)
 
 QString Transmission::capitalize(const QString& str)
 {
-    QString tmp = str.toLower();
+    auto tmp = str.toLower();
     tmp[0] = str[0].toUpper();
     return tmp;
 }

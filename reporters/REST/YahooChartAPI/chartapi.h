@@ -51,9 +51,9 @@ public:
     QString PluginClass() const Q_DECL_OVERRIDE { return "REST"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     float Supports(const QUrl& entity) const Q_DECL_OVERRIDE;
-    int RequiresVersion() const;
-    RequirementsFormats RequiresFormat() const;
-    bool RequiresUpgrade(int version, QStringList&parameters);
+    int RequiresVersion() const override;
+    RequirementsFormats RequiresFormat() const override;
+    bool RequiresUpgrade(int version, QStringList&parameters) override;
     QStringList Requires(int target_version = 0) const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
@@ -113,45 +113,26 @@ private:    // typedefs and enums
 
     struct ChartData
     {
-        float current_high_low, current_high_high;
-        float previous_high_low, previous_high_high;
-        float current_low_low, current_low_high;
-        float previous_low_low, previous_low_high;
-        float current_high, current_low;
-        float open_average;
-        float current_average;
-        float previous_close;
-        int open_timestamp;
-        int close_timestamp;
+        float current_high_low, current_high_high{0.0f};
+        float previous_high_low, previous_high_high{0.0f};
+        float current_low_low, current_low_high{0.0f};
+        float previous_low_low, previous_low_high{0.0f};
+        float current_high, current_low{0.0f};
+        float open_average{0.0f};
+        float current_average{0.0f};
+        float previous_close{0.0f};
+        int open_timestamp{0};
+        int close_timestamp{0};
         QPoint opening_point;
         QPoint previous_close_point;
 
-        bool market_closed;
+        bool market_closed{false};
         QDateTime next_open;
 
         QString volume_max_str;
         QString volume_min_str;
 
         TickVector history;
-
-        ChartData()
-            : current_high(0.0f),
-              current_low(0.0f),
-              current_high_low(0.0f),
-              current_high_high(0.0f),
-              previous_high_low(0.0f),
-              previous_high_high(0.0f),
-              current_low_low(0.0f),
-              current_low_high(0.0f),
-              previous_low_low(0.0f),
-              previous_low_high(0.0f),
-              open_average(0.0f),
-              current_average(0.0f),
-              previous_close(0.0f),
-              open_timestamp(0),
-              close_timestamp(0),
-              market_closed(false)
-        {}
     };
 
     SPECIALIZE_SHAREDPTR(ChartData, ChartData)          // "ChartDataPointer"
@@ -164,8 +145,8 @@ private slots:
     void            slot_headline_sleep();
 
 private:    // methods
-    bool            is_market_holiday(const QDateTime &now);
-    QString         format_duration(int seconds);
+    bool            is_market_holiday(const QDateTime &now) const;
+    QString         format_duration(int seconds) const;
     void            populate_report_map(ReportMap& report_map, ChartDataPointer chart_data);
     QString         render_report(const ReportMap& report_map, const QStringList& report_template);
     QString         capitalize(const QString& str);
@@ -175,11 +156,11 @@ private:    // data members
     QString     ticker;
     QString     ticker_alias;
 
-    int         poll_timeout;
-    int         last_timestamp;
+    int         poll_timeout{60};
+    int         last_timestamp{0};
     QByteArray  last_hash;
 
-    bool        display_graph;
+    bool        display_graph{true};
 
     QStringList report_template;
 
@@ -187,19 +168,17 @@ private:    // data members
 
     ChartDataPointer    chart_data;
 
-    bool        lock_to_max_range;
-    float       volume_min;
-    float       volume_max;
+    bool        lock_to_max_range{true};
+    float       volume_min{std::numeric_limits<float>::max()};
+    float       volume_max{0.0f};
 
-    bool        ensure_indicators_are_visible;
+    bool        ensure_indicators_are_visible{false};
 
 private:    // class-static data
     struct PollerData
     {
-        int             reference_count;
+        int             reference_count{0};
         PollerPointer   poller;
-
-        PollerData() : reference_count(0) {}
     };
 
     SPECIALIZE_MAP(QString, PollerData, Poller)         // "PollerMap"

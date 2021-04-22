@@ -45,9 +45,9 @@ public:
     QString PluginClass() const Q_DECL_OVERRIDE { return "REST"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     float Supports(const QUrl& entity) const Q_DECL_OVERRIDE;
-    int RequiresVersion() const;
-    RequirementsFormats RequiresFormat() const;
-    bool RequiresUpgrade(int, QStringList&);
+    int RequiresVersion() const override;
+    RequirementsFormats RequiresFormat() const override;
+    bool RequiresUpgrade(int, QStringList&) override;
     QStringList Requires(int = 0) const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
@@ -86,24 +86,24 @@ private:    // methods
     QString         capitalize(const QString& str);
 
 private:    // data members
-    bool        owner_draw;
-    bool        shelve_finished;
-    bool        shelve_stopped;
-    bool        shelve_idle;
-    bool        shelve_empty;
-    bool        shelve_delay;
-    bool        shelve_fade;
-    bool        active;
+    bool        owner_draw{true};
+    bool        shelve_finished{false};
+    bool        shelve_stopped{false};
+    bool        shelve_idle{false};
+    bool        shelve_empty{false};
+    bool        shelve_delay{false};
+    bool        shelve_fade{true};
+    bool        active{true};
 
-    int         my_slot;
-    float       max_ratio;
-    int         poll_timeout;
+    int         my_slot{1};
+    float       max_ratio{0.0f};
+    int         poll_timeout{5};
 
-    qint64      shelve_delay_target;
-    QTimer*     shelve_delay_timer;
+    qint64      shelve_delay_target{0};
+    QTimer*     shelve_delay_timer{nullptr};
 
-    qreal       start_opacity;
-    qreal       step_opacity;
+    qreal       start_opacity{0.0};
+    qreal       step_opacity{0.0};
 
     QJsonObject latest_status;
 
@@ -114,10 +114,8 @@ private:    // data members
 private:    // class-static data
     struct PollerData
     {
-        int             reference_count;
+        int             reference_count{0};
         PollerPointer   poller;
-
-        PollerData() : reference_count(0) {}
     };
 
     SPECIALIZE_MAP(QUrl, PollerData, Poller)            // "PollerMap"

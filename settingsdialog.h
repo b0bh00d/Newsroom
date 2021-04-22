@@ -20,7 +20,7 @@ class SettingsDialog : public QDialog
     Q_OBJECT
 
 public:     // methods
-    explicit SettingsDialog(QWidget *parent = 0);
+    explicit SettingsDialog(QWidget *parent = nullptr);
     ~SettingsDialog();
 
     void            set_autostart(bool autostart);
@@ -31,9 +31,9 @@ public:     // methods
     void            set_stories(const QList<QString>& stories, const QList<ProducerPointer> producers);
     void            set_series(const SeriesInfoList& series_ordered);
 
-    bool            get_autostart();
-    bool            get_continue_coverage();
-    bool            get_autostart_coverage();
+    bool            get_autostart() const;
+    bool            get_continue_coverage() const;
+    bool            get_autostart_coverage() const;
     QFont           get_font();
     void            get_styles(HeadlineStyleList& style_list);
     SeriesInfoList  get_series();
@@ -69,12 +69,12 @@ private:    // methods
     void            stop_coverage(QTreeWidgetItem* item);
 
 private:    // data members
-    Ui::SettingsDialog *ui;
+    Ui::SettingsDialog *ui{nullptr};
 
     ProducerMap     producers;
 
     QString         original_series_name;
-    bool            editing;
+    bool            editing{false};
 
     QStringList     removed_story_identities;
 };

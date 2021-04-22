@@ -88,20 +88,12 @@ private:    // classes
 
     struct BuilderData
     {
-        bool            pause_pending_changes_check;
-        bool            limit_pending_changes_check;
-        int             pending_changes_check_count;
+        bool            pause_pending_changes_check{false};
+        bool            limit_pending_changes_check{false};
+        int             pending_changes_check_count{0};
         QJsonObject     builder_data;
         StatusMap       build_status;
-        BuilderEvents   build_event;
-
-        BuilderData() :
-            pause_pending_changes_check(false),
-            pending_changes_check_count(0),
-            limit_pending_changes_check(false),
-            build_event(BuilderEvents::None)
-        {}
-
+        BuilderEvents   build_event{BuilderEvents::None};
     };
     SPECIALIZE_LIST(BuilderData, Builders)              // "BuildersList"
 
@@ -140,17 +132,17 @@ private:    // methods
     void            process_build_final(const QJsonObject& status, const QStringList &status_data);
 
 private:    // data members
-    int         replies_expected;   // how many initial replies before we start the timer?
+    int         replies_expected{0};   // how many initial replies before we start the timer?
     QUrl        target;
     QString     username;
     QString     password;
 
-    QNetworkAccessManager*  QNAM;
+    QNetworkAccessManager*  QNAM{nullptr};
     ReplyMap    active_replies;
 
-    QTimer*     request_timer;
-    QTimer*     poll_timer;
-    int         poll_timeout;
+    QTimer*     request_timer{nullptr};
+    QTimer*     poll_timer{nullptr};
+    int         poll_timeout{0};
 
     RequestList requests;
     PendingRequestsMap  pending_requests;

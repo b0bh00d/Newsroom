@@ -61,7 +61,7 @@ public:
     void        set_array_item(const QString& array_name, int index, const QString &element_name, const QVariant& element_value = QVariant());
 
 protected:      // typedefs and enums
-    typedef QTreeWidgetItem Item;
+    using Item = QTreeWidgetItem;
     SPECIALIZE_SHAREDPTR(Item, Item)                // "ItemPointer"
     SPECIALIZE_MAP(QString, Item*, SectionPath)     // "SectionPathMap"
 
@@ -73,14 +73,14 @@ protected:      // methods
 
     // overridable, format-specific I/O functions (XML, JSON, etc.)
     // the base class does nothing
-    virtual     Item*       read_section(void*, Item*, QStringList&) { return nullptr; }
-    virtual     Item*       read_array(void*, Item*, QStringList &)  { return nullptr; }
-    virtual     Item*       read_element(void*, Item*)               { return nullptr; }
-    virtual     Item*       read_item(void*, Item*)                  { return nullptr; }
-    virtual     void        write_section(Item*, void*, void*)       {}
-    virtual     void        write_array(Item*, void*, void*)         {}
-    virtual     void        write_element(Item*, void*, void*)       {}
-    virtual     void        write_item(Item*, void*, void*)          {}
+    virtual     Item*       read_section(QDomNode*, Item*, QStringList&) { return nullptr; }
+    virtual     Item*       read_array(QDomNode*, Item*, QStringList &)  { return nullptr; }
+    virtual     Item*       read_element(QDomNode*, Item*)               { return nullptr; }
+    virtual     Item*       read_item(QDomNode*, Item*)                  { return nullptr; }
+    virtual     void        write_section(Item*, QDomNode*, QDomDocument*)       {}
+    virtual     void        write_array(Item*, QDomNode*, QDomDocument*)         {}
+    virtual     void        write_element(Item*, QDomNode*, QDomDocument*)       {}
+    virtual     void        write_item(Item*, QDomNode*, QDomDocument*)          {}
 
 protected:      // data members
     ItemPointer     tree_root;
@@ -96,7 +96,7 @@ protected:      // data members
 
     QList<int>      current_array_index;
 
-    int             version;
+    int             version{1};
 };
 
 SPECIALIZE_SHAREDPTR(Settings, Settings)        // "SettingsPointer"
@@ -112,18 +112,18 @@ class SettingsXML : public Settings
 public:
     SettingsXML(const QString& application, const QString& base_filename);
 
-    bool        init(bool clear = false);
-    bool        flush();
-    bool        remove();
+    bool        init(bool clear = false) override;
+    bool        flush() override;
+    bool        remove() override;
 
 protected:      // methods
     // format-specific I/O functions (XML, JSON, etc.)
-    Item*       read_section(QDomNode* node, Item* parent, QStringList& current_path);
-    Item*       read_array(QDomNode* node, Item* parent, QStringList &current_path);
-    Item*       read_element(QDomNode *node, Item* parent);
-    Item*       read_item(QDomNode* node, Item* parent);
-    void        write_section(Item* section, QDomNode* parent, QDomDocument* doc);
-    void        write_array(Item* array, QDomNode* parent, QDomDocument* doc);
-    void        write_element(Item* element, QDomNode* parent, QDomDocument* doc);
-    void        write_item(Item* item, QDomNode* parent, QDomDocument* doc);
+    Item*       read_section(QDomNode* node, Item* parent, QStringList& current_path) override;
+    Item*       read_array(QDomNode* node, Item* parent, QStringList &current_path) override;
+    Item*       read_element(QDomNode *node, Item* parent) override;
+    Item*       read_item(QDomNode* node, Item* parent) override;
+    void        write_section(Item* section, QDomNode* parent, QDomDocument* doc) override;
+    void        write_array(Item* array, QDomNode* parent, QDomDocument* doc) override;
+    void        write_element(Item* element, QDomNode* parent, QDomDocument* doc) override;
+    void        write_item(Item* item, QDomNode* parent, QDomDocument* doc) override;
 };

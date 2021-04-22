@@ -32,9 +32,9 @@ public:
     Dashboard(StoryInfoPointer story_info, const QFont& headline_font, const QString& headline_stylesheet, QObject *parent = nullptr);
     ~Dashboard();
 
-    bool    is_managing(Chyron* chyron);
-    bool    is_empty();
-    bool    is_id(const QString& id);
+    bool    is_managing(Chyron* chyron) const;
+    bool    is_empty() const;
+    bool    is_id(const QString& id) const;
 
     void    add_lane(LaneDataPointer lane);
     void    remove_lane(LaneDataPointer lane, UnsubscribeAction action);

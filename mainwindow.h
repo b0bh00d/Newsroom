@@ -46,7 +46,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:     // methods
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
     void                set_visible(bool visible);
@@ -54,7 +54,7 @@ public:     // methods
     void                save_window_data(QWidget* window);
     void                restore_window_data(QWidget* window);
 
-    inline QString      encode_for_filesystem(const QString& str) const;
+    QString             encode_for_filesystem(const QString& str) const { return QString(QUrl::toPercentEncoding(str, "{}", "?*$")); }
 
 public:     // data members;
     QString             default_stylesheet;
@@ -114,26 +114,26 @@ private:    // methods
     void                build_tray_menu();
 
 private:    // data members
-    Ui::MainWindow*     ui;
+    Ui::MainWindow*     ui{nullptr};
 
-    bool                auto_start;
-    bool                continue_coverage;
-    bool                autostart_coverage;
-    bool                edit_story_first_time;
+    bool                auto_start{false};
+    bool                continue_coverage{false};
+    bool                autostart_coverage{true};
+    bool                edit_story_first_time{true};
 
     QSystemTrayIcon*    trayIcon;
-    QMenu*              trayIconMenu;
+    QMenu*              trayIconMenu{nullptr};
 
-    QAction*            settings_action;
-    QAction*            quit_action;
-    QAction*            options_action;
-    QAction*            about_action;
+    QAction*            settings_action{nullptr};
+    QAction*            quit_action{nullptr};
+    QAction*            options_action{nullptr};
+    QAction*            about_action{nullptr};
 
     WindowMap           window_data;
 
-    bool                window_geometry_save_enabled;
-    bool                start_automatically;
-    bool                settings_modified;
+    bool                window_geometry_save_enabled{true};
+    bool                start_automatically{false};
+    bool                settings_modified{false};
 
     QFont               headline_font;
 
@@ -151,11 +151,11 @@ private:    // data members
 
     StyleListPointer    headline_style_list;
 
-    int                 last_start_offset;
+    int                 last_start_offset{0};
 
     PixmapPointer       background_image;
 
-    SettingsDialog*     settings_dlg;
+    SettingsDialog*     settings_dlg{nullptr};
 
     QString             series_folder;
     QString             parameters_base_folder;

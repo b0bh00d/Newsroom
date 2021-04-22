@@ -56,3 +56,4 @@ intermediate*
 .Trashes
 ehthumbs.db
 Thumbs.db
+*.bak

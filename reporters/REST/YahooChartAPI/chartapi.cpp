@@ -17,14 +17,7 @@ const int ParametersVersion = 2;
 YahooChartAPI::PollerMap YahooChartAPI::poller_map;
 
 YahooChartAPI::YahooChartAPI(QObject *parent)
-    : poll_timeout(60),
-      last_timestamp(0),
-      display_graph(true),
-      lock_to_max_range(true),
-      volume_min(std::numeric_limits<float>::max()),
-      volume_max(0.0f),
-      ensure_indicators_are_visible(false),
-      IReporter2(parent)
+    : IReporter2(parent)
 {
     report_template << "Ticker: <b>${TICKER}</b> (${ALIAS})";
     report_template << "Time: ${TIMESTAMP}";
@@ -57,7 +50,7 @@ float YahooChartAPI::Supports(const QUrl& entity) const
 
     // ensure they aren't handing us an incorrect path...
 
-    QString entity_str = entity.toString().toLower();
+    auto entity_str = entity.toString().toLower();
     if(entity_str.endsWith(".htm") || entity_str.endsWith(".html"))
         return 0.0f;
 
@@ -84,7 +77,7 @@ bool YahooChartAPI::RequiresUpgrade(int version, QStringList& parameters)
     if(version == 0)
         version = ParametersVersion;
 
-    bool upgraded = false;
+    auto upgraded{false};
     while(version < ParametersVersion)
     {
         ++version;
@@ -128,7 +121,7 @@ QStringList YahooChartAPI::Requires(int target_version) const
 
                 << "Format:"        << QString("multiline:%1").arg(report_template.join("<br>\n"));
 
-    int version = 1;
+    auto version{1};
     while(version < target_version)
     {
         ++version;
@@ -193,7 +186,7 @@ bool YahooChartAPI::SetRequirements(const QStringList& parameters)
 
     if(parameters.count() > Param::Template && !parameters[Param::Template].isEmpty())
     {
-        QString report_template_str = parameters[Param::Template];
+        auto report_template_str = parameters[Param::Template];
         report_template_str.remove('\r');
         report_template_str.remove('\n');
         report_template = report_template_str.split("<br>");
@@ -272,8 +265,8 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 {
     // use some shorthand for the current volume range
 
-    float volume_low = chart_data->current_low_low;
-    float volume_high = chart_data->current_high_high;
+    auto volume_low = chart_data->current_low_low;
+    auto volume_high = chart_data->current_high_high;
 
     if(lock_to_max_range)
     {
@@ -303,7 +296,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
         if(chart_data->history.length())
         {
-            const TickPair& p = chart_data->history.front();
+            const auto& p = chart_data->history.front();
             if(p.second < volume_min)
                 volume_min = p.second - 10;
             else if(p.second > volume_max)
@@ -320,7 +313,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
     QString current_average_str(report_map["AVERAGE"]);
     if(chart_data->market_closed)
         current_average_str = QString("<i>%1</i>").arg(report_map["AVERAGE"]);
-    QString font_color = QString("%1%2%3")
+    auto font_color = QString("%1%2%3")
                             .arg(QString::number(LightSkyBlueRed, 16))
                             .arg(QString::number(LightSkyBlueGreen, 16))
                             .arg(QString::number(LightSkyBlueBlue, 16)).toUpper();
@@ -338,9 +331,9 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
                             .arg(report_map["OPEN_OFFSET_AMOUNT"])
                             .arg(report_map["OPEN_OFFSET_PERCENTAGE"]));
 
-    QSizeF doc_size = td.documentLayout()->documentSize();
-    QRect new_bounds = QRect(bounds.left(), bounds.top(), bounds.width() - doc_size.width() - 5, bounds.height());
-    QRect graph_bounds = new_bounds.adjusted(1, 0, -(LatestPointMarkerWidth * 2 + 1), 0);
+    auto doc_size = td.documentLayout()->documentSize();
+    auto new_bounds = QRect(bounds.left(), bounds.top(), static_cast<int>(bounds.width() - doc_size.width() - 5), bounds.height());
+    auto graph_bounds = new_bounds.adjusted(1, 0, -(LatestPointMarkerWidth * 2 + 1), 0);
 
     painter.save();
     painter.setRenderHint(QPainter::Antialiasing);
@@ -451,30 +444,30 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
         VolumeVector volume_ticks;
 
         // bottom is volume_min; top is volume_max
-        int chart_height = new_bounds.height();
-        float chart_range = volume_max - volume_min;
+        auto chart_height = new_bounds.height();
+        auto chart_range = volume_max - volume_min;
         if(chart_range < chart_height)
         {
             // scale range up into height
-            int pixel_increment = round((chart_range / chart_height) + 0.5);
-            float volume_increment = chart_range / chart_height;
-            float i = volume_min;
-            int p = 0;
+            auto pixel_increment = round(static_cast<double>(chart_range / chart_height) + 0.5);
+            auto volume_increment = chart_range / chart_height;
+            auto i = volume_min;
+            auto p{0};
             while(i < volume_max)
             {
                 volume_ticks.append(qMakePair(i, p));
-                i+=volume_increment;
-                p+=pixel_increment;
+                i += volume_increment;
+                p += static_cast<int>(pixel_increment);
             }
             volume_ticks.append(qMakePair(volume_max, p));
         }
         else
         {
             // scale range down into height
-            int pixel_increment = 1;
-            float volume_increment = chart_range / chart_height;
-            float i = volume_min;
-            int p = 0;
+            auto pixel_increment{1};
+            auto volume_increment = chart_range / chart_height;
+            auto i = volume_min;
+            auto p{0};
             while(i < volume_max)
             {
                 volume_ticks.append(qMakePair(i, p));
@@ -485,12 +478,12 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
         }
 
         // left is open_timestamp; right is close_timestamp
-        int open_timestamp = chart_data->open_timestamp;
-        int close_timestamp = chart_data->close_timestamp;
+        auto open_timestamp = chart_data->open_timestamp;
+        auto close_timestamp = chart_data->close_timestamp;
 
         // get the time range of the available data
-        int time_low = std::numeric_limits<int>::max();
-        int time_high = 0;
+        auto time_low = std::numeric_limits<int>::max();
+        auto time_high{0};
 
         foreach(const TickPair& p, chart_data->history)
         {
@@ -500,10 +493,10 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
                 time_high = p.first;
         }
 
-        int width_increment = 1;
-        int chart_width = graph_bounds.width();
-        int time_range = (close_timestamp - open_timestamp) / 60;
-        int data_time_range = (time_high - time_low) / 60;
+        auto width_increment{1};
+        auto chart_width = graph_bounds.width();
+        auto time_range = (close_timestamp - open_timestamp) / 60;
+        auto data_time_range = (time_high - time_low) / 60;
 
         if(chart_width < time_range)
         {
@@ -514,15 +507,15 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
         else
         {
             // we have to scale the time range to fit the space
-            width_increment = round((chart_width / time_range * 1.0f) + 0.5);
+            width_increment = static_cast<int>(round((chart_width / (time_range * 1.0)) + 0.5));
             // how many time intervals can we display within this width with
             // this increment?
-            int interval = chart_width / width_increment;
+            auto interval = chart_width / width_increment;
             open_timestamp += (time_range - interval) * 60;
         }
 
-        int time_offset = 0;
-        int volume_offset = 0;
+        auto time_offset{0};
+        auto volume_offset{0};
         QPoint last_point;
 
         chart_data->opening_point.setX(0);
@@ -533,7 +526,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
         if(chart_data->previous_close_point.isNull())
         {
             volume_offset = 0;
-            int last_volume_offset = 0;
+            auto last_volume_offset{0};
             foreach(const VolumePair& tick, volume_ticks)
             {
                 // What was I thinking here?  o.O
@@ -551,7 +544,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
             if(!volume_offset)
             {
-                const VolumePair& tick = volume_ticks.back();
+                const auto& tick = volume_ticks.back();
                 if(tick.first == chart_data->previous_close)
                     volume_offset = tick.second;
             }
@@ -570,7 +563,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
                 time_offset = 0;
 
             volume_offset = 0;
-            int last_volume_offset = 0;
+            auto last_volume_offset{0};
             foreach(const VolumePair& tick, volume_ticks)
             {
                 if(!last_volume_offset)
@@ -587,7 +580,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
             if(!volume_offset)
             {
-                const VolumePair& tick = volume_ticks.back();
+                const auto& tick = volume_ticks.back();
                 if(tick.first == p.second)
                     volume_offset = tick.second;
             }
@@ -630,12 +623,12 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
         // same side, offset the X so they can both be visible instead of
         // drawing on top of each other
 
-        int open_x_offset = 0;
-        int close_x_offset = 0;
+        auto open_x_offset{0};
+        auto close_x_offset{0};
 
         if(chart_data->history.length())
         {
-            const TickPair& p = chart_data->history.front();
+            const auto& p = chart_data->history.front();
             if(p.second < volume_min)
             {
                 // opening indicator is offscreen below
@@ -670,7 +663,7 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
             painter.save();
             painter.setPen(QColor(LightSkyBlueRed, LightSkyBlueGreen, LightSkyBlueBlue));
 
-            const TickPair& p = chart_data->history.front();
+            const auto& p = chart_data->history.front();
             if(p.second < volume_min)
                 painter.drawLine(last_point,QPoint(last_point.x() + open_x_offset, graph_bounds.bottom() - 1));
             else if(p.second > volume_max)
@@ -705,14 +698,14 @@ void YahooChartAPI::ReporterDraw(const QRect& bounds, QPainter& painter)
 
 // YahooChartAPI
 
-QString YahooChartAPI::format_duration(int seconds)
+QString YahooChartAPI::format_duration(int seconds) const
 {
     QString duration;
-    int hours = seconds / 60 / 60;
+    auto hours = seconds / 60 / 60;
     seconds -= hours * 60 * 60;
     if(hours)
         duration += QString("%1h ").arg(hours);
-    int mins = seconds / 60;
+    auto mins = seconds / 60;
     seconds -= mins * 60;
 
     duration += QString("%2m").arg(mins);
@@ -721,11 +714,11 @@ QString YahooChartAPI::format_duration(int seconds)
 
 QDateTime YahooChartAPI::calculate_next_open(const QDateTime& open_datetime, const QDateTime& close_datetime, bool& closed_today)
 {
-    QDateTime now = QDateTime::currentDateTime();
-    QDateTime next_open = open_datetime;
+    auto now = QDateTime::currentDateTime();
+    auto next_open = open_datetime;
 
-    QTime my_time = now.time();
-    QTime close_time = close_datetime.time();
+    auto my_time = now.time();
+    auto close_time = close_datetime.time();
 
     if(now.date() > open_datetime.date() || my_time > close_time)
         next_open = open_datetime.addDays(1);
@@ -746,24 +739,24 @@ QDateTime YahooChartAPI::calculate_next_open(const QDateTime& open_datetime, con
     return next_open.toLocalTime();
 }
 
-bool YahooChartAPI::is_market_holiday(const QDateTime& now)
+bool YahooChartAPI::is_market_holiday(const QDateTime& now) const
 {
-    QDate today = now.date();
+    auto today = now.date();
 
     if(today.month() == Jan)
     {
         // "New Years Day"/"Martin Luther King, Jr. Day"
 
         if(today.day() == 2 && today.dayOfWeek() == Mon)
-            return 1;   // fell on a Sunday this year; assume Monday closed
+            return true;   // fell on a Sunday this year; assume Monday closed
         // Note: the Saturday case for "New Years" is handled in December
         if(today.day() == 1 && today.dayOfWeek() >= Mon && today.dayOfWeek() <= Fri)
-            return 1;
+            return true;
 
         // "Martin Luther King, Jr. Day" is third Monday in January
         if(today.dayOfWeek() == Mon)
         {
-            int mondays = 0;
+            auto mondays{0};
             QDate jan(today.year(), today.month(), 1);
             while(jan <= today)
             {
@@ -772,7 +765,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
                 jan = jan.addDays(1);
             }
 
-            return mondays == 3 ? 1 : 0;
+            return mondays == 3;
         }
     }
 
@@ -781,7 +774,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
         // "President's Day" is third Monday in January
         if(today.dayOfWeek() == Mon)
         {
-            int mondays = 0;
+            auto mondays{0};
             QDate feb(today.year(), today.month(), 1);
             while(feb <= today)
             {
@@ -799,7 +792,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
         // "Good Friday"
         if((today.year() == 2018 && today.day() == 30) ||
            (today.year() == 2024 && today.day() == 29))
-            return 1;
+            return true;
     }
 
     else if(today.month() == Apr)
@@ -811,7 +804,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
            (today.year() == 2021 && today.day() == 2) ||
            (today.year() == 2022 && today.day() == 15) ||
            (today.year() == 2023 && today.day() == 7))
-            return 1;
+            return true;
     }
 
     else if(today.month() == May)
@@ -819,7 +812,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
         // "Memorial Day" is last Monday in May
         if(today.dayOfWeek() == Mon)
         {
-            int mondays = 0;    // if this is > 1 when we're done, then this is not the last Monday
+            auto mondays{0};    // if this is > 1 when we're done, then this is not the last Monday
             while(today.month() == May)
             {
                 if(today.dayOfWeek() == Mon)
@@ -827,7 +820,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
                 today = today.addDays(1);
             }
 
-            return mondays == 1 ? 1 : 0;
+            return mondays == 1;
         }
     }
 
@@ -835,11 +828,11 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
     {
         // "Independence Day" is July 4th
         if(today.day() == 5 && today.dayOfWeek() == Mon)
-            return 1;
+            return true;
         if(today.day() == 3 && today.dayOfWeek() == Fri)
-            return 1;
+            return true;
         if(today.day() == 4)// && (today.dayOfWeek() >= Mon && today.dayOfWeek() <= Fri))
-            return 1;
+            return true;
     }
 
     else if(today.month() == Sep)
@@ -847,7 +840,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
         // "Labor Day" is first Monday in September
         if(today.dayOfWeek() == Mon)
         {
-            int mondays = 0;
+            auto mondays{0};
             QDate sep(today.year(), today.month(), 1);
             while(sep <= today)
             {
@@ -856,7 +849,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
                 sep = sep.addDays(1);
             }
 
-            return mondays == 1 ? 1 : 0;
+            return mondays == 1;
         }
     }
 
@@ -865,7 +858,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
         // "Thanksgiving Day" is fourth Thursday in November
         if(today.dayOfWeek() == Thu)
         {
-            int thursdays = 0;
+            auto thursdays{0};
             QDate nov(today.year(), today.month(), 1);
             while(nov <= today)
             {
@@ -874,7 +867,7 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
                 nov = nov.addDays(1);
             }
 
-            return thursdays == 4 ? 1 : 0;
+            return thursdays == 4;
         }
     }
 
@@ -882,18 +875,18 @@ bool YahooChartAPI::is_market_holiday(const QDateTime& now)
     {
         // "Christmas"
         if(today.day() == 26 && today.dayOfWeek() == Mon)
-            return 1;       // fell on a Sunday this year; assume Monday closed
+            return true;       // fell on a Sunday this year; assume Monday closed
         if(today.day() == 24 && today.dayOfWeek() == Fri)
-            return 1;       // falls on a Saturday this year; assume Friday closed
+            return true;       // falls on a Saturday this year; assume Friday closed
         if(today.day() == 25 && today.dayOfWeek() >= Mon && today.dayOfWeek() <= Fri)
-            return 1;
+            return true;
 
         // "New Years"
         if(today.day() == 31 && today.dayOfWeek() == Fri)
-            return 1;       // falls on Saturday this year; assume Friday closed
+            return true;       // falls on Saturday this year; assume Friday closed
     }
 
-    return 0;
+    return false;
 }
 
 void YahooChartAPI::ticker_update(const QString& status)
@@ -909,37 +902,37 @@ void YahooChartAPI::ticker_update(const QString& status)
     last_hash = hash.result();
 
     QStringList values;
-    int timestamp = 0;
+    auto timestamp{0};
 
     chart_data->history.clear();
 
-    QStringList lines = status.split("\n");
+    auto lines = status.split("\n");
     foreach(const QString& line, lines)
     {
         if(line.contains(":"))
         {
-            QStringList items = line.split(":");
+            auto items = line.split(":");
             if(!items[0].compare("values"))
                 values = items[1].split(",");
             else if(!items[0].compare("high"))
             {
                 // this is a range of high values for the chart
-                bool ok;
-                QStringList subitems = items[1].split(",");
+                bool ok{false};
+                auto subitems = items[1].split(",");
                 chart_data->current_high_low = subitems[0].toFloat(&ok);
                 chart_data->current_high_high = subitems[1].toFloat(&ok);
             }
             else if(!items[0].compare("low"))
             {
                 // this is a range of low values for the chart
-                bool ok;
-                QStringList subitems = items[1].split(",");
+                bool ok{false};
+                auto subitems = items[1].split(",");
                 chart_data->current_low_low = subitems[0].toFloat(&ok);
                 chart_data->current_low_high = subitems[1].toFloat(&ok);
             }
             else if(!items[0].compare("previous_close"))
             {
-                bool ok;
+                bool ok{false};
                 chart_data->previous_close = items[1].toFloat(&ok);
             }
             else if(!items[0].compare("Timestamp"))
@@ -947,7 +940,7 @@ void YahooChartAPI::ticker_update(const QString& status)
                 // this is a range of time for the chart.  it will probably
                 // be the regular market hours (09:30am EST -> 04:00pm EST)
 
-                QStringList subvalues = items[1].split(",");
+                auto subvalues = items[1].split(",");
                 chart_data->open_timestamp = subvalues[0].toInt();
                 chart_data->close_timestamp = subvalues[1].toInt();
             }
@@ -958,19 +951,19 @@ void YahooChartAPI::ticker_update(const QString& status)
 
             if(line.contains(","))
             {
-                QStringList items = line.split(",");
-                for(int i = 0;i < values.length();++i)
+                auto items = line.split(",");
+                for(auto i = 0;i < values.length();++i)
                 {
                     if(!values[i].compare("Timestamp"))
                         timestamp = items[i].toInt();
                     else if(!values[i].compare("low"))
                     {
-                        bool ok;
+                        bool ok{false};
                         chart_data->current_low = items[i].toFloat(&ok);
                     }
                     else if(!values[i].compare("high"))
                     {
-                        bool ok;
+                        bool ok{false};
                         chart_data->current_high = items[i].toFloat(&ok);
                     }
                 }
@@ -981,12 +974,12 @@ void YahooChartAPI::ticker_update(const QString& status)
         }
     }
 
-    chart_data->volume_max_str = QString::number(chart_data->current_high_high, 'f', 2);
-    chart_data->volume_min_str = QString::number(chart_data->current_low_low, 'f', 2);
+    chart_data->volume_max_str = QString::number(static_cast<double>(chart_data->current_high_high), 'f', 2);
+    chart_data->volume_min_str = QString::number(static_cast<double>(chart_data->current_low_low), 'f', 2);
 
     if(lock_to_max_range)
     {
-        QString font_color = QString("%1%2%3")
+        auto font_color = QString("%1%2%3")
                                 .arg(QString::number(LightSkyBlueRed, 16))
                                 .arg(QString::number(LightSkyBlueGreen, 16))
                                 .arg(QString::number(LightSkyBlueBlue, 16)).toUpper();
@@ -994,32 +987,32 @@ void YahooChartAPI::ticker_update(const QString& status)
         if(chart_data->current_low_low != chart_data->previous_low_low)
             chart_data->volume_min_str = QString("<font color=\"#%1\">%2</font>")
                         .arg(font_color)
-                        .arg(QString::number(chart_data->current_low_low, 'f', 2));
+                        .arg(QString::number(static_cast<double>(chart_data->current_low_low), 'f', 2));
         chart_data->previous_low_low = chart_data->current_low_low;
 
         if(chart_data->current_high_high != chart_data->previous_high_high)
             chart_data->volume_max_str = QString("<font color=\"#%1\">%2</font>")
                         .arg(font_color)
-                        .arg(QString::number(chart_data->current_high_high, 'f', 2));
+                        .arg(QString::number(static_cast<double>(chart_data->current_high_high), 'f', 2));
         chart_data->previous_high_high = chart_data->current_high_high;
     }
 
-    bool closed_today = false;
+    auto closed_today{false};
 
 #if 0
     QDateTime now(QDate::currentDate(), QTime(7, 30, 15));
 #endif
 
-    QDateTime now = QDateTime::currentDateTime();
-    QTime my_time = now.time();
+    auto now = QDateTime::currentDateTime();
+    auto my_time = now.time();
 
     // QDateTime seems to be adjusting the time_t values automatically
     // for the local gmtoffset, so we don't have to do it ourselves
 
-    QDateTime open_datetime = QDateTime::fromTime_t(chart_data->open_timestamp);
-    QTime open_time = open_datetime.time();
-    QDateTime close_datetime = QDateTime::fromTime_t(chart_data->close_timestamp);
-    QTime close_time = close_datetime.time();
+    auto open_datetime = QDateTime::fromTime_t(static_cast<uint>(chart_data->open_timestamp));
+    auto open_time = open_datetime.time();
+    auto close_datetime = QDateTime::fromTime_t(static_cast<uint>(chart_data->close_timestamp));
+    auto close_time = close_datetime.time();
 
     if(!last_timestamp)
     {
@@ -1031,14 +1024,14 @@ void YahooChartAPI::ticker_update(const QString& status)
         chart_data->next_open = calculate_next_open(open_datetime, close_datetime, closed_today);
 
         // do we need to sleep until the market is actually open?
-        int seconds_till_open = 0;
+        auto seconds_till_open{0};
 
         if(closed_today ||
            (now.date() > open_datetime.date()) ||
            (now.date() == chart_data->next_open.date() && my_time < open_time) ||
            my_time > close_time)
         {
-            seconds_till_open = chart_data->next_open.toTime_t() - now.toLocalTime().toTime_t();
+            seconds_till_open = static_cast<int>(chart_data->next_open.toTime_t() - now.toLocalTime().toTime_t());
             if(seconds_till_open < 0)
                 seconds_till_open = 0;      // we're open now
             else if(seconds_till_open > 0)
@@ -1052,7 +1045,7 @@ void YahooChartAPI::ticker_update(const QString& status)
 
         if(seconds_till_open > 0)
         {
-            QString duration = format_duration(seconds_till_open);
+            auto duration = format_duration(seconds_till_open);
 
             QStringList wait_template;
             wait_template << "Ticker: <b>${TICKER}</b> (${ALIAS})";
@@ -1067,7 +1060,7 @@ void YahooChartAPI::ticker_update(const QString& status)
 
             ReportMap report_map;
             populate_report_map(report_map, chart_data);
-            QString status_str = render_report(report_map, wait_template);
+            auto status_str = render_report(report_map, wait_template);
 
 #if defined(QT_DEBUG) && defined(PLAYBACK)
             // this code will play back all the cached historical data,
@@ -1107,7 +1100,7 @@ void YahooChartAPI::ticker_update(const QString& status)
 
             chart_data->next_open = calculate_next_open(open_datetime, close_datetime, closed_today);
 
-            int seconds_till_open = chart_data->next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
+            auto seconds_till_open = chart_data->next_open.toTime_t() - QDateTime::currentDateTime().toLocalTime().toTime_t();
 
             QStringList wait_template;
             wait_template << "Ticker: <b>${TICKER}</b> (${ALIAS})";
@@ -1117,7 +1110,7 @@ void YahooChartAPI::ticker_update(const QString& status)
 
             ReportMap report_map;
             populate_report_map(report_map, chart_data);
-            QString status_str = render_report(report_map, wait_template);
+            auto status_str = render_report(report_map, wait_template);
 
             emit signal_new_data(status_str.toUtf8());
 
@@ -1132,7 +1125,7 @@ void YahooChartAPI::ticker_update(const QString& status)
         {
             last_timestamp = timestamp;
 
-            int old_timestamp = chart_data->close_timestamp;
+            auto old_timestamp = chart_data->close_timestamp;
             chart_data->close_timestamp = timestamp;
 
             ReportMap report_map;
@@ -1140,7 +1133,7 @@ void YahooChartAPI::ticker_update(const QString& status)
 
             chart_data->close_timestamp = old_timestamp;
 
-            QString status_str = render_report(report_map, report_template);
+            auto status_str = render_report(report_map, report_template);
 
             emit signal_new_data(status_str.toUtf8());
         }
@@ -1155,9 +1148,9 @@ void YahooChartAPI::ticker_update(const QJsonObject& /*status*/)
 {
 }
 
-void YahooChartAPI::error(const QString& error_message)
+void YahooChartAPI::error(const QString& error_message_)
 {
-    emit signal_new_data(error_message.toUtf8());
+    emit signal_new_data(error_message_.toUtf8());
 }
 
 void YahooChartAPI::populate_report_map(ReportMap& report_map, ChartDataPointer chart_data)
@@ -1178,11 +1171,11 @@ void YahooChartAPI::populate_report_map(ReportMap& report_map, ChartDataPointer 
 
     report_map["TICKER"] = ticker;
     report_map["ALIAS"] = ticker_alias;
-    report_map["AVERAGE"] = QString::number(chart_data->current_average, 'f', 2);
-    report_map["PREVIOUS_CLOSE"] = QString::number(chart_data->previous_close, 'f', 2);
-    report_map["PREVIOUS_CLOSE_OFFSET_AMOUNT"] = QString("%1%2").arg(symbol).arg(QString::number(fabs(chart_data->current_average - chart_data->previous_close), 'f', 2));
-    report_map["PREVIOUS_CLOSE_OFFSET_PERCENTAGE"] = QString("%1%2").arg(symbol).arg(QString::number(fabs(((chart_data->current_average - chart_data->previous_close) / chart_data->previous_close) * 100.f), 'f', 2));
-    report_map["TIMESTAMP"] = QDateTime::fromTime_t(chart_data->close_timestamp).toLocalTime().toString();
+    report_map["AVERAGE"] = QString::number(static_cast<double>(chart_data->current_average), 'f', 2);
+    report_map["PREVIOUS_CLOSE"] = QString::number(static_cast<double>(chart_data->previous_close), 'f', 2);
+    report_map["PREVIOUS_CLOSE_OFFSET_AMOUNT"] = QString("%1%2").arg(symbol).arg(QString::number(static_cast<double>(fabs(chart_data->current_average - chart_data->previous_close)), 'f', 2));
+    report_map["PREVIOUS_CLOSE_OFFSET_PERCENTAGE"] = QString("%1%2").arg(symbol).arg(QString::number(static_cast<double>(fabs(((chart_data->current_average - chart_data->previous_close) / chart_data->previous_close) * 100.f)), 'f', 2));
+    report_map["TIMESTAMP"] = QDateTime::fromTime_t(static_cast<uint>(chart_data->close_timestamp)).toLocalTime().toString();
 
     report_map["RANGE_LOCKED"] = "&#128275;";
     if(lock_to_max_range)
@@ -1197,24 +1190,24 @@ void YahooChartAPI::populate_report_map(ReportMap& report_map, ChartDataPointer 
 
     if(chart_data->history.length())
     {
-        const TickPair& p = chart_data->history.front();
+        const auto& p = chart_data->history.front();
         symbol = "&#8596;";
         if(chart_data->current_average < p.second)
             symbol = "&#8595;";
         else if(chart_data->current_average > p.second)
             symbol = "&#8593;";
 
-        report_map["OPEN_OFFSET_AMOUNT"] = QString("%1%2").arg(symbol).arg(QString::number(fabs(chart_data->current_average - p.second), 'f', 2));
-        report_map["OPEN_OFFSET_PERCENTAGE"] = QString("%1%2").arg(symbol).arg(QString::number(fabs(((chart_data->current_average - p.second) / p.second) * 100.f), 'f', 2));
+        report_map["OPEN_OFFSET_AMOUNT"] = QString("%1%2").arg(symbol).arg(QString::number(static_cast<double>(fabs(chart_data->current_average - p.second)), 'f', 2));
+        report_map["OPEN_OFFSET_PERCENTAGE"] = QString("%1%2").arg(symbol).arg(QString::number(static_cast<double>(fabs(((chart_data->current_average - p.second) / p.second) * 100.f)), 'f', 2));
     }
 }
 
 QString YahooChartAPI::render_report(const ReportMap& report_map, const QStringList& report_template)
 {
-    QString report = report_template.join("<br>");
+    auto report = report_template.join("<br>");
     foreach(const QString& key, report_map.keys())
     {
-        QString token = QString("${%1}").arg(key);
+        auto token = QString("${%1}").arg(key);
         report.replace(token, report_map[key]);
     }
 
@@ -1223,21 +1216,21 @@ QString YahooChartAPI::render_report(const ReportMap& report_map, const QStringL
 
 QString YahooChartAPI::capitalize(const QString& str)
 {
-    QString tmp = str.toLower();
+    auto tmp = str.toLower();
     tmp[0] = str[0].toUpper();
     return tmp;
 }
 
-PollerPointer YahooChartAPI::acquire_poller(const QUrl& story, const QString& ticker, int timeout)
+PollerPointer YahooChartAPI::acquire_poller(const QUrl& story_, const QString& ticker, int timeout)
 {
     if(!poller_map.contains(ticker))
     {
         PollerData pd;
-        pd.poller = PollerPointer(new YahooChartAPIPoller(TickerFormat::CSV, story, ticker, timeout));
+        pd.poller = PollerPointer(new YahooChartAPIPoller(TickerFormat::CSV, story_, ticker, timeout));
         poller_map[ticker] = pd;
     }
 
-    PollerData& pd = poller_map[ticker];
+    auto& pd = poller_map[ticker];
     ++pd.reference_count;
     return pd.poller;
 }
@@ -1247,7 +1240,7 @@ void YahooChartAPI::release_poller(const QString &ticker)
     if(!poller_map.contains(ticker))
         return;
 
-    PollerData& pd = poller_map[ticker];
+    auto& pd = poller_map[ticker];
     if(--pd.reference_count == 0)
         poller_map.remove(ticker);
 }

@@ -1,8 +1,7 @@
 #ifdef QT_WIN
-#include <windows.h>
+#include <Windows.h>
 #endif
 
-//#include <QtWidgets/QApplication>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QGraphicsOpacityEffect>
@@ -22,22 +21,9 @@ Headline::Headline(StoryInfoPointer story_info,
                    const QString& headline,
                    Qt::Alignment alignment,
                    QWidget* parent)
-    : story_info(story_info),
-      headline(headline),
-      stay_visible(false),
-      mouse_in_widget(false),
-      is_zoomed(false),
-      shrink_text_to_fit(false),
-      compact_mode(false),
-      reporter_draw(false),
-      margin(5),
-      ignore(false),
-      include_progress_bar(false),
-      progress_on_top(false),
-      bottom_window(nullptr),
-      hover_timer(nullptr),
-      old_opacity(1.0),
-      QLabel(parent)
+    : QLabel(parent),
+      story_info(story_info),
+      headline(headline)
 {
     setAlignment(alignment);
 
@@ -67,20 +53,20 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
 #ifdef QT_WIN
         if(!QString(eventType).compare("windows_generic_MSG"))
         {
-            MSG* msg = (MSG*)message;
+            auto msg = static_cast<MSG*>(message);
 
             if(msg->message == WM_WINDOWPOSCHANGING)
             {
                 RECT    r;
-                HWND    bottom = nullptr;
+                HWND    bottom{nullptr};
 
                 // assume the first window in the Z order that is consuming
                 // the entire virtual desktop size IS the desktop (e.g.,
                 // "Program Manager"), and glue ourselves right on top of it
-                int desktop_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-                int desktop_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+                auto desktop_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                auto desktop_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 
-                HWND w = GetTopWindow(NULL);
+                auto w = GetTopWindow(nullptr);
                 while(w)
                 {
                     if(!bottom_window)
@@ -89,7 +75,7 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
                         if((r.right - r.left) == desktop_width && (r.bottom - r.top) == desktop_height)
                             break;
                     }
-                    else if((HWND)bottom_window->winId() == w)
+                    else if(reinterpret_cast<HWND>(bottom_window->winId()) == w)
                         break;
 
                     if(IsWindowVisible(w))
@@ -98,9 +84,9 @@ bool Headline::nativeEvent(const QByteArray &eventType, void *message, long *res
                     w = GetNextWindow(w, GW_HWNDNEXT);
                 }
 
-                auto pwpos = (WINDOWPOS*)msg->lParam;
+                auto pwpos = reinterpret_cast<WINDOWPOS*>(msg->lParam);
                 pwpos->hwndInsertAfter = bottom;
-                pwpos->flags &= (~SWP_NOZORDER);
+                pwpos->flags &= static_cast<unsigned int>(~SWP_NOZORDER);
                 // fall through to the return
             }
         }
@@ -146,7 +132,7 @@ void Headline::zoom_out()
 
     prepare_to_zoom_out();
 
-    QPropertyAnimation* animation = new QPropertyAnimation(this, "geometry", this);
+    auto animation = new QPropertyAnimation(this, "geometry", this);
     animation->setDuration(200);
     animation->setStartValue(target_geometry);
     animation->setEndValue(starting_geometry);
@@ -206,6 +192,9 @@ void Headline::slot_zoom_in()
                                     starting_geometry.y() - (original_h - starting_geometry.height()),
                                     original_w, original_h);
             break;
+
+        default:
+            break;
     }
 
     // if any of our visible geometry exceeds the boundaries of
@@ -234,7 +223,7 @@ void Headline::slot_zoom_in()
 //        }
 //    }
 
-    QPropertyAnimation* animation = new QPropertyAnimation(this, "geometry");
+    auto animation = new QPropertyAnimation(this, "geometry");
     animation->setDuration(200);
     animation->setStartValue(starting_geometry);
     animation->setEndValue(target_geometry);
@@ -291,19 +280,19 @@ void Headline::initialize(bool stay_visible, FixedText fixed_text, int width, in
     setStyleSheet(stylesheet);
     setText(headline);
 
-    QRect r = geometry();
+    auto r = geometry();
     setGeometry(r.x(), r.y(), width, height);
 }
 
 //-----------------------------------------------------------------------
 
-PortraitHeadline::PortraitHeadline(StoryInfoPointer story_info,
-                                   const QString& headline,
+PortraitHeadline::PortraitHeadline(StoryInfoPointer story_info_,
+                                   const QString& headline_,
                                    Qt::Alignment alignment,
                                    bool configure_for_left,
                                    QWidget *parent)
-    : configure_for_left(configure_for_left),
-      Headline(story_info, headline, alignment, parent)
+    : Headline(story_info_, headline_, alignment, parent),
+      configure_for_left(configure_for_left)
 {
 }
 
@@ -317,7 +306,7 @@ void PortraitHeadline::paintEvent(QPaintEvent* /*event*/)
         return;
 
     QPainter painter(this);
-    QRect s = geometry();
+    auto s = geometry();
 
     if(reporter_draw)
     {
@@ -334,18 +323,18 @@ void PortraitHeadline::paintEvent(QPaintEvent* /*event*/)
         td.setHtml(text());
     else
         td.setPlainText(text());
-    QSizeF doc_size = td.documentLayout()->documentSize();
+    auto doc_size = td.documentLayout()->documentSize();
 
     if(shrink_text_to_fit)
     {
-        QFont f = td.defaultFont();
+        auto f = td.defaultFont();
         for(;;)
         {
             doc_size = td.documentLayout()->documentSize();
             if(doc_size.width() < s.height() && doc_size.height() < s.width())
                 break;
 
-            if((f.pointSizeF() - .1) < 4.0f)
+            if((f.pointSizeF() - .1) < 4.0)
             {
                 // let it just clip the remaining text
                 //f.setPointSizeF(original_point_size);
@@ -358,28 +347,28 @@ void PortraitHeadline::paintEvent(QPaintEvent* /*event*/)
         }
     }
 
-    int y = 0;
-    int x = 0;
+    auto y{0};
+    auto x{0};
 
     if(alignment() & Qt::AlignVCenter)
     {
-        y = (s.width() - doc_size.height()) / 2;
+        y = static_cast<int>((s.width() - doc_size.height()) / 2);
         y = (y < 0) ? 0 : y;
     }
     else if(alignment() & Qt::AlignBottom)
     {
-        y = s.width() - doc_size.height();
+        y = static_cast<int>(s.width() - doc_size.height());
         y = (y < 0) ? 0 : y;
     }
 
     if(alignment() & Qt::AlignHCenter)
     {
-        x = (s.height() - doc_size.width()) / 2;
+        x = static_cast<int>((s.height() - doc_size.width()) / 2);
         x = (x < 0) ? 0 : x;
     }
     else if(alignment() & Qt::AlignRight)
     {
-        x = s.height() - doc_size.width();
+        x = static_cast<int>(s.height() - doc_size.width());
         x = (x < 0) ? 0 : x;
     }
 
@@ -408,33 +397,32 @@ void PortraitHeadline::paintEvent(QPaintEvent* /*event*/)
 
 QSize PortraitHeadline::minimumSizeHint() const
 {
-    QSize s = QLabel::minimumSizeHint();
+    auto s = QLabel::minimumSizeHint();
     return QSize(s.width(), s.height());
 }
 
 QSize PortraitHeadline::sizeHint() const
 {
-    QSize s = QLabel::sizeHint();
+    auto s = QLabel::sizeHint();
     return QSize(s.width(), s.height());
 }
 
-void PortraitHeadline::initialize(bool stay_visible, FixedText fixed_text, int width, int height)
+void PortraitHeadline::initialize(bool stay_visible_, FixedText fixed_text, int width, int height)
 {
-    Headline::initialize(stay_visible, fixed_text, width, height);
+    Headline::initialize(stay_visible_, fixed_text, width, height);
     set_for_left(story_info->entry_type != AnimEntryType::DashboardInRightTop &&
                  story_info->entry_type != AnimEntryType::DashboardInRightBottom);
 }
 
 //-----------------------------------------------------------------------
 
-LandscapeHeadline::LandscapeHeadline(StoryInfoPointer story_info,
-                                     const QString& headline,
+LandscapeHeadline::LandscapeHeadline(StoryInfoPointer story_info_,
+                                     const QString& headline_,
                                      Qt::Alignment alignment,
                                      QWidget* parent)
-    : detect_progress(false),
-      Headline(story_info, headline, alignment, parent)
+    : Headline(story_info_, headline_, alignment, parent)
 {
-    QPalette p = palette();
+    auto p = palette();
     progress_color = p.color(QPalette::Active, QPalette::Mid).lighter(75);
     progress_highlight = progress_color.lighter(135);
 
@@ -462,19 +450,19 @@ void LandscapeHeadline::changeEvent(QEvent* event)
 {
     if(event->type() == QEvent::StyleChange)
     {
-        QString stylesheet = styleSheet();
+        auto stylesheet = styleSheet();
         QRegExp bc("background\\-color\\s*:.*rgb[a]?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)");
         if(bc.indexIn(stylesheet) != -1)
         {
-            int r = bc.cap(1).toInt();
-            int g = bc.cap(2).toInt();
-            int b = bc.cap(3).toInt();
+            auto r = bc.cap(1).toInt();
+            auto g = bc.cap(2).toInt();
+            auto b = bc.cap(3).toInt();
             progress_color = QColor(r, g, b).lighter(125);
             progress_highlight = progress_color.lighter(150);
         }
         else
         {
-            QPalette p = palette();
+            auto p = palette();
             progress_color = p.color(QPalette::Active, QPalette::Mid).lighter(75);
             progress_highlight = progress_color.lighter(135);
         }
@@ -484,7 +472,7 @@ void LandscapeHeadline::changeEvent(QEvent* event)
 void LandscapeHeadline::paintEvent(QPaintEvent* /*event*/)
 {
     QPainter painter(this);
-    QRect s = geometry();
+    auto s = geometry();
 
     if(reporter_draw)
     {
@@ -504,18 +492,18 @@ void LandscapeHeadline::paintEvent(QPaintEvent* /*event*/)
 
     if(!compact_mode)
     {
-        QSizeF doc_size = td.documentLayout()->documentSize();
+        auto doc_size = td.documentLayout()->documentSize();
 
         if(shrink_text_to_fit)
         {
-            QFont f = td.defaultFont();
+            auto f = td.defaultFont();
             for(;;)
             {
                 doc_size = td.documentLayout()->documentSize();
                 if(doc_size.width() < s.width() && doc_size.height() < s.height())
                     break;
 
-                if((f.pointSizeF() - .1) < 4.0f)
+                if((f.pointSizeF() - .1) < 4.0)
                 {
                     // let it just clip the remaining text
                     //f.setPointSizeF(original_point_size);
@@ -528,28 +516,28 @@ void LandscapeHeadline::paintEvent(QPaintEvent* /*event*/)
             }
         }
 
-        int y = 0;
-        int x = 0;
+        auto y{0};
+        auto x{0};
 
         if(alignment() & Qt::AlignVCenter)
         {
-            y = (s.height() - doc_size.height()) / 2;
+            y = static_cast<int>((s.height() - doc_size.height()) / 2);
             y = (y < 0) ? 0 : y;
         }
         else if(alignment() & Qt::AlignBottom)
         {
-            y = s.height() - doc_size.height();
+            y = static_cast<int>(s.height() - doc_size.height());
             y = (y < 0) ? 0 : y;
         }
 
         if(alignment() & Qt::AlignHCenter)
         {
-            x = (s.width() - doc_size.width()) / 2;
+            x = static_cast<int>((s.width() - doc_size.width()) / 2);
             x = (x < 0) ? 0 : x;
         }
         else if(alignment() & Qt::AlignRight)
         {
-            x = s.width() - doc_size.width();
+            x = static_cast<int>(s.width() - doc_size.width());
             x = (x < 0) ? 0 : x;
         }
 
@@ -571,11 +559,11 @@ void LandscapeHeadline::paintEvent(QPaintEvent* /*event*/)
         // see if we can detect any progress indicator in the plain
         // text, and put a progress bar on the headline if so.
 
-        QString plain_text = td.toPlainText();
+        auto plain_text = td.toPlainText();
         QRegExp re(progress_re);
         if(re.indexIn(plain_text) != -1)
         {
-            float percent = re.cap(1).toFloat() / 100.0f;
+            auto percent = re.cap(1).toFloat() / 100.0f;
             if(percent > 1.0f)
                 percent = 1.0f;
 
@@ -605,7 +593,7 @@ void LandscapeHeadline::paintEvent(QPaintEvent* /*event*/)
 
             painter.setPen(QPen(progress_highlight));
             painter.setBrush(QBrush(progress_highlight));
-            painter.drawRect(progress_x, progress_y, (int)(progress_w * percent), progress_h);
+            painter.drawRect(progress_x, progress_y, static_cast<int>(progress_w * percent), progress_h);
         }
 
         painter.restore();
@@ -614,19 +602,19 @@ void LandscapeHeadline::paintEvent(QPaintEvent* /*event*/)
 
 QSize LandscapeHeadline::minimumSizeHint() const
 {
-    QSize s = QLabel::minimumSizeHint();
+    auto s = QLabel::minimumSizeHint();
     return QSize(s.width(), s.height());
 }
 
 QSize LandscapeHeadline::sizeHint() const
 {
-    QSize s = QLabel::sizeHint();
+    auto s = QLabel::sizeHint();
     return QSize(s.width(), s.height());
 }
 
-void LandscapeHeadline::initialize(bool stay_visible, FixedText fixed_text, int width, int height)
+void LandscapeHeadline::initialize(bool stay_visible_, FixedText fixed_text, int width, int height)
 {
-    Headline::initialize(stay_visible, fixed_text, width, height);
+    Headline::initialize(stay_visible_, fixed_text, width, height);
 }
 
 void LandscapeHeadline::prepare_to_zoom_in()

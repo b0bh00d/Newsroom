@@ -13,8 +13,8 @@ EditHeadlineDialog::EditHeadlineDialog(QWidget *parent) :
 
     connect(ui->button_ApplyStylesheet, &QPushButton::clicked, this, &EditHeadlineDialog::slot_apply_stylesheet);
 
-    QDialogButtonBox* buttonBox = findChild<QDialogButtonBox*>("buttonBox");
-    QPushButton* button = buttonBox->button(QDialogButtonBox::Ok);
+    auto buttonBox = findChild<QDialogButtonBox*>("buttonBox");
+    auto button = buttonBox->button(QDialogButtonBox::Ok);
     button->setEnabled(false);
 }
 
@@ -56,7 +56,7 @@ void EditHeadlineDialog::set_style_triggers(const QStringList& keywords)
     slot_update_ok();
 }
 
-QString EditHeadlineDialog::get_style_name()
+QString EditHeadlineDialog::get_style_name() const
 {
     return ui->edit_StyleName->text();
 }
@@ -68,15 +68,15 @@ QString EditHeadlineDialog::get_style_name()
 //    return f;
 //}
 
-QString EditHeadlineDialog::get_style_stylesheet()
+QString EditHeadlineDialog::get_style_stylesheet() const
 {
     return ui->plain_Stylesheet->toPlainText();
 }
 
-QStringList EditHeadlineDialog::get_style_triggers()
+QStringList EditHeadlineDialog::get_style_triggers() const
 {
     QStringList triggers;
-    foreach(const QString& trigger, ui->edit_StyleTriggers->text().split(","))
+    foreach(const auto& trigger, ui->edit_StyleTriggers->text().split(","))
         triggers << trigger.trimmed();
     return triggers;
 }
@@ -111,11 +111,11 @@ void EditHeadlineDialog::slot_apply_stylesheet()
 
 void EditHeadlineDialog::slot_update_ok()
 {
-    QDialogButtonBox* buttonBox = findChild<QDialogButtonBox*>("buttonBox");
-    QPushButton* button = buttonBox->button(QDialogButtonBox::Ok);
+    auto buttonBox = findChild<QDialogButtonBox*>("buttonBox");
+    auto button = buttonBox->button(QDialogButtonBox::Ok);
 
-    QString name = ui->edit_StyleName->text();
-    bool have_triggers = (!ui->edit_StyleTriggers->text().isEmpty() && !name.isEmpty() && name.compare("Default"));
+    auto name = ui->edit_StyleName->text();
+    auto have_triggers = (!ui->edit_StyleTriggers->text().isEmpty() && !name.isEmpty() && name.compare("Default"));
 
     button->setEnabled(have_triggers && !ui->plain_Stylesheet->toPlainText().isEmpty());
 }

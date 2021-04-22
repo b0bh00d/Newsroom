@@ -42,7 +42,7 @@ bool RunGuard::isAnotherRunning()
         return false;
 
     memLock.acquire();
-    const bool isRunning = sharedMem.attach();
+    const auto isRunning = sharedMem.attach();
     if(isRunning)
         sharedMem.detach();
     memLock.release();
@@ -56,7 +56,7 @@ bool RunGuard::tryToRun()
         return false;
 
     memLock.acquire();
-    const bool result = sharedMem.create(sizeof(quint64));
+    const auto result = sharedMem.create(sizeof(quint64));
     memLock.release();
     if(!result)
     {

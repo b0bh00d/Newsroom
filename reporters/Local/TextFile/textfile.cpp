@@ -5,11 +5,7 @@
 #include "textfile.h"
 
 TextFile::TextFile(QObject *parent)
-    : poll_timer(nullptr),
-      trigger(LocalTrigger::NewContent),
-      left_strip(0),
-      right_strip(0),
-      IReporter(parent)
+    : IReporter(parent)
 {}
 
 // IPlugin
@@ -80,9 +76,9 @@ bool TextFile::SetRequirements(const QStringList& parameters)
     return true;
 }
 
-void TextFile::SetStory(const QUrl& story)
+void TextFile::SetStory(const QUrl& story_)
 {
-    this->story = story;
+    this->story = story_;
     if(story.isLocalFile())
         target.setFile(story.toLocalFile());
 }
@@ -129,17 +125,17 @@ void TextFile::preprocess(QByteArray& ba)
         return;     // no modifications
 
     QString str(ba);
-    QStringList lines = str.split('\n');
+    auto lines = str.split('\n');
 
     if(left_strip)
     {
-        for(int i = 0;i < lines.length();++i)
+        for(auto i = 0;i < lines.length();++i)
             lines[i].remove(0, left_strip);
     }
 
     if(right_strip)
     {
-        for(int i = 0;i < lines.length();++i)
+        for(auto i = 0;i < lines.length();++i)
         {
             if(lines[i].length() > right_strip)
                 lines[i] = lines[i].left(lines[i].length() - right_strip);
@@ -162,7 +158,7 @@ void TextFile::slot_poll()
         if(trigger == LocalTrigger::FileChange)
         {
             // this is enough to trigger a headline
-            QString data = QString("Story '%1' was updated on %2").arg(story.toString()).arg(target.lastModified().toString());
+            auto data = QString("Story '%1' was updated on %2").arg(story.toString()).arg(target.lastModified().toString());
             emit signal_new_data(data.toUtf8());
         }
         else
@@ -174,7 +170,7 @@ void TextFile::slot_poll()
                 if(target_file.open(QIODevice::ReadOnly|QIODevice::Text))
                 {
                     target_file.seek(seek_offset);
-                    QByteArray data = target_file.readAll();
+                    auto data = target_file.readAll();
                     preprocess(data);
                     emit signal_new_data(data);
                 }

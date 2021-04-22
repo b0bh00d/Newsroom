@@ -1,5 +1,4 @@
-#ifndef EDITSERIESDIALOG_H
-#define EDITSERIESDIALOG_H
+#pragma once
 
 #include <QDialog>
 
@@ -12,17 +11,15 @@ class EditSeriesDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit EditSeriesDialog(QWidget *parent = 0);
+    explicit EditSeriesDialog(QWidget *parent = nullptr);
     ~EditSeriesDialog();
 
     void            set_compact_mode(bool compact_mode, int zoom_percent = 25);
-    bool            get_compact_mode(int& zoom_percent);
+    bool            get_compact_mode(int& zoom_percent) const;
 
 private slots:
     void            slot_compact_mode_clicked(bool);
 
 private:
-    Ui::EditSeriesDialog *ui;
+    Ui::EditSeriesDialog *ui{nullptr};
 };
-
-#endif // EDITSERIESDIALOG_H

@@ -35,93 +35,65 @@ struct StoryInfo
                     // Reporter
     QString         reporter_beat;      // what special genre knowledge do this Reporter possess?
     QString         reporter_id;        // unique identity for thie Reporter
-    int             reporter_parameters_version;
+    int             reporter_parameters_version{0};
     QStringList     reporter_parameters;// what up-front information does the Reporter need to cover the Story?
 
                     // Notifications
-    uint            ttl;
+    uint            ttl{5};
 
                     // Display
-    int             primary_screen;
+    int             primary_screen{0};
 
                     // Headlines
-    bool            headlines_always_visible;
+    bool            headlines_always_visible{true};
 
                     //   Size
-    bool            interpret_as_pixels;
-    int             headlines_pixel_width, headlines_pixel_height;
-    double          headlines_percent_width, headlines_percent_height;
+    bool            interpret_as_pixels{true};
+    int             headlines_pixel_width{0}, headlines_pixel_height{0};
+    double          headlines_percent_width{0.0}, headlines_percent_height{0.0};
 
                     //   Visibility
-    bool            limit_content;
-    int             limit_content_to;
-    FixedText       headlines_fixed_type;
+    bool            limit_content{false};
+    int             limit_content_to{0};
+    FixedText       headlines_fixed_type{FixedText::None};
 
                     //   Extras
-    bool            include_progress_bar;
-    QString         progress_text_re;
-    bool            progress_on_top;        // true = bar on top, false = bar on bottom
+    bool            include_progress_bar{false};
+    QString         progress_text_re{"\\s(\\d+)%"};
+    bool            progress_on_top{false}; // true = bar on top, false = bar on bottom
 
                     // Animation
-    AnimEntryType   entry_type;
-    AnimExitType    exit_type;
-    int             anim_motion_duration;
-    int             fade_target_duration;
+    AnimEntryType   entry_type{AnimEntryType::PopCenter};
+    AnimExitType    exit_type{AnimExitType::Pop};
+    int             anim_motion_duration{500};
+    int             fade_target_duration{500};
 
                     //   Train
                     //     Age Effects
-    bool            train_use_age_effect;
-    AgeEffects      train_age_effect;
-    int             train_age_percent;
+    bool            train_use_age_effect{false};
+    AgeEffects      train_age_effect{AgeEffects::None};
+    int             train_age_percent{60};
 
                     //   Dashboard
                     //     Age Effects
-    bool            dashboard_use_age_effect;
-    int             dashboard_age_percent;
+    bool            dashboard_use_age_effect{false};
+    int             dashboard_age_percent{60};
 
                     //     Group ID
     QString         dashboard_group_id;
 
                     // Chyron settings (reference only; not saved)
-    int             margin;
-    bool            dashboard_compact_mode;
-    qreal           dashboard_compression;
+    int             margin{5};
+    bool            dashboard_compact_mode{false};
+    qreal           dashboard_compression{25.0};
 
                     // Producer settings (reference only; not saved)
     QFont           font;
 
-    QEasingCurve    motion_curve;
-    QEasingCurve    fading_curve;
+    QEasingCurve    motion_curve{QEasingCurve::OutCubic};
+    QEasingCurve    fading_curve{QEasingCurve::InCubic};
 
-    StoryInfo()
-        : ttl(5),
-          primary_screen(0),
-          headlines_always_visible(true),
-          interpret_as_pixels(true),
-          headlines_pixel_width(0),
-          headlines_pixel_height(0),
-          headlines_percent_width(0.0),
-          headlines_percent_height(0.0),
-          limit_content(false),
-          limit_content_to(0),
-          headlines_fixed_type(FixedText::None),
-          include_progress_bar(false),
-          progress_text_re("\\s(\\d+)%"),
-          progress_on_top(false),
-          entry_type(AnimEntryType::PopCenter),
-          exit_type(AnimExitType::Pop),
-          anim_motion_duration(500),
-          fade_target_duration(500),
-          train_use_age_effect(false),
-          train_age_effect(AgeEffects::None),
-          train_age_percent(60),
-          dashboard_use_age_effect(false),
-          dashboard_age_percent(60),
-          margin(5),
-          dashboard_compact_mode(false),
-          dashboard_compression(25),
-          motion_curve(QEasingCurve::OutCubic),
-          fading_curve(QEasingCurve::InCubic) {}
+    StoryInfo() {}
     StoryInfo(const StoryInfo& source) { *this = source; }
 
     /*!
@@ -142,11 +114,11 @@ struct StoryInfo
         }
         else
         {
-            QDesktopWidget* desktop = QApplication::desktop();
-            QRect r_desktop = desktop->screenGeometry(primary_screen);
+            auto desktop = QApplication::desktop();
+            auto r_desktop = desktop->screenGeometry(primary_screen);
 
-            w = (headlines_percent_width / 100.0) * r_desktop.width();
-            h = (headlines_percent_height / 100.0) * r_desktop.height();
+            w = static_cast<int>((headlines_percent_width / 100.0) * r_desktop.width());
+            h = static_cast<int>((headlines_percent_height / 100.0) * r_desktop.height());
         }
     }
 };

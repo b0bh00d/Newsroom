@@ -31,7 +31,7 @@ public:
                       IReporterPointer reporter,
                       StoryInfoPointer story_info,
                       StyleListPointer style_list,
-                      QObject *parent = 0);
+                      QObject *parent = nullptr);
     ~Producer();
 
     StoryInfoPointer get_story()    const { return story_info; }
@@ -65,8 +65,8 @@ private:        // methods
     void    file_headline(const QString& data);
 
 private:        // data members
-    bool                covering_story;
-    bool                story_shelved;   // this is like a low-power standby mode
+    bool                covering_story{false};
+    bool                story_shelved{false};   // this is like a low-power standby mode
 
     IReporterPointer    reporter;
     ChyronPointer       chyron;

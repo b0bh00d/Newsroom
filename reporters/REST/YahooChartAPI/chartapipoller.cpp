@@ -4,17 +4,15 @@
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
 YahooChartAPIPoller::YahooChartAPIPoller(TickerFormat format, const QUrl& target, const QString& ticker, int timeout, QObject *parent)
-    : format(format),
+    : QObject(parent),
+      format(format),
       ticker(ticker),
-      QNAM(nullptr),
-      poll_timer(nullptr),
-      poll_timeout(timeout),
-      QObject(parent)
+      poll_timeout(timeout)
 {
     // fix up the URL so we can add our own query elements
-    QString story_scheme = target.scheme();
-    QString story_authority = target.authority();
-    QStringList story_path = target.path().split("/");
+    auto story_scheme = target.scheme();
+    auto story_authority = target.authority();
+    auto story_path = target.path().split("/");
     while(story_path.front().isEmpty())
         story_path.pop_front();
 
@@ -24,7 +22,7 @@ YahooChartAPIPoller::YahooChartAPIPoller(TickerFormat format, const QUrl& target
     else
     {
         // next element should be a version
-        bool ok;
+        auto ok{false};
         story_path[1].toFloat(&ok);
         if(!ok)
             story_path.clear(); // don't recognize that; we'll just construct our own
@@ -50,6 +48,8 @@ YahooChartAPIPoller::YahooChartAPIPoller(TickerFormat format, const QUrl& target
             break;
         case TickerFormat::XML:
             story_path << "xml";
+            break;
+        case TickerFormat::None:
             break;
     }
 
@@ -99,17 +99,14 @@ YahooChartAPIPoller::~YahooChartAPIPoller()
 void YahooChartAPIPoller::add_interest(const QString& ticker, QObject* me, int flags)
 {
     // make sure it's a YahooChartAPI instance
-    YahooChartAPI* chartapi = dynamic_cast<YahooChartAPI*>(me);
+    auto chartapi = dynamic_cast<YahooChartAPI*>(me);
     if(!chartapi)
         return;
 
     if(!interested_parties.contains(ticker))
         interested_parties[ticker] = InterestedList();
 
-    InterestData id;
-    id.party = me;
-    id.flags = flags;
-
+    InterestData id{me, flags};
     interested_parties[ticker].append(id);
 
     if(poll_timer->isActive())
@@ -124,7 +121,7 @@ void YahooChartAPIPoller::remove_interest(const QString& ticker, QObject* me)
     if(!interested_parties.contains(ticker))
         return;
 
-    for(int i = 0;i < interested_parties[ticker].length();++i)
+    for(auto i = 0;i < interested_parties[ticker].length();++i)
     {
         if(interested_parties[ticker][i].party == me)
         {
@@ -141,11 +138,10 @@ void YahooChartAPIPoller::notify_interested_parties(const QString& ticker, const
         // notify them all
         foreach(const QString& key, interested_parties.keys())
         {
-            InterestedList& interested = interested_parties[key];
-            InterestedList::iterator iter;
-            for(iter = interested.begin();iter != interested.end();++iter)
+            auto& interested = interested_parties[key];
+            for(auto iter = interested.begin();iter != interested.end();++iter)
             {
-                YahooChartAPI* chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
+                auto chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
                 if(!chartapi)
                     continue;
                 chartapi->error(message);
@@ -157,11 +153,10 @@ void YahooChartAPIPoller::notify_interested_parties(const QString& ticker, const
 
     if(interested_parties.contains(ticker))
     {
-        InterestedList& interested = interested_parties[ticker];
-        InterestedList::iterator iter;
-        for(iter = interested.begin();iter != interested.end();++iter)
+        auto& interested = interested_parties[ticker];
+        for(auto iter = interested.begin();iter != interested.end();++iter)
         {
-            YahooChartAPI* chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
+            auto chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
             if(!chartapi)
                 continue;
             chartapi->error(message);
@@ -173,11 +168,10 @@ void YahooChartAPIPoller::notify_interested_parties(TickerEvents event, const QS
 {
     if(interested_parties.contains(ticker))
     {
-        InterestedList& interested = interested_parties[ticker];
-        InterestedList::iterator iter;
-        for(iter = interested.begin();iter != interested.end();++iter)
+        auto& interested = interested_parties[ticker];
+        for(auto iter = interested.begin();iter != interested.end();++iter)
         {
-            YahooChartAPI* chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
+            auto chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
             if(!chartapi)
                 continue;
 
@@ -197,11 +191,10 @@ void YahooChartAPIPoller::notify_interested_parties(TickerEvents event, const QS
 {
     if(interested_parties.contains(ticker))
     {
-        InterestedList& interested = interested_parties[ticker];
-        InterestedList::iterator iter;
-        for(iter = interested.begin();iter != interested.end();++iter)
+        auto& interested = interested_parties[ticker];
+        for(auto iter = interested.begin();iter != interested.end();++iter)
         {
-            YahooChartAPI* chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
+            auto chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
             if(!chartapi)
                 continue;
 
@@ -221,11 +214,10 @@ void YahooChartAPIPoller::notify_interested_parties(TickerEvents event, const QS
 {
     if(interested_parties.contains(ticker))
     {
-        InterestedList& interested = interested_parties[ticker];
-        InterestedList::iterator iter;
-        for(iter = interested.begin();iter != interested.end();++iter)
+        auto& interested = interested_parties[ticker];
+        for(auto iter = interested.begin();iter != interested.end();++iter)
         {
-            YahooChartAPI* chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
+            auto chartapi = dynamic_cast<YahooChartAPI*>(iter->party);
             if(!chartapi)
                 continue;
 
@@ -244,10 +236,7 @@ void YahooChartAPIPoller::notify_interested_parties(TickerEvents event, const QS
 
 void YahooChartAPIPoller::enqueue_request(const QString& url_str, ReplyStates state, const QStringList& request_data, Priorities priority)
 {
-    RequestData rd;
-    rd.url = url_str;
-    rd.state = state;
-    rd.data = request_data;
+    RequestData rd{state, url_str, request_data};
     if(priority == Priorities::BackOfQueue)
         requests.push_back(rd);
     else
@@ -270,19 +259,16 @@ void YahooChartAPIPoller::create_request(const QString& url_str, ReplyStates sta
     request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
     request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
 
-    QNetworkReply* reply = QNAM->get(request);
-    bool connected = connect(reply, &QNetworkReply::readyRead, this, &YahooChartAPIPoller::slot_get_read);
-    ASSERT_UNUSED(connected);
+    auto reply = QNAM->get(request);
+    auto connected = connect(reply, &QNetworkReply::readyRead, this, &YahooChartAPIPoller::slot_get_read);
+    ASSERT_UNUSED(connected)
     connected = connect(reply, &QNetworkReply::finished, this, &YahooChartAPIPoller::slot_get_complete);
-    ASSERT_UNUSED(connected);
+    ASSERT_UNUSED(connected)
     connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
                         this, &YahooChartAPIPoller::slot_get_failed);
-    ASSERT_UNUSED(connected);
+    ASSERT_UNUSED(connected)
 
-    ReplyData reply_data;
-    reply_data.state = state;
-    reply_data.data = request_data;
-
+    ReplyData reply_data{state, QByteArray(), request_data};
     active_replies[reply] = reply_data;
 
     if(pending_requests.contains(url_str))
@@ -291,17 +277,17 @@ void YahooChartAPIPoller::create_request(const QString& url_str, ReplyStates sta
 
 void YahooChartAPIPoller::process_reply(QNetworkReply *reply)
 {
-    ReplyData& data = active_replies[reply];
+    auto& data = active_replies[reply];
     if(data.state == ReplyStates::GettingUpdate)
     {
         if(format == TickerFormat::CSV)
             notify_interested_parties(TickerEvents::Update, ticker, QString(data.buffer));
         else if(format == TickerFormat::JSON)
         {
-            QJsonDocument d = QJsonDocument::fromJson(data.buffer);
+            auto d = QJsonDocument::fromJson(data.buffer);
             if(!d.isNull())
             {
-                QJsonObject sett2 = d.object();
+                auto sett2 = d.object();
                 if(!sett2.isEmpty())
                     notify_interested_parties(TickerEvents::Update, ticker, sett2);
             }
@@ -313,20 +299,20 @@ void YahooChartAPIPoller::process_reply(QNetworkReply *reply)
 
 void YahooChartAPIPoller::slot_get_read()
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if(reply)
     {
-        ReplyData& data = active_replies[reply];
+        auto& data = active_replies[reply];
         data.buffer += reply->readAll();
     }
 }
 
 void YahooChartAPIPoller::slot_get_complete()
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if(reply && reply->error() == QNetworkReply::NoError)
     {
-        ReplyData& data = active_replies[reply];
+        auto& data = active_replies[reply];
         data.buffer += reply->readAll();
         process_reply(reply);
     }
@@ -343,7 +329,7 @@ void YahooChartAPIPoller::slot_get_complete()
 
 void YahooChartAPIPoller::slot_get_failed(QNetworkReply::NetworkError code)
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if(!active_replies.contains(reply))
         return;
 
@@ -365,7 +351,7 @@ void YahooChartAPIPoller::slot_request_pump()
 
     if(requests.count())
     {
-        RequestData rd = requests.front();
+        auto rd = requests.front();
         requests.pop_front();
         create_request(rd.url, rd.state, rd.data);
     }

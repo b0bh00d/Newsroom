@@ -1,5 +1,4 @@
-#ifndef EDITHEADLINEDIALOG_H
-#define EDITHEADLINEDIALOG_H
+#pragma once
 
 #include <QtWidgets/QDialog>
 
@@ -16,7 +15,7 @@ class EditHeadlineDialog : public QDialog
 {
     Q_OBJECT
 public:
-    explicit EditHeadlineDialog(QWidget *parent = 0);
+    explicit EditHeadlineDialog(QWidget *parent = nullptr);
     ~EditHeadlineDialog();
 
     void            set_style_name(const QString& name);
@@ -24,9 +23,9 @@ public:
     void            set_style_stylesheet(const QString& stylesheet);
     void            set_style_triggers(const QStringList& triggers);
 
-    QString         get_style_name();
-    QString         get_style_stylesheet();
-    QStringList     get_style_triggers();
+    QString         get_style_name() const;
+    QString         get_style_stylesheet() const;
+    QStringList     get_style_triggers() const;
 
 private slots:
 //    void            slot_update_font(const QFont& font);
@@ -35,7 +34,5 @@ private slots:
     void            slot_update_ok();
 
 private:
-    Ui::EditHeadlineDialog *ui;
+    Ui::EditHeadlineDialog *ui{nullptr};
 };
-
-#endif // EDITHEADLINEDIALOG_H

@@ -15,11 +15,9 @@ class Chyron;
 
 struct LaneData
 {
-    Chyron*     owner;
+    Chyron*     owner{nullptr};
     QRect       lane;               // This is a static value that marks the lane position
     QRect       lane_boundaries;    // This is passed to the Chyron for modification, and is based on 'lane'
-
-    LaneData() : owner(nullptr) {}
 };
 SPECIALIZE_SHAREDPTR(LaneData, LaneData)        // "LaneDataPointer"
 SPECIALIZE_LIST(LaneDataPointer, Lane)          // "LaneList"

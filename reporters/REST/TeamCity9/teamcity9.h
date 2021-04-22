@@ -44,9 +44,9 @@ public:
     QString PluginClass() const Q_DECL_OVERRIDE { return "REST"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     float Supports(const QUrl& entity) const Q_DECL_OVERRIDE;
-    int RequiresVersion() const;
-    RequirementsFormats RequiresFormat() const;
-    bool RequiresUpgrade(int, QStringList&);
+    int RequiresVersion() const override;
+    RequirementsFormats RequiresFormat() const override;
+    bool RequiresUpgrade(int, QStringList&) override;
     QStringList Requires(int = 0) const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& url) Q_DECL_OVERRIDE;
@@ -58,12 +58,12 @@ public:
 private:    // classes
     struct ETAData
     {
-        int         initial_completed;
-        uint        start;
+        int         initial_completed{0};
+        uint        start{0};
 
         // these values will be used to try and detect a hung build
-        int         last_completed;
-        uint        last_changed;
+        int         last_completed{0};
+        uint        last_changed{0};
     };
 
 private:    // typedefs and enums
@@ -97,10 +97,10 @@ private:    // data members
     QString     project_name;
     QString     builder_name;
 
-    int         poll_timeout;
-    int         last_changes_count;
+    int         poll_timeout{60};
+    int         last_changes_count{0};
 
-    bool        check_for_changes;
+    bool        check_for_changes{true};
 
     StatusMap   build_status;
     ETAMap      eta;
@@ -112,7 +112,7 @@ private:    // data members
 private:    // class-static data
     struct PollerData
     {
-        int             reference_count;
+        int             reference_count{0};
         PollerPointer   poller;
 
         PollerData() : reference_count(0) {}

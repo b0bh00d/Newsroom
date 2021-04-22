@@ -1,3 +1,5 @@
+#include <QIntValidator>
+
 #include "editseriesdialog.h"
 #include "ui_editseriesdialog.h"
 
@@ -29,7 +31,7 @@ void EditSeriesDialog::set_compact_mode(bool compact_mode, int zoom_percent)
     slot_compact_mode_clicked(compact_mode);
 }
 
-bool EditSeriesDialog::get_compact_mode(int &zoom_percent)
+bool EditSeriesDialog::get_compact_mode(int& zoom_percent) const
 {
     zoom_percent = ui->edit_ZoomOutPercent->placeholderText().toInt();
     if(ui->check_CompactMode->isChecked() && !ui->edit_ZoomOutPercent->text().isEmpty())

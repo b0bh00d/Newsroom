@@ -69,22 +69,22 @@ private:    // typedefs and enums
 private:    // classes
     struct RequestData
     {
-        ReplyStates state;
+        ReplyStates state{ReplyStates::None};
         QString     url;
         QStringList data;
     };
 
     struct ReplyData
     {
-        ReplyStates state;
+        ReplyStates state{ReplyStates::None};
         QByteArray  buffer;
         QStringList data;       // project + builder names and ids
     };
 
     struct InterestData
     {
-        QObject*        party;
-        int             flags;
+        QObject*        party{nullptr};
+        int             flags{0};
     };
 
 private:    // typedefs and enums
@@ -105,16 +105,16 @@ private:    // methods
     void            process_reply(QNetworkReply *reply);
 
 private:    // data members
-    TickerFormat    format;
+    TickerFormat    format{TickerFormat::None};
     QString         target;
     QString         ticker;
 
-    QNetworkAccessManager*  QNAM;
+    QNetworkAccessManager*  QNAM{nullptr};
     ReplyMap        active_replies;
 
-    QTimer*         request_timer;
-    QTimer*         poll_timer;
-    int             poll_timeout;
+    QTimer*         request_timer{nullptr};
+    QTimer*         poll_timer{nullptr};
+    int             poll_timeout{0};
 
     RequestList     requests;
     PendingRequestsMap  pending_requests;

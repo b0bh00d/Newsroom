@@ -13,12 +13,12 @@ class HighlightWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit HighlightWidget(QWidget *parent = 0);
+    explicit HighlightWidget(QWidget *parent = nullptr);
     ~HighlightWidget();
 
 protected:
     void    paintEvent(QPaintEvent* event);
 
 private:
-    double              opacity;
+    double              opacity{0.0};
 };

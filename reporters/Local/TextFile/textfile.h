@@ -26,12 +26,12 @@ public:
     // IReporter
     QString ErrorString() const Q_DECL_OVERRIDE { return error_message; }
     QStringList DisplayName() const Q_DECL_OVERRIDE;
-    QString PluginClass() const                 { return "Local"; }
+    QString PluginClass() const override { return "Local"; }
     QByteArray PluginID() const Q_DECL_OVERRIDE;
     float Supports(const QUrl &entity) const Q_DECL_OVERRIDE;
-    int RequiresVersion() const;
-    RequirementsFormats RequiresFormat() const;
-    bool RequiresUpgrade(int, QStringList&);
+    int RequiresVersion() const override;
+    RequirementsFormats RequiresFormat() const override;
+    bool RequiresUpgrade(int, QStringList&) override;
     QStringList Requires(int = 0) const Q_DECL_OVERRIDE;
     bool SetRequirements(const QStringList& parameters) Q_DECL_OVERRIDE;
     void SetStory(const QUrl& story) Q_DECL_OVERRIDE;
@@ -64,17 +64,17 @@ private:    // methods
 
 private:    // data membvers
     QFileInfo       target;
-    int             stabilize_count;
+    int             stabilize_count{0};
 
-    qint64          seek_offset;
-    qint64          last_size;
+    qint64          seek_offset{0};
+    qint64          last_size{0};
 
-    QTimer*         poll_timer;
+    QTimer*         poll_timer{nullptr};
 
     QString         report;
 
-    LocalTrigger    trigger;
+    LocalTrigger    trigger{LocalTrigger::NewContent};
 
-    int             left_strip;
-    int             right_strip;
+    int             left_strip{0};
+    int             right_strip{0};
 };

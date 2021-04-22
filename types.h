@@ -55,7 +55,7 @@ struct ReporterInfo
     QString         name;
     QString         tooltip;
     QString         id;
-    int             params_version;
+    int             params_version{1};
     QStringList     params_requires;
 };
 

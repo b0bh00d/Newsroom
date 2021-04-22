@@ -7,7 +7,7 @@
 class TEAMCITY9SHARED_EXPORT TeamCity9Factory : public IReporterFactory
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IReporterFactory" FILE "")
+    Q_PLUGIN_METADATA(IID "org.lucidgears.Newsroom.IReporterFactory")
     Q_INTERFACES(IReporterFactory)
 
 public:

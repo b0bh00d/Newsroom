@@ -11,8 +11,7 @@
 extern MainWindow* mainwindow;
 
 SettingsDialog::SettingsDialog(QWidget *parent)
-    : editing(false),
-      QDialog(parent),
+    : QDialog(parent),
       ui(new Ui::SettingsDialog)
 {
     ui->setupUi(this);
@@ -84,9 +83,9 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
     ui->tree_Styles->setDefaultDropAction(Qt::TargetMoveAction);
     ui->tree_Styles->setDragDropMode(QAbstractItemView::InternalMove);
 
-    foreach(const HeadlineStyle& style, style_list)
+    foreach(const auto& style, style_list)
     {
-        QList<QTreeWidgetItem*> items = ui->tree_Styles->findItems(style.name, Qt::MatchExactly, 0);
+        auto items = ui->tree_Styles->findItems(style.name, Qt::MatchExactly, 0);
         if(items.isEmpty())
             new QTreeWidgetItem(ui->tree_Styles, QStringList() << style.name << style.triggers.join(", ") << style.stylesheet);
         else
@@ -97,7 +96,7 @@ void SettingsDialog::set_styles(const HeadlineStyleList& style_list)
         }
     }
 
-    for(int i = 0;i < ui->tree_Styles->columnCount();++i)
+    for(auto i = 0;i < ui->tree_Styles->columnCount();++i)
         ui->tree_Styles->resizeColumnToContents(i);
 
     ui->tree_Styles->topLevelItem(0)->setSelected(true);
@@ -114,9 +113,9 @@ void SettingsDialog::set_series(const SeriesInfoList& series_ordered)
     ui->tree_Series->setDefaultDropAction(Qt::TargetMoveAction);
     ui->tree_Series->setDragDropMode(QAbstractItemView::InternalMove);
 
-    foreach(SeriesInfoPointer series_info, series_ordered)
+    foreach(auto series_info, series_ordered)
     {
-        QTreeWidgetItem* series_item = new QTreeWidgetItem(ui->tree_Series, QStringList() << series_info->name);
+        auto series_item = new QTreeWidgetItem(ui->tree_Series, QStringList() << series_info->name);
 
         QVariant v;
         v.setValue(series_info);
@@ -124,11 +123,11 @@ void SettingsDialog::set_series(const SeriesInfoList& series_ordered)
 
         series_item->setFlags(series_item->flags() | Qt::ItemIsEditable);
 
-        foreach(ProducerPointer producer, series_info->producers)
+        foreach(auto producer, series_info->producers)
         {
-            StoryInfoPointer story_info = producer->get_story();
+            auto story_info = producer->get_story();
 
-            QTreeWidgetItem* story_item = new QTreeWidgetItem(series_item, QStringList() << "" << story_info->angle);
+            auto story_item = new QTreeWidgetItem(series_item, QStringList() << "" << story_info->angle);
             story_item->setData(0, Qt::UserRole, story_info->identity);
 
             producers[story_info->identity] = producer;
@@ -142,30 +141,30 @@ void SettingsDialog::set_series(const SeriesInfoList& series_ordered)
         series_item->setExpanded(true);
     }
 
-    for(int i = 0;i < ui->tree_Series->columnCount();++i)
+    for(auto i = 0;i < ui->tree_Series->columnCount();++i)
         ui->tree_Series->resizeColumnToContents(i);
 
     slot_story_selection_changed();
 }
 
-bool SettingsDialog::get_autostart()
+bool SettingsDialog::get_autostart() const
 {
     return ui->check_StartAutomatically->isChecked();
 }
 
-bool SettingsDialog::get_continue_coverage()
+bool SettingsDialog::get_continue_coverage() const
 {
     return ui->check_ContinueCoverage->isChecked();
 }
 
-bool SettingsDialog::get_autostart_coverage()
+bool SettingsDialog::get_autostart_coverage() const
 {
     return ui->check_AutoStartCoverage->isChecked();
 }
 
 QFont SettingsDialog::get_font()
 {
-    QFont f = ui->combo_FontFamily->currentFont();
+    auto f = ui->combo_FontFamily->currentFont();
     f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
     return f;
 }
@@ -173,13 +172,13 @@ QFont SettingsDialog::get_font()
 void SettingsDialog::get_styles(HeadlineStyleList& style_list)
 {
     style_list.clear();
-    for(int i = 0;i < ui->tree_Styles->topLevelItemCount();++i)
+    for(auto i = 0;i < ui->tree_Styles->topLevelItemCount();++i)
     {
-        QTreeWidgetItem* item = ui->tree_Styles->topLevelItem(i);
+        auto item = ui->tree_Styles->topLevelItem(i);
 
         HeadlineStyle hs;
         hs.name = item->text(0);
-        foreach(const QString& trigger, item->text(1).split(","))
+        foreach(const auto& trigger, item->text(1).split(","))
             hs.triggers << trigger.trimmed();
         hs.stylesheet = item->text(2);
 
@@ -190,22 +189,22 @@ void SettingsDialog::get_styles(HeadlineStyleList& style_list)
 SeriesInfoList SettingsDialog::get_series()
 {
     SeriesInfoList sl;
-    for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
+    for(auto i = 0;i < ui->tree_Series->topLevelItemCount();++i)
     {
-        QTreeWidgetItem* series_item = ui->tree_Series->topLevelItem(i);
+        auto series_item = ui->tree_Series->topLevelItem(i);
 
         if(series_item->childCount() || !series_item->text(0).compare("Default"))
         {
-            SeriesInfoPointer si = series_item->data(0, Qt::UserRole).value<SeriesInfoPointer>();
+            auto si = series_item->data(0, Qt::UserRole).value<SeriesInfoPointer>();
             Q_ASSERT(!si.isNull());
 
             si->producers.clear();
             si->name = series_item->text(0);
 
-            for(int j = 0;j < series_item->childCount();++j)
+            for(auto j = 0;j < series_item->childCount();++j)
             {
-                QTreeWidgetItem* story_item = series_item->child(j);
-                QString identity = story_item->data(0, Qt::UserRole).toString();
+                auto story_item = series_item->child(j);
+                auto identity = story_item->data(0, Qt::UserRole).toString();
                 si->producers.append(producers[identity]);
             }
 
@@ -224,11 +223,11 @@ void SettingsDialog::slot_update_font(const QFont& font)
     ui->combo_FontSize->clear();
 
     QFontDatabase font_db;
-    foreach(int point, font_db.smoothSizes(font.family(), font.styleName()))
+    foreach(auto point, font_db.smoothSizes(font.family(), font.styleName()))
         ui->combo_FontSize->addItem(QString::number(point));
     ui->combo_FontSize->setCurrentIndex(ui->combo_FontSize->findText(QString::number(font.pointSize())));
 
-    QFont f = font;
+    auto f = font;
     f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
     ui->label_HeadlineExample->setFont(f);
 }
@@ -236,24 +235,24 @@ void SettingsDialog::slot_update_font(const QFont& font)
 // font size changed
 void SettingsDialog::slot_update_font_size(int index)
 {
-    QFont f = ui->combo_FontFamily->currentFont();
+    auto f = ui->combo_FontFamily->currentFont();
     f.setPointSize(ui->combo_FontSize->itemText(index).toInt());
     ui->label_HeadlineExample->setFont(f);
 }
 
 void SettingsDialog::slot_add_style()
 {
-    QTreeWidgetItem* item = ui->tree_Styles->topLevelItem(0);       // "Default"
+    auto item = ui->tree_Styles->topLevelItem(0);       // "Default"
 
     EditHeadlineDialog dlg;
     mainwindow->restore_window_data(&dlg);
 
-    QFont f = ui->combo_FontFamily->currentFont();
+    auto f = ui->combo_FontFamily->currentFont();
     f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
     dlg.set_style_font(f);
     dlg.set_style_stylesheet(item->text(2));
     QStringList triggers;
-    foreach(const QString& trigger, item->text(1).split(","))
+    foreach(const auto& trigger, item->text(1).split(","))
         triggers << trigger.trimmed();
     dlg.set_style_triggers(triggers);
 
@@ -266,7 +265,7 @@ void SettingsDialog::slot_add_style()
 
         new QTreeWidgetItem(ui->tree_Styles, elements);
 
-        for(int i = 0;i < ui->tree_Styles->columnCount();++i)
+        for(auto i = 0;i < ui->tree_Styles->columnCount();++i)
             ui->tree_Styles->resizeColumnToContents(i);
     }
 
@@ -275,24 +274,24 @@ void SettingsDialog::slot_add_style()
 
 void SettingsDialog::slot_delete_style()
 {
-    QTreeWidgetItem* item = ui->tree_Styles->selectedItems()[0];
+    auto item = ui->tree_Styles->selectedItems()[0];
     delete ui->tree_Styles->takeTopLevelItem(ui->tree_Styles->indexOfTopLevelItem(item));
 }
 
 void SettingsDialog::slot_edit_style()
 {
-    QTreeWidgetItem* item = ui->tree_Styles->selectedItems()[0];
+    auto item = ui->tree_Styles->selectedItems()[0];
 
     EditHeadlineDialog dlg;
     mainwindow->restore_window_data(&dlg);
 
     dlg.set_style_name(item->text(0));
-    QFont f = ui->combo_FontFamily->currentFont();
+    auto f = ui->combo_FontFamily->currentFont();
     f.setPointSize(ui->combo_FontSize->itemText(ui->combo_FontSize->currentIndex()).toInt());
     dlg.set_style_font(f);
     dlg.set_style_stylesheet(item->text(2));
     QStringList triggers;
-    foreach(const QString& trigger, item->text(1).split(","))
+    foreach(const auto& trigger, item->text(1).split(","))
         triggers << trigger.trimmed();
     dlg.set_style_triggers(triggers);
 
@@ -302,7 +301,7 @@ void SettingsDialog::slot_edit_style()
         item->setText(1, dlg.get_style_triggers().join(", "));
         item->setText(2, dlg.get_style_stylesheet());
 
-        for(int i = 0;i < ui->tree_Styles->columnCount();++i)
+        for(auto i = 0;i < ui->tree_Styles->columnCount();++i)
             ui->tree_Styles->resizeColumnToContents(i);
     }
 
@@ -311,18 +310,18 @@ void SettingsDialog::slot_edit_style()
 
 void SettingsDialog::slot_apply_stylesheet()
 {
-    QTreeWidgetItem* item = ui->tree_Styles->selectedItems()[0];
+    auto item = ui->tree_Styles->selectedItems()[0];
     ui->label_HeadlineExample->setStyleSheet(item->text(2));
 }
 
 void SettingsDialog::slot_story_selection_changed()
 {
     ui->tab_Series->setEnabled(ui->tree_Series->topLevelItemCount() != 0);
-    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
+    auto selections = ui->tree_Series->selectedItems();
 
-    int series_selected = 0;
-    int stories_selected = 0;
-    foreach(const QTreeWidgetItem* item, selections)
+    auto series_selected{0};
+    auto stories_selected{0};
+    foreach(const auto item, selections)
     {
         if(ui->tree_Series->indexOfTopLevelItem(const_cast<QTreeWidgetItem*>(item)) == -1)
             ++stories_selected;
@@ -339,13 +338,13 @@ void SettingsDialog::slot_story_selection_changed()
 
     if(series_selected && !stories_selected)
     {
-        int covering = 0;
-        int not_covering = 0;
-        for(int i = 0;i < selections[0]->childCount();++i)
+        auto covering{0};
+        auto not_covering{0};
+        for(auto i = 0;i < selections[0]->childCount();++i)
         {
-            QTreeWidgetItem* item = selections[0]->child(i);
-            QString identity = item->data(0, Qt::UserRole).toString();
-            ProducerPointer producer = producers[identity];
+            auto item = selections[0]->child(i);
+            auto identity = item->data(0, Qt::UserRole).toString();
+            auto producer = producers[identity];
             if(producer->is_covering_story())
                 ++covering;
             else
@@ -361,8 +360,8 @@ void SettingsDialog::slot_story_selection_changed()
     {
         ui->button_EditStory->setEnabled(true);
 
-        QString identity = selections[0]->data(0, Qt::UserRole).toString();
-        ProducerPointer producer = producers[identity];
+        auto identity = selections[0]->data(0, Qt::UserRole).toString();
+        auto producer = producers[identity];
         ui->button_StartCoverage->setEnabled(!producer->is_covering_story());
         ui->button_StopCoverage->setEnabled(producer->is_covering_story());
     }
@@ -370,23 +369,23 @@ void SettingsDialog::slot_story_selection_changed()
 
 void SettingsDialog::slot_edit_story()
 {
-    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
+    auto selections = ui->tree_Series->selectedItems();
     emit signal_edit_story(selections[0]->data(0, Qt::UserRole).toString());
 }
 
 void SettingsDialog::slot_edit_series()
 {
-    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
-    SeriesInfoPointer si = selections[0]->data(0, Qt::UserRole).value<SeriesInfoPointer>();
+    auto selections = ui->tree_Series->selectedItems();
+    auto si = selections[0]->data(0, Qt::UserRole).value<SeriesInfoPointer>();
 
     // stop this series before we edit its settings
     QBitArray active(selections[0]->childCount());
 
-    for(int j = 0;j < selections[0]->childCount();++j)
+    for(auto j = 0;j < selections[0]->childCount();++j)
     {
-        QTreeWidgetItem* story_item = selections[0]->child(j);
-        QString identity = story_item->data(0, Qt::UserRole).toString();
-        ProducerPointer producer = producers[identity];
+        auto story_item = selections[0]->child(j);
+        auto identity = story_item->data(0, Qt::UserRole).toString();
+        auto producer = producers[identity];
         active.setBit(j, producer->is_covering_story());
         if(active[j])
         {
@@ -404,26 +403,26 @@ void SettingsDialog::slot_edit_series()
 
         // update each Story in the series with the new setting
 
-        for(int j = 0;j < selections[0]->childCount();++j)
+        for(auto j = 0;j < selections[0]->childCount();++j)
         {
-            QTreeWidgetItem* story_item = selections[0]->child(j);
-            QString identity = story_item->data(0, Qt::UserRole).toString();
-            ProducerPointer producer = producers[identity];
-            StoryInfoPointer story_info = producer->get_story();
+            auto story_item = selections[0]->child(j);
+            auto identity = story_item->data(0, Qt::UserRole).toString();
+            auto producer = producers[identity];
+            auto story_info = producer->get_story();
             story_info->dashboard_compact_mode = si->compact_mode;
             story_info->dashboard_compression = si->compact_compression;
         }
     }
 
     // restart, as indicated
-    for(int j = 0;j < selections[0]->childCount();++j)
+    for(auto j = 0;j < selections[0]->childCount();++j)
     {
         if(!active[j])
             continue;
 
-        QTreeWidgetItem* story_item = selections[0]->child(j);
-        QString identity = story_item->data(0, Qt::UserRole).toString();
-        ProducerPointer producer = producers[identity];
+        auto story_item = selections[0]->child(j);
+        auto identity = story_item->data(0, Qt::UserRole).toString();
+        auto producer = producers[identity];
         if(producer->start_covering_story())
             story_item->setIcon(0, QIcon(":/images/Covering.png"));
     }
@@ -431,8 +430,8 @@ void SettingsDialog::slot_edit_series()
 
 void SettingsDialog::start_coverage(QTreeWidgetItem* item)
 {
-    QString identity = item->data(0, Qt::UserRole).toString();
-    ProducerPointer producer = producers[identity];
+    auto identity = item->data(0, Qt::UserRole).toString();
+    auto producer = producers[identity];
     if(!producer->start_covering_story())
     {
         QMessageBox::critical(this,
@@ -445,18 +444,18 @@ void SettingsDialog::start_coverage(QTreeWidgetItem* item)
 
 void SettingsDialog::slot_start_coverage()
 {
-    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
+    auto selections = ui->tree_Series->selectedItems();
     if(selections.count())
     {
         if(ui->tree_Series->indexOfTopLevelItem(selections[0]) != -1)
         {
-            for(int i = 0;i < selections[0]->childCount();++i)
+            for(auto i = 0;i < selections[0]->childCount();++i)
                 start_coverage(selections[0]->child(i));
         }
         else
             start_coverage(selections[0]);
 
-        for(int i = 0;i < ui->tree_Series->columnCount();++i)
+        for(auto i = 0;i < ui->tree_Series->columnCount();++i)
             ui->tree_Series->resizeColumnToContents(i);
 
         slot_story_selection_changed();
@@ -465,8 +464,8 @@ void SettingsDialog::slot_start_coverage()
 
 void SettingsDialog::stop_coverage(QTreeWidgetItem* item)
 {
-    QString identity = item->data(0, Qt::UserRole).toString();
-    ProducerPointer producer = producers[identity];
+    auto identity = item->data(0, Qt::UserRole).toString();
+    auto producer = producers[identity];
     if(producer->is_covering_story())
     {
         if(producer->stop_covering_story())
@@ -476,18 +475,18 @@ void SettingsDialog::stop_coverage(QTreeWidgetItem* item)
 
 void SettingsDialog::slot_stop_coverage()
 {
-    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
+    auto selections = ui->tree_Series->selectedItems();
     if(selections.count())
     {
         if(ui->tree_Series->indexOfTopLevelItem(selections[0]) != -1)
         {
-            for(int i = 0;i < selections[0]->childCount();++i)
+            for(auto i = 0;i < selections[0]->childCount();++i)
                 stop_coverage(selections[0]->child(i));
         }
         else
             stop_coverage(selections[0]);
 
-        for(int i = 0;i < ui->tree_Series->columnCount();++i)
+        for(auto i = 0;i < ui->tree_Series->columnCount();++i)
             ui->tree_Series->resizeColumnToContents(i);
 
         slot_story_selection_changed();
@@ -496,16 +495,16 @@ void SettingsDialog::slot_stop_coverage()
 
 void SettingsDialog::slot_start_coverage_all()
 {
-    bool changed = false;
+    auto changed{false};
 
-    for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
+    for(auto i = 0;i < ui->tree_Series->topLevelItemCount();++i)
     {
-        QTreeWidgetItem* series_item = ui->tree_Series->topLevelItem(i);
-        for(int j = 0;j < series_item->childCount();++j)
+        auto series_item = ui->tree_Series->topLevelItem(i);
+        for(auto j = 0;j < series_item->childCount();++j)
         {
-            QTreeWidgetItem* story_item = series_item->child(j);
-            QString identity = story_item->data(0, Qt::UserRole).toString();
-            ProducerPointer producer = producers[identity];
+            auto story_item = series_item->child(j);
+            auto identity = story_item->data(0, Qt::UserRole).toString();
+            auto producer = producers[identity];
             if(!producer->is_covering_story())
             {
                 if(producer->start_covering_story())
@@ -517,7 +516,7 @@ void SettingsDialog::slot_start_coverage_all()
 
     if(changed)
     {
-        for(int i = 0;i < ui->tree_Series->columnCount();++i)
+        for(auto i = 0;i < ui->tree_Series->columnCount();++i)
             ui->tree_Series->resizeColumnToContents(i);
 
         slot_story_selection_changed();
@@ -526,16 +525,16 @@ void SettingsDialog::slot_start_coverage_all()
 
 void SettingsDialog::slot_stop_coverage_all()
 {
-    bool changed = false;
+    auto changed{false};
 
-    for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
+    for(auto i = 0;i < ui->tree_Series->topLevelItemCount();++i)
     {
-        QTreeWidgetItem* series_item = ui->tree_Series->topLevelItem(i);
-        for(int j = 0;j < series_item->childCount();++j)
+        auto series_item = ui->tree_Series->topLevelItem(i);
+        for(auto j = 0;j < series_item->childCount();++j)
         {
-            QTreeWidgetItem* story_item = series_item->child(j);
-            QString identity = story_item->data(0, Qt::UserRole).toString();
-            ProducerPointer producer = producers[identity];
+            auto story_item = series_item->child(j);
+            auto identity = story_item->data(0, Qt::UserRole).toString();
+            auto producer = producers[identity];
             if(producer->is_covering_story())
             {
                 if(producer->stop_covering_story())
@@ -547,7 +546,7 @@ void SettingsDialog::slot_stop_coverage_all()
 
     if(changed)
     {
-        for(int i = 0;i < ui->tree_Series->columnCount();++i)
+        for(auto i = 0;i < ui->tree_Series->columnCount();++i)
             ui->tree_Series->resizeColumnToContents(i);
 
         slot_story_selection_changed();
@@ -556,22 +555,21 @@ void SettingsDialog::slot_stop_coverage_all()
 
 void SettingsDialog::slot_remove_story()
 {
-    QList<QTreeWidgetItem *> selections = ui->tree_Series->selectedItems();
-    QList<QTreeWidgetItem *>::iterator iter;
+    auto selections = ui->tree_Series->selectedItems();
     QStringList story_angles;
-    for(iter = selections.begin();iter != selections.end();++iter)
+    for(auto iter = selections.begin();iter != selections.end();++iter)
     {
         story_angles << (*iter)->text(1);
         removed_story_identities << (*iter)->data(0, Qt::UserRole).toString();
 
-        QTreeWidgetItem* series = (*iter)->parent();
+        auto series = (*iter)->parent();
         delete series->takeChild(series->indexOfChild(*iter));
 
         if(series->childCount() == 0 && series->text(0).compare("Default"))
             delete ui->tree_Series->takeTopLevelItem(ui->tree_Series->indexOfTopLevelItem(series));
     }
 
-    foreach(const QString& identity, removed_story_identities)
+    foreach(const auto& identity, removed_story_identities)
         producers.remove(identity);
 }
 
@@ -579,10 +577,10 @@ void SettingsDialog::slot_remove_story_all()
 {
     while(ui->tree_Series->topLevelItemCount())
     {
-        QTreeWidgetItem* series = ui->tree_Series->takeTopLevelItem(0);
+        auto series = ui->tree_Series->takeTopLevelItem(0);
         while(series->childCount())
         {
-            QTreeWidgetItem* child = series->child(0);
+            auto child = series->child(0);
             removed_story_identities << child->data(0, Qt::UserRole).toString();
 
             delete series->takeChild(0);
@@ -590,7 +588,7 @@ void SettingsDialog::slot_remove_story_all()
         delete ui->tree_Series->takeTopLevelItem(0);
     }
 
-    QTreeWidgetItem* new_default = new QTreeWidgetItem(ui->tree_Series, QStringList() << "Default");
+    auto new_default = new QTreeWidgetItem(ui->tree_Series, QStringList() << "Default");
     new_default->setFlags(new_default->flags() | Qt::ItemIsEditable);
 
     producers.clear();
@@ -612,7 +610,7 @@ void SettingsDialog::slot_series_renamed(QTreeWidgetItem* item, int col)
         return;
     editing = false;
 
-    QString new_series_name = item->text(0);
+    auto new_series_name = item->text(0);
     if(!original_series_name.compare(new_series_name))
         return;     // no change
 
@@ -624,9 +622,9 @@ void SettingsDialog::slot_series_renamed(QTreeWidgetItem* item, int col)
     }
 
     // make sure it's not a duplicate
-    for(int i = 0;i < ui->tree_Series->topLevelItemCount();++i)
+    for(auto i = 0;i < ui->tree_Series->topLevelItemCount();++i)
     {
-        QTreeWidgetItem* top_item = ui->tree_Series->topLevelItem(i);
+        auto top_item = ui->tree_Series->topLevelItem(i);
         if(top_item == item)
             continue;
         if(!top_item->text(0).compare(new_series_name))
@@ -641,10 +639,10 @@ void SettingsDialog::slot_series_renamed(QTreeWidgetItem* item, int col)
     if(!original_series_name.compare("Default"))
     {
         // add a new "Default" entry
-        QTreeWidgetItem* new_default = new QTreeWidgetItem(QStringList() << "Default");
+        auto new_default = new QTreeWidgetItem(QStringList() << "Default");
         new_default->setFlags(new_default->flags() | Qt::ItemIsEditable);
 
-        SeriesInfoPointer si = SeriesInfoPointer(new SeriesInfo());
+        auto si = SeriesInfoPointer(new SeriesInfo());
         QVariant v;
         v.setValue(si);
         new_default->setData(0, Qt::UserRole, v);
@@ -652,7 +650,7 @@ void SettingsDialog::slot_series_renamed(QTreeWidgetItem* item, int col)
         ui->tree_Series->insertTopLevelItem(0, new_default);
     }
 
-    for(int i = 0;i < ui->tree_Series->columnCount();++i)
+    for(auto i = 0;i < ui->tree_Series->columnCount();++i)
         ui->tree_Series->resizeColumnToContents(i);
 }
 

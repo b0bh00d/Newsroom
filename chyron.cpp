@@ -14,14 +14,9 @@
 #endif
 
 Chyron::Chyron(StoryInfoPointer story_info, LaneManagerPointer lane_manager, QObject* parent)
-    : story_info(story_info),
-      lane_manager(lane_manager),
-#ifdef HIGHLIGHT_LANES
-      highlight(nullptr),
-#endif
-      visible(true),
-      suspended(false),
-      QObject(parent)
+    : QObject(parent),
+      story_info(story_info),
+      lane_manager(lane_manager)
 {
     age_timer = new QTimer(this);
     age_timer->setInterval(100);
@@ -82,7 +77,7 @@ void Chyron::unsubscribed()
         highlight->deleteLater();
 #endif
 
-    foreach(HeadlinePointer headline, headline_list)
+    foreach(auto headline, headline_list)
     {
         headline->hide();
         headline.clear();
@@ -94,7 +89,7 @@ void Chyron::unsubscribed()
 
 void Chyron::highlight_headline(HeadlinePointer hl, qreal opacity, int timeout)
 {
-    foreach(HeadlinePointer headline, headline_list)
+    foreach(auto headline, headline_list)
     {
         if(headline.data() == hl.data())
         {
@@ -103,7 +98,7 @@ void Chyron::highlight_headline(HeadlinePointer hl, qreal opacity, int timeout)
                 headline->setWindowOpacity(opacity < 0.0 ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity));
             else
             {
-                QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                auto animation = new QPropertyAnimation(headline.data(), "windowOpacity");
                 animation->setDuration(timeout);
                 animation->setStartValue(headline->windowOpacity());
                 animation->setEndValue(opacity < 0.0 ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity));
@@ -124,15 +119,15 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     highlight->hide();
 #endif
 
-    QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(story_info->primary_screen);
+    auto desktop = QApplication::desktop();
+    auto r_desktop = desktop->screenGeometry(story_info->primary_screen);
 
-    const QRect& lane_position = lane_manager->get_base_lane_position(this);
+    const auto& lane_position = lane_manager->get_base_lane_position(this);
 
-    int x = 0;
-    int y = 0;
-    int width = 0;
-    int height = 0;
+    auto x{0};
+    auto y{0};
+    auto width{0};
+    auto height{0};
 
     if(story_info->headlines_pixel_width && story_info->headlines_pixel_height)
     {
@@ -266,11 +261,11 @@ void Chyron::initialize_headline(HeadlinePointer headline)
     // update lane's boundaries (this updates the data in the
     // Lane Manager for lower-priority lanes to reference)
 
-    QRect& lane_boundaries = lane_manager->get_lane_boundaries(this);
+    auto& lane_boundaries = lane_manager->get_lane_boundaries(this);
 
-    foreach(HeadlinePointer headline, headline_list)
+    foreach(auto headline, headline_list)
     {
-        QRect r = headline->geometry();
+        auto r = headline->geometry();
         if(r.x() < lane_boundaries.left())
             lane_boundaries.setLeft(r.x());
         if(r.y() < lane_boundaries.top())
@@ -311,12 +306,12 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
     if(!visible || suspended)
         return;
 
-    int speed = story_info->anim_motion_duration;
+    auto speed = story_info->anim_motion_duration;
 
-    QParallelAnimationGroup* animation_group = nullptr;
-    QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(story_info->primary_screen);
-    QRect r = headline->geometry();
+    QParallelAnimationGroup* animation_group{nullptr};
+    auto desktop = QApplication::desktop();
+    auto r_desktop = desktop->screenGeometry(story_info->primary_screen);
+    auto r = headline->geometry();
 
     switch(story_info->entry_type)
     {
@@ -351,7 +346,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
             if(headline_list.length())
             {
                 animation_group = new QParallelAnimationGroup();
-                foreach(HeadlinePointer posted_headline, headline_list)
+                foreach(auto posted_headline, headline_list)
                     posted_headline->animation = AnimationPointer(new QPropertyAnimation(posted_headline.data(), "geometry"),
                                 [] (QAbstractAnimation* anim) { anim->deleteLater(); });
 
@@ -433,7 +428,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
 
             if(animation_group)
             {
-                foreach(HeadlinePointer posted_headline, headline_list)
+                foreach(auto posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation.data(), speed, posted_r,
@@ -448,7 +443,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
 
             if(animation_group)
             {
-                foreach(HeadlinePointer posted_headline, headline_list)
+                foreach(auto posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation.data(), speed, posted_r,
@@ -463,7 +458,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
 
             if(animation_group)
             {
-                foreach(HeadlinePointer posted_headline, headline_list)
+                foreach(auto posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation.data(), speed, posted_r,
@@ -478,7 +473,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
 
             if(animation_group)
             {
-                foreach(HeadlinePointer posted_headline, headline_list)
+                foreach(auto posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation.data(), speed, posted_r,
@@ -493,7 +488,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
 
             if(animation_group)
             {
-                foreach(HeadlinePointer posted_headline, headline_list)
+                foreach(auto posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation.data(), speed, posted_r,
@@ -512,7 +507,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
 
             if(animation_group)
             {
-                foreach(HeadlinePointer posted_headline, headline_list)
+                foreach(auto posted_headline, headline_list)
                 {
                     QRect posted_r = posted_headline->geometry();
                     configure_group_item(posted_headline->animation.data(), speed, posted_r,
@@ -553,7 +548,7 @@ void Chyron::start_headline_entry(HeadlinePointer headline)
         if(animation_group)
         {
             animation_group->addAnimation(headline->animation.data());
-            foreach(HeadlinePointer posted_headline, headline_list)
+            foreach(auto posted_headline, headline_list)
                 animation_group->addAnimation(posted_headline->animation.data());
             lane_manager->anim_queue(this, animation_group);
         }
@@ -569,13 +564,13 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
 
     // the time-to-display has expired
 
-    QParallelAnimationGroup* animation_group = nullptr;
+    QParallelAnimationGroup* animation_group{nullptr};
 
-    QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(story_info->primary_screen);
-    QRect r = headline->geometry();
+    auto desktop = QApplication::desktop();
+    auto r_desktop = desktop->screenGeometry(story_info->primary_screen);
+    auto r = headline->geometry();
 
-    int speed = story_info->fade_target_duration;
+    auto speed = story_info->fade_target_duration;
 
     if(IS_TRAIN(story_info->entry_type))
     {
@@ -583,7 +578,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         {
             if(story_info->train_age_effect == AgeEffects::ReduceOpacityFixed)
             {
-                QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                auto animation = new QPropertyAnimation(headline.data(), "windowOpacity");
                 animation->setDuration(speed);
                 animation->setStartValue(1.0);
                 animation->setEndValue(story_info->train_age_percent / 100.0);
@@ -600,7 +595,7 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
         {
             if(story_info->dashboard_age_percent)
             {
-                QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "windowOpacity");
+                auto animation = new QPropertyAnimation(headline.data(), "windowOpacity");
                 animation->setDuration(speed);
                 animation->setStartValue(1.0);
                 animation->setEndValue(story_info->dashboard_age_percent / 100.0);
@@ -694,6 +689,9 @@ void Chyron::start_headline_exit(HeadlinePointer headline)
                 animation_group->addAnimation(opacity_animation);
                 break;
             }
+
+            default:
+                break;
         }
 
         exiting_map[headline] = true;
@@ -711,11 +709,11 @@ QAbstractAnimation* Chyron::shift_left(int amount, bool auto_start)
     if(!visible || !headline_list.length())
         return nullptr; // no headlines visible
 
-    QParallelAnimationGroup* animation_group = nullptr;
-    foreach(HeadlinePointer headline, headline_list)
+    QParallelAnimationGroup* animation_group{nullptr};
+    foreach(auto headline, headline_list)
     {
-        QRect r = headline->geometry();
-        QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "geometry");
+        auto r = headline->geometry();
+        auto animation = new QPropertyAnimation(headline.data(), "geometry");
         animation->setDuration(story_info->anim_motion_duration);
         animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
         animation->setEasingCurve(story_info->motion_curve);
@@ -740,11 +738,11 @@ QAbstractAnimation* Chyron::shift_right(int amount, bool auto_start)
     if(!visible || !headline_list.length())
         return nullptr; // no headlines visible
 
-    QParallelAnimationGroup* animation_group = nullptr;
-    foreach(HeadlinePointer headline, headline_list)
+    QParallelAnimationGroup* animation_group{nullptr};
+    foreach(auto headline, headline_list)
     {
-        QRect r = headline->geometry();
-        QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "geometry");
+        auto r = headline->geometry();
+        auto animation = new QPropertyAnimation(headline.data(), "geometry");
         animation->setDuration(story_info->anim_motion_duration);
         animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
         animation->setEasingCurve(story_info->motion_curve);
@@ -769,11 +767,11 @@ QAbstractAnimation* Chyron::shift_up(int amount, bool auto_start)
     if(!visible || !headline_list.length())
         return nullptr; // no headlines visible
 
-    QParallelAnimationGroup* animation_group = nullptr;
-    foreach(HeadlinePointer headline, headline_list)
+    QParallelAnimationGroup* animation_group{nullptr};
+    foreach(auto headline, headline_list)
     {
-        QRect r = headline->geometry();
-        QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "geometry");
+        auto r = headline->geometry();
+        auto animation = new QPropertyAnimation(headline.data(), "geometry");
         animation->setDuration(story_info->anim_motion_duration);
         animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
         animation->setEasingCurve(story_info->motion_curve);
@@ -798,11 +796,11 @@ QAbstractAnimation* Chyron::shift_down(int amount, bool auto_start)
     if(!visible || !headline_list.length())
         return nullptr; // no headlines visible
 
-    QParallelAnimationGroup* animation_group = nullptr;
-    foreach(HeadlinePointer headline, headline_list)
+    QParallelAnimationGroup* animation_group{nullptr};
+    foreach(auto headline, headline_list)
     {
-        QRect r = headline->geometry();
-        QPropertyAnimation* animation = new QPropertyAnimation(headline.data(), "geometry");
+        auto r = headline->geometry();
+        auto animation = new QPropertyAnimation(headline.data(), "geometry");
         animation->setDuration(story_info->anim_motion_duration);
         animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
         animation->setEasingCurve(story_info->motion_curve);
@@ -834,10 +832,10 @@ void Chyron::dashboard_expire_headlines()
         return;     // nothing to expire
 
     HeadlineList expired_list;
-    for(int i = 0;i < (headline_list.count() - 1);++i)
+    for(auto i = 0;i < (headline_list.count() - 1);++i)
         expired_list.append(headline_list[i]);
 
-    foreach(HeadlinePointer expired, expired_list)
+    foreach(auto expired, expired_list)
     {
         headline_list.removeAll(expired);
         expired->hide();
@@ -886,7 +884,7 @@ void Chyron::headline_posted(HeadlinePointer headline)
 void Chyron::slot_headline_posted()
 {
     HeadlinePointer headline;
-    QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(sender());
+    auto anim = qobject_cast<QPropertyAnimation*>(sender());
     if(anim)
     {
         headline = prop_anim_map[anim];
@@ -894,10 +892,10 @@ void Chyron::slot_headline_posted()
     }
     else
     {
-        Headline* headline_ptr = qobject_cast<Headline*>(sender());
+        auto headline_ptr = qobject_cast<Headline*>(sender());
         if(!headline_ptr)
             return;
-        foreach(HeadlinePointer hp, headline_list)
+        foreach(auto hp, headline_list)
         {
             if(hp.data() == headline_ptr)
             {
@@ -913,8 +911,8 @@ void Chyron::slot_headline_posted()
 
 void Chyron::slot_headline_expired()
 {
-    QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(sender());
-    HeadlinePointer headline = prop_anim_map[anim];
+    auto anim = qobject_cast<QPropertyAnimation*>(sender());
+    auto headline = prop_anim_map[anim];
 
     prop_anim_map.remove(anim);
     exiting_map.remove(headline);
@@ -931,11 +929,11 @@ void Chyron::slot_age_headlines()
     if(suspended || entering_map.count() || exiting_map.count())
         return;     // let any in-progress actions complete
 
-    uint now = QDateTime::currentDateTime().toTime_t();
+    auto now = QDateTime::currentDateTime().toTime_t();
 
     if(incoming_headlines.length())
     {
-        HeadlinePointer headline = incoming_headlines.dequeue();
+        auto headline = incoming_headlines.dequeue();
         headline->viewed = 0;    // let's us know when the headline was first displayed
         initialize_headline(headline);
 
@@ -944,7 +942,7 @@ void Chyron::slot_age_headlines()
     }
     else
     {
-        foreach(HeadlinePointer headline, headline_list)
+        foreach(auto headline, headline_list)
         {
             if(!headline->ignore)
             {
@@ -966,13 +964,13 @@ void Chyron::slot_train_expire_headlines()
     // each headline that is no longer visible on the primary
     // display will be expired
 
-    QDesktopWidget* desktop = QApplication::desktop();
-    QRect r_desktop = desktop->screenGeometry(story_info->primary_screen);
+    auto desktop = QApplication::desktop();
+    auto r_desktop = desktop->screenGeometry(story_info->primary_screen);
 
     HeadlineList expired_list;
-    foreach(HeadlinePointer headline, headline_list)
+    foreach(auto headline, headline_list)
     {
-        QRect r = headline->geometry();
+        auto r = headline->geometry();
         if(!r_desktop.contains(QPoint(r.x(), r.y())) &&
            !r_desktop.contains(QPoint(r.x(), r.y() + r.height())) &&
            !r_desktop.contains(r.x() + r.width(), r.y() + r.height()) &&
@@ -980,7 +978,7 @@ void Chyron::slot_train_expire_headlines()
             expired_list.append(headline);
     }
 
-    foreach(HeadlinePointer expired, expired_list)
+    foreach(auto expired, expired_list)
     {
         headline_list.removeAll(expired);
         expired->hide();
@@ -992,21 +990,21 @@ void Chyron::slot_train_expire_headlines()
     {
         // those that have aged will have their opacities reduced
 
-        foreach(HeadlinePointer headline, headline_list)
+        foreach(auto headline, headline_list)
         {
-            QGraphicsEffect* eff = headline->graphicsEffect();
+            auto eff = headline->graphicsEffect();
             if(!eff)
             {
                 // add one
                 eff = new QGraphicsOpacityEffect(this);
-                QGraphicsOpacityEffect* opacity_eff = qobject_cast<QGraphicsOpacityEffect*>(eff);
+                auto opacity_eff = qobject_cast<QGraphicsOpacityEffect*>(eff);
                 opacity_eff->setOpacity(1.0);
                 headline->setGraphicsEffect(eff);
             }
 
-            qreal target_opacity = 1.0;
+            auto target_opacity{1.0};
 
-            QRect r = headline->geometry();
+            auto r = headline->geometry();
 
             switch(story_info->entry_type)
             {
@@ -1028,9 +1026,12 @@ void Chyron::slot_train_expire_headlines()
                 case AnimEntryType::TrainDownRightTop:
                     target_opacity = r.top() / (r_desktop.height() * 1.0);
                     break;
+
+                default:
+                    break;
             }
 
-            QGraphicsOpacityEffect* opacity_eff = qobject_cast<QGraphicsOpacityEffect*>(eff);
+            auto opacity_eff = qobject_cast<QGraphicsOpacityEffect*>(eff);
             opacity_eff->setOpacity(target_opacity);
         }
     }
@@ -1038,7 +1039,7 @@ void Chyron::slot_train_expire_headlines()
 
 void Chyron::slot_headline_mouse_enter()
 {
-    Headline* headline = qobject_cast<Headline*>(sender());
+    auto headline = qobject_cast<Headline*>(sender());
     if(headline->windowOpacity() < 1.0)
     {
         opacity_map[headline] = headline->windowOpacity();
@@ -1055,7 +1056,7 @@ void Chyron::slot_headline_mouse_enter()
 
 void Chyron::slot_headline_mouse_exit()
 {
-    Headline* headline = qobject_cast<Headline*>(sender());
+    auto headline = qobject_cast<Headline*>(sender());
     if(opacity_map.contains(headline))
     {
         headline->animation = AnimationPointer(new QPropertyAnimation(headline, "windowOpacity"),

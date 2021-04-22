@@ -12,7 +12,7 @@ SeriesTree::SeriesTree(QWidget *parent)
 
 void SeriesTree::dropEvent(QDropEvent* event)
 {
-    QModelIndex index = indexAt(event->pos());
+    auto index = indexAt(event->pos());
     if(!index.isValid())
     {
         // just in case
@@ -20,7 +20,7 @@ void SeriesTree::dropEvent(QDropEvent* event)
         return;
     }
 
-    QTreeWidgetItem* destination_item = itemFromIndex(index);
+    auto destination_item = itemFromIndex(index);
     if(indexOfTopLevelItem(destination_item) == -1)
     {
         // not a Series item
@@ -29,12 +29,12 @@ void SeriesTree::dropEvent(QDropEvent* event)
     }
 
     // get the list of the items that are about to be dragged
-    QList<QTreeWidgetItem*> dragItems = selectedItems();
+    auto dragItems = selectedItems();
 
     // are they moving a Series or a Story?
-    bool was_top_level_item = (indexOfTopLevelItem(dragItems[0]) != -1);
+    auto was_top_level_item = (indexOfTopLevelItem(dragItems[0]) != -1);
     // are they moving a Story to the top of the order in the same parent?
-    bool moving_to_top_of_order = (dragItems[0]->parent() == destination_item);
+    auto moving_to_top_of_order = (dragItems[0]->parent() == destination_item);
 
     // the default implementation takes care of the actual move inside the tree
     QTreeWidget::dropEvent(event);
@@ -59,7 +59,7 @@ void SeriesTree::dropEvent(QDropEvent* event)
         if(indexOfTopLevelItem(dragItems[0]) == -1)
         {
             // Series cannot be parented to other Series
-            QTreeWidgetItem* parent = dragItems[0]->parent();
+            auto parent = dragItems[0]->parent();
             parent->takeChild(parent->indexOfChild(dragItems[0]));
             insertTopLevelItem(indexOfTopLevelItem(parent), dragItems[0]);
             dragItems[0]->setExpanded(true);

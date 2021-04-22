@@ -12,13 +12,8 @@ struct SeriesInfo
     QString             name;
     ProducerList        producers;
 
-    bool                compact_mode;
-    int                 compact_compression;
-
-    SeriesInfo()
-        : compact_mode(false),
-          compact_compression(25)
-    {}
+    bool                compact_mode{false};
+    int                 compact_compression{25};
 };
 SPECIALIZE_SHAREDPTR(SeriesInfo, SeriesInfo)        // "SeriesInfoPointer"
 SPECIALIZE_LIST(SeriesInfoPointer, SeriesInfo)      // "SeriesInfoList"

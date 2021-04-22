@@ -30,17 +30,7 @@ const int series_settings_version = 1;
 MainWindow* mainwindow;
 
 MainWindow::MainWindow(QWidget *parent)
-    : auto_start(false),
-      continue_coverage(false),
-      autostart_coverage(true),
-      edit_story_first_time(true),
-      trayIconMenu(0),
-      window_geometry_save_enabled(true),
-      start_automatically(false),
-      settings_modified(false),
-      last_start_offset(0),
-      settings_dlg(nullptr),
-      QMainWindow(parent),
+    : QMainWindow(parent),
       ui(new Ui::MainWindow)
 {
     mainwindow = this;
@@ -72,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
     {
         if(!settings_dir.mkpath("."))
         {
-            QMessageBox::critical(0,
+            QMessageBox::critical(nullptr,
                                   tr("Newsroom: Error"),
                                   tr("Could not create application settings folder:\n%1").arg(application_settings_folder_name));
             QTimer::singleShot(100, qApp, &QApplication::quit);
@@ -92,7 +82,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Load all the available Reporter plug-ins
     if(!configure_reporters())
     {
-        QMessageBox::critical(0,
+        QMessageBox::critical(nullptr,
                               tr("Newsroom: Error"),
                               tr("A critical error occurred while configuring Reporter\n"
                                  "plug-ins!  Newsroom cannot function without Reporters."));
@@ -107,13 +97,13 @@ MainWindow::MainWindow(QWidget *parent)
     // Tray
 
     trayIcon = new QSystemTrayIcon(this);
-    bool connected = connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::slot_message_clicked);
-    ASSERT_UNUSED(connected);
+    auto connected = connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::slot_message_clicked);
+    ASSERT_UNUSED(connected)
     connected = connect(trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::slot_icon_activated);
-    ASSERT_UNUSED(connected);
+    ASSERT_UNUSED(connected)
 
     connected = connect(ui->action_Settings, &QAction::triggered, this, &MainWindow::slot_edit_settings);
-    ASSERT_UNUSED(connected);
+    ASSERT_UNUSED(connected)
 
     trayIcon->setIcon(QIcon(":/images/Newsroom16.png"));
 #ifdef QT_DEBUG
@@ -134,17 +124,12 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-QString MainWindow::encode_for_filesystem(const QString& str) const
-{
-    return QString(QUrl::toPercentEncoding(str, "{}", "?*$"));
-}
-
 const ReporterInfo* MainWindow::get_reporter_info(const QString& id) const
 {
-    const ReporterInfo* reporter_info = nullptr;
-    foreach(const QString& beat_key, beats.keys())
+    const ReporterInfo* reporter_info{nullptr};
+    foreach(const auto& beat_key, beats.keys())
     {
-        foreach(const ReporterInfo& reporter_ref, beats[beat_key])
+        foreach(const auto& reporter_ref, beats[beat_key])
         {
             if(!reporter_ref.id.compare(id))
             {
@@ -186,11 +171,11 @@ bool MainWindow::configure_reporters()
         QDirIterator it(parameters_base_folder, QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
         while(it.hasNext())
         {
-            QString full_path = it.next();
+            auto full_path = it.next();
             if(!full_path.isNull())
             {
                 QFileInfo info(full_path);
-                QString key = QString(QUrl::fromPercentEncoding(info.baseName().toUtf8()));
+                auto key = QString(QUrl::fromPercentEncoding(info.baseName().toUtf8()));
                 if(!parameter_files.contains(key))
                     parameter_files[key] = QStringList();
                 parameter_files[key] << full_path;
@@ -199,29 +184,25 @@ bool MainWindow::configure_reporters()
     }
 
     QDir plugins("reporters");
-    QStringList plugins_list = plugins.entryList(QStringList() << "*.dll" << "*.so", QDir::Files);
-    foreach(const QString& filename, plugins_list)
+    auto plugins_list = plugins.entryList(QStringList() << "*.dll" << "*.so", QDir::Files);
+    foreach(const auto& filename, plugins_list)
     {
-        QString plugin_path = QDir::toNativeSeparators(QString("%1/%2").arg(plugins.absolutePath()).arg(filename));
+        auto plugin_path = QDir::toNativeSeparators(QString("%1/%2").arg(plugins.absolutePath()).arg(filename));
         FactoryPointer plugin(new QPluginLoader(plugin_path));
-        QObject* instance = plugin->instance();
+        auto instance = plugin->instance();
         if(instance)
         {
-            ReporterInfo pi_info;
-            pi_info.factory = plugin;
-            pi_info.path = plugin_path;
-
-            IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+            auto ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
             if(ireporterfactory)
             {
-                IReporterPointer ireporter = ireporterfactory->newInstance();
+                auto ireporter = ireporterfactory->newInstance();
+                auto display = ireporter->DisplayName();
 
-                QStringList display = ireporter->DisplayName();
-                pi_info.name = display[0];
-                pi_info.tooltip = display[1];
-                pi_info.id = ireporter->PluginID();
-                pi_info.params_version = ireporter->RequiresVersion();
-                pi_info.params_requires = ireporter->Requires();
+                ReporterInfo pi_info{plugin, plugin_path,
+                                    display[0], display[1],
+                                    ireporter->PluginID(),
+                                    ireporter->RequiresVersion(),
+                                    ireporter->Requires()};
 
                 if(!id_filter.contains(pi_info.id))
                 {
@@ -230,13 +211,13 @@ bool MainWindow::configure_reporters()
 
                     if(parameter_files.contains(pi_info.id))
                     {
-                        foreach(const QString& param_filename, parameter_files[pi_info.id])
+                        foreach(const auto& param_filename, parameter_files[pi_info.id])
                         {
-                            SettingsPointer reporter_settings = SettingsPointer(new SettingsXML("ReporterData", param_filename));
+                            auto reporter_settings = SettingsPointer(new SettingsXML("ReporterData", param_filename));
                             reporter_settings->init();
 
-                            int cached_version = reporter_settings->get_version();
-                            int current_version = ireporter->RequiresVersion();
+                            auto cached_version = reporter_settings->get_version();
+                            auto current_version = ireporter->RequiresVersion();
 
                             if(cached_version > current_version)
                                 // the Reporter instance is somehow older than the cached
@@ -246,12 +227,12 @@ bool MainWindow::configure_reporters()
                             else if(cached_version < current_version)
                             {
                                 // read back in the data in the previous version format
-                                QStringList requires_params = ireporter->Requires(cached_version);
+                                auto requires_params = ireporter->Requires(cached_version);
 
                                 QStringList old_data;
 
                                 reporter_settings->begin_section("/ReporterData");
-                                  for(int i = 0, j = 0;i < requires_params.length();i += 2, ++j)
+                                  for(auto i = 0, j = 0;i < requires_params.length();i += 2, ++j)
                                   {
                                       old_data.append(QString());
                                       old_data[j] = reporter_settings->get_item(requires_params[i], QString()).toString();
@@ -269,7 +250,7 @@ bool MainWindow::configure_reporters()
                                     requires_params = ireporter->Requires();
 
                                     reporter_settings->begin_section("/ReporterData");
-                                      for(int i = 0, j = 0;i < requires_params.length();i += 2, ++j)
+                                      for(auto i = 0, j = 0;i < requires_params.length();i += 2, ++j)
                                           reporter_settings->set_item(requires_params[i], old_data[j]);
                                     reporter_settings->end_section();
 
@@ -278,7 +259,7 @@ bool MainWindow::configure_reporters()
                                 else if(!ireporter->ErrorString().isEmpty())
                                 {
                                     // something went wrong in the upgrade.  bail.
-                                    QMessageBox::critical(0,
+                                    QMessageBox::critical(nullptr,
                                                           tr("Newsroom: Error"),
                                                           tr("The Reporter \"%1\" reported an error\n"
                                                              "\"%1\"\n"
@@ -291,7 +272,7 @@ bool MainWindow::configure_reporters()
                         }
                     }
 
-                    QString pi_class = ireporter->PluginClass();
+                    auto pi_class = ireporter->PluginClass();
                     if(!beats.contains(pi_class))
                         beats[pi_class] = ReportersInfoVector();
                     beats[pi_class].push_back(pi_info);
@@ -316,18 +297,18 @@ void MainWindow::paintEvent(QPaintEvent* /*event*/)
     QPainter painter(this);
 
     auto winSize = size();
-    auto pixmapRatio = (float)background_image->width() / background_image->height();
-    auto windowRatio = (float)winSize.width() / winSize.height();
+    auto pixmapRatio = static_cast<float>(background_image->width() / background_image->height());
+    auto windowRatio = static_cast<float>(winSize.width() / winSize.height());
 
     if(pixmapRatio > windowRatio)
     {
-        auto newWidth = (int)(winSize.height() * pixmapRatio);
+        auto newWidth = static_cast<int>(winSize.height() * pixmapRatio);
         auto offset = (newWidth - winSize.width()) / -2;
         painter.drawPixmap(offset, 0, newWidth, winSize.height(), *(background_image.data()));
     }
     else
     {
-        auto newHeight = (int)(winSize.width() / pixmapRatio);
+        auto newHeight = static_cast<int>(winSize.width() / pixmapRatio);
         auto offset = (newHeight - winSize.height()) / -2;
         painter.drawPixmap(0, offset, winSize.width(), newHeight, *(background_image.data()));
     }
@@ -345,12 +326,12 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
 void MainWindow::fix_angle_duplication(StoryInfoPointer story_info)
 {
-    QString prefix = QString("%1::").arg(story_info->angle);
-    foreach(SeriesInfoPointer series_info, series_ordered)
+    auto prefix = QString("%1::").arg(story_info->angle);
+    foreach(auto& series_info, series_ordered)
     {
-        foreach(ProducerPointer producer, series_info->producers)
+        foreach(auto producer, series_info->producers)
         {
-            StoryInfoPointer si = producer->get_story();
+            auto si = producer->get_story();
             if(si->angle.startsWith(prefix))
             {
                 // generate a random number to append to the identity
@@ -371,7 +352,7 @@ bool MainWindow::cover_story(ProducerPointer& producer,
                              CoverageStart coverage_start,
                              const ReportersInfoVector *reporters_info)
 {
-    bool result = false;
+    auto result{false};
 
     if(producer.isNull())
     {
@@ -382,7 +363,7 @@ bool MainWindow::cover_story(ProducerPointer& producer,
 
             if(!reporters_info)
             {
-                QMessageBox::critical(0,
+                QMessageBox::critical(nullptr,
                                       tr("Newsroom: Error"),
                                       tr("No Reporters are available to cover the \"%1\" beat!").arg(story_info->reporter_beat));
                 return result;
@@ -391,24 +372,24 @@ bool MainWindow::cover_story(ProducerPointer& producer,
 
         // create a Chyron to display the Headlines for this story
 
-        ChyronPointer chyron = ChyronPointer(new Chyron(story_info, lane_manager));
+        auto chyron = ChyronPointer(new Chyron(story_info, lane_manager));
 
         // assign a staff Reporter from the selected department to cover the story
 
         IReporterPointer reporter;
-        foreach(const ReporterInfo& pi_info, (*reporters_info))
+        foreach(const auto& pi_info, (*reporters_info))
         {
-            QObject* instance = pi_info.factory->instance();
-            IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+            auto instance = pi_info.factory->instance();
+            auto ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
             Q_ASSERT(ireporterfactory);
-            IReporterPointer plugin_reporter = ireporterfactory->newInstance();
+            auto plugin_reporter = ireporterfactory->newInstance();
             if(!story_info->reporter_id.compare(plugin_reporter->PluginID()))
             {
                 reporter = plugin_reporter;
                 // give the Reporter their assignment
                 if(!reporter->SetRequirements(story_info->reporter_parameters))
                 {
-                    QMessageBox::critical(0,
+                    QMessageBox::critical(nullptr,
                                           tr("Newsroom: Error"),
                                           tr("Reporters \"%1\" encountered an error.\n"
                                              "\"%1\"").arg(reporter->ErrorString()));
@@ -430,9 +411,9 @@ bool MainWindow::cover_story(ProducerPointer& producer,
     {
         std::random_device rd;
         std::mt19937 mt(rd());
-        std::uniform_int_distribution<int> dist(2, std::nextafter(6, INT_MAX));
+        std::uniform_int_distribution<> dist(2, static_cast<int>(std::nextafter(6, INT_MAX)));
 
-        int offset = last_start_offset + dist(mt);
+        auto offset = last_start_offset + dist(mt);
         last_start_offset = offset;
 
         QTimer::singleShot(offset * 1000, producer.data(), &Producer::slot_start_covering_story);
@@ -445,7 +426,7 @@ bool MainWindow::cover_story(ProducerPointer& producer,
             result = true;
         else
         {
-            QMessageBox::critical(0,
+            QMessageBox::critical(nullptr,
                                   tr("Newsroom: Error"),
                                   tr("The Reporter \"%1\" could not cover the Story!")
                                         .arg(producer->get_reporter()->DisplayName()[0]));
@@ -460,20 +441,20 @@ bool MainWindow::cover_story(ProducerPointer& producer,
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
-    bool accept = false;
+    auto accept{false};
 
     //    QStringList formats = event->mimeData()->formats();
     //    if(event->mimeData()->hasFormat("text/uri-list"))
 
     if(event->mimeData()->hasUrls())
     {
-        QList<QUrl> urls = event->mimeData()->urls();
-        foreach(const QUrl& url, urls)
+        auto urls = event->mimeData()->urls();
+        foreach(const auto& url, urls)
         {
             if(url.isLocalFile())
             {
-                QString text = url.toLocalFile();
-                QString name = mime_db.mimeTypeForFile(text).name();
+                auto text = url.toLocalFile();
+                auto name = mime_db.mimeTypeForFile(text).name();
                 if(name.startsWith("text/"))
                     accept = true;
                 else if(name.contains("mswinurl"))
@@ -493,15 +474,15 @@ void MainWindow::dragMoveEvent(QDragMoveEvent *event)
 
 void MainWindow::dropEvent(QDropEvent* event)
 {
-    bool accept = false;
+    auto accept{false};
 
     // each element in the list has already been vetted
     // in dragEnterEvent() above
 
-    QList<QUrl> urls = event->mimeData()->urls();
-    foreach(const QUrl& story, urls)
+    auto urls = event->mimeData()->urls();
+    foreach(const auto& story, urls)
     {
-        StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
+        auto story_info = StoryInfoPointer(new StoryInfo());
         restore_story_defaults(story_info);
 
         if(story.isLocalFile())
@@ -511,7 +492,7 @@ void MainWindow::dropEvent(QDropEvent* event)
 
             QString url;
 
-            QString local_file = story.toLocalFile().toLower();
+            auto local_file = story.toLocalFile().toLower();
             if(local_file.endsWith(".url"))
             {
                 QSettings url_file(local_file, QSettings::IniFormat);
@@ -536,16 +517,16 @@ void MainWindow::dropEvent(QDropEvent* event)
         QMap<float, QStringList> guesses;
 
         story_info->reporter_beat.clear();
-        foreach(const QString& key, beats.keys())
+        foreach(const auto& key, beats.keys())
         {
-            foreach(const ReporterInfo& pi_info, beats[key])
+            foreach(const auto & pi_info, beats[key])
             {
-                QObject* instance = pi_info.factory->instance();
-                IReporterFactory* ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
+                auto instance = pi_info.factory->instance();
+                auto ireporterfactory = reinterpret_cast<IReporterFactory*>(instance);
                 Q_ASSERT(ireporterfactory);
-                IReporterPointer plugin_reporter = ireporterfactory->newInstance();
+                auto plugin_reporter = ireporterfactory->newInstance();
 
-                float best_guess = plugin_reporter->Supports(story_info->story);
+                auto best_guess = plugin_reporter->Supports(story_info->story);
                 if(!guesses.contains(best_guess))
                     guesses[best_guess] = QStringList();
                 guesses[best_guess] << key;
@@ -553,14 +534,14 @@ void MainWindow::dropEvent(QDropEvent* event)
         }
 
         // identify and suggest the best guess
-        QList<float> keys = guesses.keys();
+        auto keys = guesses.keys();
         if(keys.length() > 1)
-            qSort(keys.begin(), keys.end(), /* descending */ qGreater<float>());
+            std::sort(keys.begin(), keys.end(), /* descending */ std::greater<float>());
         story_info->reporter_beat = guesses[keys[0]][0];
 
         if(story_info->reporter_beat.isEmpty())
         {
-            QMessageBox::critical(0,
+            QMessageBox::critical(nullptr,
                                   tr("Newsroom: Error"),
                                   tr("No Reporters are available to cover this Story's beat!"));
             return;
@@ -575,7 +556,7 @@ void MainWindow::dropEvent(QDropEvent* event)
 
         restore_window_data(&addstory_dlg);
 
-        bool story_accepted = false;
+        auto story_accepted{false};
         if(addstory_dlg.exec() == QDialog::Accepted)
         {
             // AddStoryDialog has automatically updated 'story_info' with all settings
@@ -587,11 +568,11 @@ void MainWindow::dropEvent(QDropEvent* event)
             story_info->identity = QUuid::createUuid().toString();
 
             // find "Default"
-            for(SeriesInfoList::iterator iter = series_ordered.begin();iter != series_ordered.end();++iter)
+            for(auto iter = series_ordered.begin();iter != series_ordered.end();++iter)
             {
                 if(!(*iter)->name.compare("Default"))
                 {
-                    ReportersInfoVector* reporters_info = &beats[story_info->reporter_beat];
+                    auto reporters_info = &beats[story_info->reporter_beat];
 
                     story_info->dashboard_compact_mode = (*iter)->compact_mode;
                     story_info->dashboard_compression = (*iter)->compact_compression;
@@ -621,7 +602,7 @@ void MainWindow::save_window_data(QWidget* window)
     if(!window_geometry_save_enabled)
         return;
 
-    QString key = window->windowTitle();
+    auto key = window->windowTitle();
     window_data[key] = window->saveGeometry();
 
     settings_modified = true;
@@ -629,7 +610,7 @@ void MainWindow::save_window_data(QWidget* window)
 
 void MainWindow::restore_window_data(QWidget* window)
 {
-    QString key = window->windowTitle();
+    auto key = window->windowTitle();
     if(window_data.find(key) == window_data.end())
         return;
 
@@ -684,8 +665,8 @@ void MainWindow::save_application_settings()
     application_settings->clear_section("HeadlineStyles");
 
     application_settings->begin_array("HeadlineStyles");
-    quint32 index = 0;
-    foreach(const HeadlineStyle& style, *(headline_style_list.data()))
+    auto index{0};
+    foreach(const auto& style, *(headline_style_list.data()))
     {
         application_settings->set_array_index(index++);
 
@@ -702,8 +683,8 @@ void MainWindow::save_application_settings()
         application_settings->begin_array("WindowData");
 
         index = 0;
-        QList<QString> keys = window_data.keys();
-        foreach(QString key, keys)
+        auto keys = window_data.keys();
+        foreach(auto& key, keys)
         {
             application_settings->set_array_index(index++);
 
@@ -715,7 +696,7 @@ void MainWindow::save_application_settings()
     }
 
     QStringList series_names;
-    foreach(SeriesInfoPointer series_info, series_ordered)
+    foreach(auto series_info, series_ordered)
     {
         series_names << series_info->name;
         save_series(series_info);
@@ -740,9 +721,7 @@ void MainWindow::load_application_settings()
 
     // add a Default stylesheet entry on first runs
     headline_style_list->clear();
-    HeadlineStyle hs;
-    hs.name = "Default";
-    hs.stylesheet = default_stylesheet;
+    HeadlineStyle hs{"Default", default_stylesheet, QStringList()};
     headline_style_list->append(hs);
 
     application_settings->begin_section("/Application");
@@ -750,26 +729,24 @@ void MainWindow::load_application_settings()
     auto_start = application_settings->get_item("auto_start", false).toBool();
     continue_coverage = application_settings->get_item("continue_coverage", false).toBool();
     autostart_coverage = application_settings->get_item("autostart_coverage", true).toBool();
-    QFont f = ui->label->font();
-    QString font_str = application_settings->get_item("chyron.font", f.toString()).toString();
+    auto f = ui->label->font();
+    auto font_str = application_settings->get_item("chyron.font", f.toString()).toString();
     if(!font_str.isEmpty())
         headline_font.fromString(font_str);
 
-    int styles_size = application_settings->begin_array("HeadlineStyles");
+    auto styles_size = application_settings->begin_array("HeadlineStyles");
     if(styles_size)
     {
-        for(int i = 0; i < styles_size; ++i)
+        for(auto i = 0; i < styles_size; ++i)
         {
             application_settings->set_array_index(i);
 
-            HeadlineStyle hs;
-            hs.name = application_settings->get_item("name").toString();
-            hs.triggers = application_settings->get_item("triggers").toStringList();
-            hs.stylesheet = application_settings->get_item("stylesheet").toString();
+            HeadlineStyle hs{application_settings->get_item("name").toString(),
+                             application_settings->get_item("stylesheet").toString(),
+                             application_settings->get_item("triggers").toStringList()};
 
-            bool updated = false;
-            for(HeadlineStyleList::iterator iter = headline_style_list->begin();
-                iter != headline_style_list->end();++iter)
+            auto updated{false};
+            for(auto iter = headline_style_list->begin(); iter != headline_style_list->end();++iter)
             {
                 if(!iter->name.compare(hs.name))
                 {
@@ -788,23 +765,23 @@ void MainWindow::load_application_settings()
 
     lane_manager = LaneManagerPointer(new LaneManager(headline_font, (*headline_style_list.data())[0].stylesheet, this));
 
-    int windata_size = application_settings->begin_array("WindowData");
+    auto windata_size = application_settings->begin_array("WindowData");
     if(windata_size)
     {
-        for(int i = 0; i < windata_size; ++i)
+        for(auto i = 0; i < windata_size; ++i)
         {
             application_settings->set_array_index(i);
 
-            QString key = application_settings->get_item("key").toString();
+            auto key = application_settings->get_item("key").toString();
             window_data[key] = application_settings->get_item("geometry").toByteArray();
         }
     }
     application_settings->end_array();
 
-    QStringList series_names = application_settings->get_item("series", QStringList() << "Default").toStringList();
-    foreach(const QString& series_name, series_names)
+    auto series_names = application_settings->get_item("series", QStringList() << "Default").toStringList();
+    foreach(const auto& series_name, series_names)
     {
-        SeriesInfoPointer si = SeriesInfoPointer(new SeriesInfo());
+        auto si = SeriesInfoPointer(new SeriesInfo());
         si->name = series_name;
         series_ordered.append(si);
 
@@ -821,8 +798,8 @@ void MainWindow::load_series(SeriesInfoPointer series_info)
     if(!QFile::exists(series_folder))
         return;
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info->name)));
-    SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
+    auto series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info->name)));
+    auto series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
     series_settings->init();
 
     series_settings->begin_section("/Series");
@@ -831,22 +808,22 @@ void MainWindow::load_series(SeriesInfoPointer series_info)
     series_info->compact_compression = series_settings->get_item("compact_compression", series_info->compact_compression).toInt();
 
     QBitArray is_active;
-    QStringList active_list = series_settings->get_item("active", QString()).toString().split(",");
+    auto active_list = series_settings->get_item("active", QString()).toString().split(",");
 
-    int story_count = series_settings->begin_array("Stories");
+    auto story_count = series_settings->begin_array("Stories");
     if(story_count)
     {
         is_active.resize(story_count);
-        foreach(const QString& active_index, active_list)
+        foreach(const auto& active_index, active_list)
             is_active.setBit(active_index.toInt());
 
         QMap<ProducerPointer, CoverageStart> start_info;
 
-        for(int i = 0; i < story_count; ++i)
+        for(auto i = 0; i < story_count; ++i)
         {
             series_settings->set_array_index(i);
 
-            StoryInfoPointer story_info = StoryInfoPointer(new StoryInfo());
+            auto story_info = StoryInfoPointer(new StoryInfo());
             restore_story(series_settings, story_info);
 
             story_info->dashboard_compact_mode = series_info->compact_mode;
@@ -859,7 +836,7 @@ void MainWindow::load_series(SeriesInfoPointer series_info)
             {
                 series_info->producers.append(producer);
 
-                CoverageStart coverage_start = CoverageStart::None;
+                auto coverage_start = CoverageStart::None;
                 if(continue_coverage && is_active.testBit(i))
                 {
                     if(story_info->story.isLocalFile() && QFile::exists(story_info->story.toLocalFile()))
@@ -874,7 +851,7 @@ void MainWindow::load_series(SeriesInfoPointer series_info)
         }
 
         // launch the Stories in user-defined order
-        foreach(ProducerPointer key, start_info.keys())
+        foreach(auto key, start_info.keys())
         {
             if(start_info[key] != CoverageStart::None)
                 cover_story(key, key->get_story(), start_info[key]);
@@ -895,8 +872,8 @@ void MainWindow::save_series(SeriesInfoPointer series_info)
             return;
     }
 
-    QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info->name)));
-    SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
+    auto series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_info->name)));
+    auto series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
 
     QStringList active;
 
@@ -915,8 +892,8 @@ void MainWindow::save_series(SeriesInfoPointer series_info)
     {
         series_settings->begin_array("Stories");
 
-        int index = 0;
-        foreach(ProducerPointer producer, series_info->producers)
+        auto index{0};
+        foreach(auto producer, series_info->producers)
         {
             if(producer->is_covering_story())
                 active << QString::number(index);
@@ -940,12 +917,12 @@ void MainWindow::restore_story_defaults(StoryInfoPointer story_info)
     application_settings->begin_section("/StoryDefaults");
 
     story_info->story                    = application_settings->get_item("story", QUrl()).toUrl();
-    story_info->angle                 = application_settings->get_item("identity", QString()).toString();
+    story_info->angle                    = application_settings->get_item("identity", QString()).toString();
     story_info->reporter_beat            = application_settings->get_item("reporter_class", QString()).toString();
     story_info->reporter_id              = application_settings->get_item("reporter_id", QString()).toString();
     story_info->reporter_parameters_version = application_settings->get_item("reporter_parameters_version", 1).toInt();
     // Note: Reporter parameter defaults are managed by the AddStoryDialog class
-    story_info->ttl                      = application_settings->get_item("ttl", story_info->ttl).toInt();
+    story_info->ttl                      = static_cast<unsigned int>(application_settings->get_item("ttl", story_info->ttl).toInt());
     story_info->primary_screen           = application_settings->get_item("primary_screen", 0).toInt();
     story_info->headlines_always_visible = application_settings->get_item("headlines_always_visible", true).toBool();
     story_info->interpret_as_pixels      = application_settings->get_item("interpret_as_pixels", true).toBool();
@@ -1063,7 +1040,7 @@ void MainWindow::save_story(SettingsPointer settings, StoryInfoPointer story_inf
     // save the Reporter's "live" parameter data to a separate,
     // upgradable file independent of the other Story data
 
-    QString story_filename = QDir::toNativeSeparators(QString("%1/%2")
+    auto story_filename = QDir::toNativeSeparators(QString("%1/%2")
                                                 .arg(parameters_stories_folder)
                                                 .arg(encode_for_filesystem(story_info->identity))
                                                 );
@@ -1075,25 +1052,25 @@ void MainWindow::save_story(SettingsPointer settings, StoryInfoPointer story_inf
             return;     // TODO: need to handle this error
     }
 
-    QString parameters_filename = QDir::toNativeSeparators(QString("%1/%2")
+    auto parameters_filename = QDir::toNativeSeparators(QString("%1/%2")
                                                 .arg(story_filename)
                                                 .arg(encode_for_filesystem(story_info->reporter_id))
                                                 );
 
     // get the Reporter metadata from the beats[]
 
-    const ReporterInfo* reporter_info = get_reporter_info(story_info->reporter_id);
+    auto reporter_info = get_reporter_info(story_info->reporter_id);
     Q_ASSERT(reporter_info);
 
-    int params_count = reporter_info->params_requires.count() / 2;
+    auto params_count = reporter_info->params_requires.count() / 2;
     if(params_count && (params_count == story_info->reporter_parameters.count()))
     {
-        SettingsPointer reporter_settings = SettingsPointer(new SettingsXML("ReporterData", parameters_filename));
+        auto reporter_settings = SettingsPointer(new SettingsXML("ReporterData", parameters_filename));
         reporter_settings->init(true);
         reporter_settings->set_version(reporter_info->params_version);
 
         reporter_settings->begin_section("/ReporterData");
-          for(int i = 0, j = 0;i < reporter_info->params_requires.length();i += 2, ++j)
+          for(auto i = 0, j = 0;i < reporter_info->params_requires.length();i += 2, ++j)
             reporter_settings->set_item(reporter_info->params_requires[i], story_info->reporter_parameters[j]);
         reporter_settings->end_section();
 
@@ -1108,7 +1085,7 @@ void MainWindow::restore_story(SettingsPointer settings, StoryInfoPointer story_
     story_info->identity                 = settings->get_item("identity", QString()).toString();
     story_info->reporter_beat            = settings->get_item("reporter_class", QString()).toString();
     story_info->reporter_id              = settings->get_item("reporter_id", QString()).toString();
-    story_info->ttl                      = settings->get_item("ttl", story_info->ttl).toInt();
+    story_info->ttl                      = static_cast<unsigned int>(settings->get_item("ttl", story_info->ttl).toInt());
     story_info->primary_screen           = settings->get_item("primary_screen", 0).toInt();
     story_info->headlines_always_visible = settings->get_item("headlines_always_visible", true).toBool();
     story_info->interpret_as_pixels      = settings->get_item("interpret_as_pixels", true).toBool();
@@ -1144,19 +1121,19 @@ void MainWindow::restore_story(SettingsPointer settings, StoryInfoPointer story_
     story_info->reporter_parameters_version = 1;
     story_info->reporter_parameters.clear();
 
-    QString parameters_filename = QDir::toNativeSeparators(QString("%1/%2/%3")
+    auto parameters_filename = QDir::toNativeSeparators(QString("%1/%2/%3")
                                                 .arg(parameters_stories_folder)
                                                 .arg(encode_for_filesystem(story_info->identity))
                                                 .arg(encode_for_filesystem(story_info->reporter_id))
                                                 );
-    SettingsPointer reporter_settings = SettingsPointer(new SettingsXML("ReporterData", parameters_filename));
+    auto reporter_settings = SettingsPointer(new SettingsXML("ReporterData", parameters_filename));
     if(QFile::exists(reporter_settings->get_filename()))
     {
         reporter_settings->init();
 
         // get the Reporter metadata from the beats[]
 
-        const ReporterInfo* reporter_info = get_reporter_info(story_info->reporter_id);
+        auto reporter_info = get_reporter_info(story_info->reporter_id);
         Q_ASSERT(reporter_info);
 
         // this shouldn't happen
@@ -1165,7 +1142,7 @@ void MainWindow::restore_story(SettingsPointer settings, StoryInfoPointer story_
         story_info->reporter_parameters_version = reporter_settings->get_version();
 
         reporter_settings->begin_section("/ReporterData");
-          for(int i = 0, j = 0;i < reporter_info->params_requires.length();i += 2, ++j)
+          for(auto i = 0, j = 0;i < reporter_info->params_requires.length();i += 2, ++j)
           {
               story_info->reporter_parameters.append(QString());
               story_info->reporter_parameters[j] = reporter_settings->get_item(reporter_info->params_requires[i], QString()).toString();
@@ -1192,7 +1169,7 @@ void MainWindow::slot_icon_activated(QSystemTrayIcon::ActivationReason reason)
 
 void MainWindow::slot_message_clicked()
 {
-    QMessageBox::information(0,
+    QMessageBox::information(nullptr,
                              tr("Newsroom"),
                              tr("Sorry, I already gave what help I could.\n"
                                 "Maybe you could try asking a human?"));
@@ -1239,7 +1216,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
     connect(settings_dlg, &SettingsDialog::signal_edit_story, this, &MainWindow::slot_edit_story);
 
     QStringList original_series;
-    foreach(SeriesInfoPointer series_info, series_ordered)
+    foreach(auto series_info, series_ordered)
         original_series << series_info->name;
 
     if(settings_dlg->exec() == QDialog::Accepted)
@@ -1254,7 +1231,7 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
         // to get_series() below.  this gives us a means to clear any
         // cached data.
 
-        QStringList removed_stories      = settings_dlg->get_removed_stories();
+        auto removed_stories = settings_dlg->get_removed_stories();
 
         // the SeriesInfoList returned by SettingsDialog is the way
         // Series/Stories look now, and the assignment to 'series_ordered'
@@ -1268,12 +1245,12 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
         // clear any deleted Series
 
         QStringList remaining_series;
-        foreach(SeriesInfoPointer series_info, series_ordered)
+        foreach(auto series_info, series_ordered)
             remaining_series << series_info->name;
 
-        QStringList series_names = remaining_series;
+        auto series_names = remaining_series;
         QStringList deleted_series;
-        foreach(const QString& series_name, original_series)
+        foreach(const auto& series_name, original_series)
         {
             if(!remaining_series.contains(series_name))
             {
@@ -1282,17 +1259,17 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
             }
         }
 
-        foreach(const QString& series_name, deleted_series)
+        foreach(const auto& series_name, deleted_series)
         {
-            QString series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_name)));
-            SettingsPointer series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
+            auto series_file_name = QDir::toNativeSeparators(QString("%1/%2").arg(series_folder).arg(encode_for_filesystem(series_name)));
+            auto series_settings = SettingsPointer(new SettingsXML("NewsroomSeries", series_file_name));
             series_settings->remove();
         }
 
         // clean up any abandoned Story data
-        foreach(const QString& story_id, removed_stories)
+        foreach(const auto& story_id, removed_stories)
         {
-            QString parameters_folder = QDir::toNativeSeparators(QString("%1/%2")
+            auto parameters_folder = QDir::toNativeSeparators(QString("%1/%2")
                                                         .arg(parameters_stories_folder)
                                                         .arg(encode_for_filesystem(story_id))
                                                         );
@@ -1318,11 +1295,11 @@ void MainWindow::slot_edit_settings(bool /*checked*/)
 void MainWindow::slot_edit_story(const QString& story_id)
 {
     ProducerPointer producer;
-    foreach(SeriesInfoPointer si, series_ordered)
+    foreach(auto si, series_ordered)
     {
-        foreach(ProducerPointer pp, si->producers)
+        foreach(auto pp, si->producers)
         {
-            StoryInfoPointer story_info = pp->get_story();
+            auto story_info = pp->get_story();
             if(!story_info->identity.compare(story_id))
             {
                 producer = pp;
@@ -1333,9 +1310,9 @@ void MainWindow::slot_edit_story(const QString& story_id)
 
     Q_ASSERT(!producer.isNull());       // this really shouldn't happen
 
-    StoryInfoPointer story_info = producer->get_story();
+    auto story_info = producer->get_story();
 
-    CoverageStart coverage_start = producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
+    auto coverage_start = producer->is_covering_story() ? CoverageStart::Immediate : CoverageStart::None;
 
     AddStoryDialog addstory_dlg(beats,
                                 story_info,
@@ -1361,7 +1338,7 @@ void MainWindow::slot_edit_story(const QString& story_id)
         producer->stop_covering_story();
 
         // AddStoryDialog has automatically updated 'story_info' with all settings
-        ReportersInfoVector* reporters_info = &beats[story_info->reporter_beat];
+        auto reporters_info = &beats[story_info->reporter_beat];
         (void)cover_story(producer, story_info, coverage_start, reporters_info);
     }
 
@@ -1370,14 +1347,14 @@ void MainWindow::slot_edit_story(const QString& story_id)
 
 void MainWindow::slot_shelve_story()
 {
-    Producer* producer_raw = qobject_cast<Producer*>(sender());
+    auto producer_raw = qobject_cast<Producer*>(sender());
 
     // find this Producer shared pointer so we don't cling to the raw pointer
 
     ProducerPointer producer;
-    foreach(SeriesInfoPointer si, series_ordered)
+    foreach(auto si, series_ordered)
     {
-        foreach(ProducerPointer pp, si->producers)
+        foreach(auto pp, si->producers)
         {
             if(pp.data() == producer_raw)
             {
@@ -1398,14 +1375,14 @@ void MainWindow::slot_shelve_story()
 
 void MainWindow::slot_unshelve_story()
 {
-    Producer* producer_raw = qobject_cast<Producer*>(sender());
+    auto producer_raw = qobject_cast<Producer*>(sender());
 
     // find this Producer shared pointer so we don't cling to the raw pointer
 
     ProducerPointer producer;
-    foreach(SeriesInfoPointer si, series_ordered)
+    foreach(auto si, series_ordered)
     {
-        foreach(ProducerPointer pp, si->producers)
+        foreach(auto pp, si->producers)
         {
             if(pp.data() == producer_raw)
             {
@@ -1431,7 +1408,7 @@ void MainWindow::slot_process_shelve_queue()
 
     if(!lane_manager->anim_in_progress())
     {
-        ProducerPointer producer = shelve_queue.head();
+        auto producer = shelve_queue.head();
         if(!producer.isNull())
         {
             if(producer->is_covering_story() && !producer->is_story_shelved())
@@ -1451,7 +1428,7 @@ void MainWindow::slot_process_unshelve_queue()
 
     if(!lane_manager->anim_in_progress())
     {
-        ProducerPointer producer = unshelve_queue.head();
+        auto producer = unshelve_queue.head();
         if(!producer.isNull())
         {
             if(producer->is_story_shelved())

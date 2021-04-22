@@ -4,8 +4,8 @@
 Dashboard::Dashboard(StoryInfoPointer story_info, const QFont& headline_font, const QString& headline_stylesheet, QObject *parent)
     : QObject(parent)
 {
-    int w = 0;
-    int h = 0;
+    auto w = 0;
+    auto h = 0;
     story_info->get_dimensions(w, h);
 
     switch(story_info->entry_type)
@@ -14,13 +14,16 @@ Dashboard::Dashboard(StoryInfoPointer story_info, const QFont& headline_font, co
         case AnimEntryType::DashboardDownRightTop:
         case AnimEntryType::DashboardUpLeftBottom:
         case AnimEntryType::DashboardUpRightBottom:
-            h *= 0.35;
+            h = static_cast<int>(h * 0.35);
             break;
         case AnimEntryType::DashboardInLeftTop:
         case AnimEntryType::DashboardInLeftBottom:
         case AnimEntryType::DashboardInRightTop:
         case AnimEntryType::DashboardInRightBottom:
-            w *= 0.15;
+            w = static_cast<int>(w * 0.15);
+            break;
+
+        default:
             break;
     }
 
@@ -37,8 +40,8 @@ Dashboard::Dashboard(StoryInfoPointer story_info, const QFont& headline_font, co
     if(story_info->dashboard_compact_mode)
     {
         lane_header->set_compact_mode(true, w, h);
-        w *= (story_info->dashboard_compression / 100.0);
-        h *= (story_info->dashboard_compression / 100.0);
+        w = static_cast<int>(w * (story_info->dashboard_compression / 100.0));
+        h = static_cast<int>(h * (story_info->dashboard_compression / 100.0));
     }
 
     lane_header->setGeometry(QRect(0, 0, w, h));
@@ -53,7 +56,7 @@ Dashboard::~Dashboard()
 
 void Dashboard::resume_chyrons()
 {
-    foreach(LaneDataPointer lane, chyrons)
+    foreach(auto lane, chyrons)
         lane->owner->resume();
 }
 
@@ -65,14 +68,14 @@ void Dashboard::add_lane(LaneDataPointer lane)
     chyrons.push_back(lane);
 }
 
-bool Dashboard::is_id(const QString& id)
+bool Dashboard::is_id(const QString& id) const
 {
     return !this->id.compare(id);
 }
 
-bool Dashboard::is_managing(Chyron* chyron)
+bool Dashboard::is_managing(Chyron* chyron) const
 {
-    foreach(LaneDataPointer lane, chyrons)
+    foreach(auto lane, chyrons)
     {
         if(lane->owner == chyron)
             return true;
@@ -81,7 +84,7 @@ bool Dashboard::is_managing(Chyron* chyron)
     return false;
 }
 
-bool Dashboard::is_empty()
+bool Dashboard::is_empty() const
 {
     return chyrons.isEmpty();
 }
@@ -98,7 +101,7 @@ void Dashboard::get_header_geometry(QRect& r)
 
 void Dashboard::get_header_geometry(int& x, int& y, int& w, int& h)
 {
-    QRect r = lane_header->geometry();
+    auto r = lane_header->geometry();
     x = r.x();
     y = r.y();
     w = r.width();
@@ -108,7 +111,7 @@ void Dashboard::get_header_geometry(int& x, int& y, int& w, int& h)
 QPoint Dashboard::get_header_position()
 {
     QPoint p;
-    QRect r = lane_header->geometry();
+    auto r = lane_header->geometry();
     p.setX(r.x());
     p.setY(r.y());
 
@@ -118,7 +121,7 @@ QPoint Dashboard::get_header_position()
 QSize Dashboard::get_header_size()
 {
     QSize s;
-    QRect r = lane_header->geometry();
+    auto r = lane_header->geometry();
     s.setWidth(r.width());
     s.setHeight(r.height());
 
@@ -141,7 +144,7 @@ void Dashboard::remove_lane(LaneDataPointer lane, UnsubscribeAction action)
     }
     else
     {
-        bool start_queue = (unsubscribe_queue.count() == 0);
+        auto start_queue = (unsubscribe_queue.count() == 0);
         unsubscribe_queue.enqueue(lane);
 
         if(start_queue)
@@ -153,9 +156,9 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
 {
     // calculate the shift amount
 
-    int shift = 0;
-    StoryInfoPointer story_info = lane->owner->get_settings();
-    AnimEntryType entry_type = story_info->entry_type;
+    auto shift = 0;
+    auto story_info = lane->owner->get_settings();
+    auto entry_type = story_info->entry_type;
 
     switch(entry_type)
     {
@@ -171,16 +174,19 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
         case AnimEntryType::DashboardUpRightBottom:
             shift = lane->lane_boundaries.height();
             break;
+
+        default:
+            break;
     }
 
     // move only those Chyrons that are lower in priority
     // than the one that is unsubscribing
 
-    QParallelAnimationGroup* animation_group = nullptr;
+    QParallelAnimationGroup* animation_group{nullptr};
 
-    bool shifting = false;
+    auto shifting{false};
 
-    foreach(LaneDataPointer lane_data, chyrons)
+    foreach(auto lane_data, chyrons)
     {
         lane_data->owner->suspend();
 
@@ -189,9 +195,9 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
         if(!shifting || lane_data->owner == lane->owner)
             continue;
 
-        StoryInfoPointer data_story_info = lane_data->owner->get_settings();
+        auto data_story_info = lane_data->owner->get_settings();
 
-        QAbstractAnimation* anim = nullptr;
+        QAbstractAnimation* anim{nullptr};
         switch(data_story_info->entry_type)
         {
             case AnimEntryType::DashboardInLeftTop:
@@ -241,6 +247,9 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
                 }
                 lane_data->lane.moveTop(lane_data->lane.y() + shift);
                 lane_data->lane_boundaries.moveTop(lane_data->lane_boundaries.y() + shift);
+
+            default:
+                break;
         }
     }
 
@@ -257,11 +266,11 @@ void Dashboard::_remove_lane(LaneDataPointer lane)
 
 void Dashboard::shift(LaneDataPointer exiting)
 {
-    StoryInfoPointer data_story_info = chyrons[0]->owner->get_settings();
-    AnimEntryType entry_type = data_story_info->entry_type;
+    auto data_story_info = chyrons[0]->owner->get_settings();
+    auto entry_type = data_story_info->entry_type;
 
-    int shift = 0;
-    foreach(LaneDataPointer lane_data, chyrons)
+    auto shift{0};
+    foreach(auto lane_data, chyrons)
     {
         switch(entry_type)
         {
@@ -285,13 +294,16 @@ void Dashboard::shift(LaneDataPointer exiting)
                 shift = exiting->lane_boundaries.width();
                 lane_data->owner->shift_right(shift);
                 break;
+
+            default:
+                break;
         }
     }
 
     // don't forget to move the dashboard header as well
 
-    QRect r = get_header_geometry();
-    QPropertyAnimation* animation = new QPropertyAnimation(lane_header.data(), "geometry");
+    auto r = get_header_geometry();
+    auto animation = new QPropertyAnimation(lane_header.data(), "geometry");
     animation->setDuration(data_story_info->anim_motion_duration);
     animation->setStartValue(QRect(r.x(), r.y(), r.width(), r.height()));
     animation->setEasingCurve(data_story_info->motion_curve);
@@ -314,6 +326,9 @@ void Dashboard::shift(LaneDataPointer exiting)
         case AnimEntryType::DashboardUpRightBottom:
             animation->setEndValue(QRect(r.x() + shift, r.y(), r.width(), r.height()));
             break;
+
+        default:
+            break;
     }
 
     animation->start(QAbstractAnimation::DeleteWhenStopped);
@@ -321,19 +336,19 @@ void Dashboard::shift(LaneDataPointer exiting)
 
 void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& r_desktop, int r_offset_w, int r_offset_h)
 {
-    StoryInfoPointer story_info = data->owner->get_settings();
-    QRect& lane_position = data->lane;
+    auto story_info = data->owner->get_settings();
+    auto& lane_position = data->lane;
 
-    int left = r_desktop.left();
-    int top = r_desktop.top();
-    int right = r_desktop.left() + r_desktop.width();
-    int bottom = r_desktop.top() + r_desktop.height();
+    auto left = r_desktop.left();
+    auto top = r_desktop.top();
+    auto right = r_desktop.left() + r_desktop.width();
+    auto bottom = r_desktop.top() + r_desktop.height();
 
-    QSize s = get_header_size();
-    int r_header_w = s.width();
-    int r_header_h = s.height();
-    int r_header_x = 0;
-    int r_header_y = 0;
+    auto s = get_header_size();
+    auto r_header_w = s.width();
+    auto r_header_h = s.height();
+    auto r_header_x = 0;
+    auto r_header_y = 0;
 
     switch(story_info->entry_type)
     {
@@ -390,34 +405,35 @@ void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& 
             break;
     }
 
-    uint chyron_position = 0;   // higher == lower priority
-    foreach(LaneDataPointer lane, chyrons)
+    uint chyron_position{0};   // higher == lower priority
+    foreach(auto lane, chyrons)
     {
         if(lane->owner == data->owner)
             break;
         ++chyron_position;
     }
 
-    int headline_w, headline_h;
+    auto headline_w{0};
+    auto headline_h{0};
     story_info->get_dimensions(headline_w, headline_h);
 
     if(story_info->dashboard_compact_mode)
     {
-        headline_w *= (story_info->dashboard_compression / 100.0);
-        headline_h *= (story_info->dashboard_compression / 100.0);
+        headline_w = static_cast<int>(headline_w * (story_info->dashboard_compression / 100.0));
+        headline_h = static_cast<int>(headline_h * (story_info->dashboard_compression / 100.0));
     }
 
     left = r_header_x;
     right = left + r_header_w;
 
-    int i;
+    auto i{0};
 
     switch(story_info->entry_type)
     {
         case AnimEntryType::DashboardDownLeftTop:
             top = r_header_y;
             bottom = top + r_header_h;
-            i = bottom + story_info->margin + (chyron_position * (headline_h + story_info->margin));
+            i = bottom + story_info->margin + (static_cast<int>(chyron_position) * (headline_h + story_info->margin));
             lane_position.setTopLeft(QPoint(left, i));
             lane_position.setBottomRight(QPoint(left + r_header_w, i + r_header_h));
             r_header_x += story_info->margin;
@@ -426,7 +442,7 @@ void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& 
         case AnimEntryType::DashboardDownRightTop:
             top = r_header_y;
             bottom = top + r_header_h;
-            i = bottom + story_info->margin + (chyron_position * (headline_h + story_info->margin));
+            i = bottom + story_info->margin + (static_cast<int>(chyron_position) * (headline_h + story_info->margin));
             lane_position.setTopLeft(QPoint(right - r_header_w, i));
             lane_position.setBottomRight(QPoint(right, i + r_header_h));
             r_header_x -= story_info->margin;
@@ -434,7 +450,7 @@ void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& 
             break;
         case AnimEntryType::DashboardUpLeftBottom:
             top = r_header_y;
-            i = top - story_info->margin - (chyron_position * (headline_h + story_info->margin));
+            i = top - story_info->margin - (static_cast<int>(chyron_position) * (headline_h + story_info->margin));
             lane_position.setTopLeft(QPoint(left, i));
             lane_position.setBottomRight(QPoint(left + r_header_w, i));
             r_header_x += story_info->margin;
@@ -442,7 +458,7 @@ void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& 
             break;
         case AnimEntryType::DashboardUpRightBottom:
             top = r_header_y;
-            i = top - story_info->margin - (chyron_position * (headline_h + story_info->margin));
+            i = top - story_info->margin - (static_cast<int>(chyron_position) * (headline_h + story_info->margin));
             lane_position.setTopLeft(QPoint(right - r_header_w, i));
             lane_position.setBottomRight(QPoint(right, i));
             r_header_x -= story_info->margin;
@@ -452,7 +468,7 @@ void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& 
         case AnimEntryType::DashboardInLeftTop:
             left = r_header_x;
             right = left + r_header_w;
-            i = right + story_info->margin + (chyron_position * (headline_w + story_info->margin));
+            i = right + story_info->margin + (static_cast<int>(chyron_position) * (headline_w + story_info->margin));
             lane_position.setTopLeft(QPoint(i, r_header_y));
             lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
             r_header_x += story_info->margin;
@@ -462,7 +478,7 @@ void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& 
         case AnimEntryType::DashboardInLeftBottom:
             left = r_header_x;
             right = left + r_header_w;
-            i = right + story_info->margin + (chyron_position * (headline_w + story_info->margin));
+            i = right + story_info->margin + (static_cast<int>(chyron_position) * (headline_w + story_info->margin));
             lane_position.setTopLeft(QPoint(i, r_header_y));
             lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
             r_header_x += story_info->margin;
@@ -471,7 +487,7 @@ void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& 
 
         case AnimEntryType::DashboardInRightTop:
             left = r_header_x - r_header_w;
-            i = left - story_info->margin - (chyron_position * (headline_w + story_info->margin));
+            i = left - story_info->margin - (static_cast<int>(chyron_position) * (headline_w + story_info->margin));
             lane_position.setTopLeft(QPoint(i, r_header_y));
             lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
             r_header_x -= story_info->margin;
@@ -480,11 +496,14 @@ void Dashboard::calculate_base_lane_position(LaneDataPointer data, const QRect& 
 
         case AnimEntryType::DashboardInRightBottom:
             left = r_header_x - r_header_w;
-            i = left - story_info->margin - (chyron_position * (headline_w + story_info->margin));
+            i = left - story_info->margin - (static_cast<int>(chyron_position) * (headline_w + story_info->margin));
             lane_position.setTopLeft(QPoint(i, r_header_y));
             lane_position.setBottomRight(QPoint(i + r_header_w, r_header_y + r_header_h));
             r_header_x -= story_info->margin;
             r_header_y -= story_info->margin;
+            break;
+
+        default:
             break;
     }
 
@@ -502,7 +521,7 @@ bool Dashboard::anim_in_progress()
 
 void Dashboard::anim_queue(LaneDataPointer owner, QAbstractAnimation* anim)
 {
-    bool start_timer = false;
+    auto start_timer{false};
     if(!anim_tracker.count())
         start_timer = true;
 
@@ -515,17 +534,17 @@ void Dashboard::anim_queue(LaneDataPointer owner, QAbstractAnimation* anim)
 void Dashboard::anim_clear(LaneDataPointer owner)
 {
     QVector<AnimPair> del;
-    foreach(const AnimPair& p, anim_tracker)
+    foreach(const auto& p, anim_tracker)
         if(p.first.data() == owner.data())
             del.append(p);
 
-    foreach(const AnimPair& p, del)
+    foreach(const auto& p, del)
         anim_tracker.removeAll(p);
 }
 
 void Dashboard::slot_animation_complete()
 {
-    QAbstractAnimation* anim = qobject_cast<QAbstractAnimation*>(sender());
+    auto anim = qobject_cast<QAbstractAnimation*>(sender());
     anim->deleteLater();
 
     emit signal_animation_completed();
@@ -554,7 +573,7 @@ void Dashboard::slot_process_anim_queue()
     if(!anim_tracker.count())
         return;
 
-    AnimPair p = anim_tracker.front();
+    auto p = anim_tracker.front();
     anim_tracker.pop_front();
 
     if(p.second)

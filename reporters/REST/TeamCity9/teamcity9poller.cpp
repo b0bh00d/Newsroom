@@ -4,14 +4,11 @@
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
 TeamCity9Poller::TeamCity9Poller(const QUrl& target, const QString& username, const QString& password, int timeout, QObject *parent)
-    : target(target),
+    : QObject(parent),
+      target(target),
       username(username),
       password(password),
-      replies_expected(0),
-      QNAM(nullptr),
-      poll_timer(nullptr),
-      poll_timeout(timeout),
-      QObject(parent)
+      poll_timeout(timeout)
 {
     QNAM = new QNetworkAccessManager(this);
 
@@ -54,11 +51,11 @@ TeamCity9Poller::~TeamCity9Poller()
 void TeamCity9Poller::add_interest(const QString& project_name, const QString& builder_name, QObject* me, int flags)
 {
     // make sure it's a TeamCity9 instance
-    TeamCity9* teamcity9 = dynamic_cast<TeamCity9*>(me);
+    auto teamcity9 = dynamic_cast<TeamCity9*>(me);
     if(!teamcity9)
         return;
 
-    QString key = QString("%1::%2").arg(project_name.toLower()).arg(builder_name.toLower());
+    auto key = QString("%1::%2").arg(project_name.toLower()).arg(builder_name.toLower());
     if(!interested_parties.contains(key))
         interested_parties[key] = InterestedList();
 
@@ -77,11 +74,11 @@ void TeamCity9Poller::add_interest(const QString& project_name, const QString& b
 
 void TeamCity9Poller::remove_interest(const QString& project_name, const QString& builder_name, QObject* me)
 {
-    QString key = QString("%1::%2").arg(project_name.toLower()).arg(builder_name.toLower());
+    auto key = QString("%1::%2").arg(project_name.toLower()).arg(builder_name.toLower());
     if(!interested_parties.contains(key))
         return;
 
-    for(int i = 0;i < interested_parties[key].length();++i)
+    for(auto i = 0;i < interested_parties[key].length();++i)
     {
         if(interested_parties[key][i].party == me)
         {
@@ -98,11 +95,10 @@ void TeamCity9Poller::notify_interested_parties(const QString& project_name, con
         // notify them all
         foreach(const QString& key, interested_parties.keys())
         {
-            InterestedList& interested = interested_parties[key];
-            InterestedList::iterator iter;
-            for(iter = interested.begin();iter != interested.end();++iter)
+            auto& interested = interested_parties[key];
+            for(auto iter = interested.begin();iter != interested.end();++iter)
             {
-                TeamCity9* teamcity9 = dynamic_cast<TeamCity9*>(iter->party);
+                auto teamcity9 = dynamic_cast<TeamCity9*>(iter->party);
                 if(!teamcity9)
                     continue;
                 teamcity9->error(message);
@@ -122,11 +118,10 @@ void TeamCity9Poller::notify_interested_parties(const QString& project_name, con
         if(!interested_parties.contains(key))
             continue;
 
-        InterestedList& interested = interested_parties[key];
-        InterestedList::iterator iter;
-        for(iter = interested.begin();iter != interested.end();++iter)
+        auto& interested = interested_parties[key];
+        for(auto iter = interested.begin();iter != interested.end();++iter)
         {
-            TeamCity9* teamcity9 = dynamic_cast<TeamCity9*>(iter->party);
+            auto teamcity9 = dynamic_cast<TeamCity9*>(iter->party);
             if(!teamcity9)
                 continue;
             teamcity9->error(message);
@@ -146,11 +141,10 @@ void TeamCity9Poller::notify_interested_parties(BuilderEvents event, const QStri
         if(!interested_parties.contains(key))
             continue;
 
-        InterestedList& interested = interested_parties[key];
-        InterestedList::iterator iter;
-        for(iter = interested.begin();iter != interested.end();++iter)
+        auto& interested = interested_parties[key];
+        for(auto iter = interested.begin();iter != interested.end();++iter)
         {
-            TeamCity9* teamcity9 = dynamic_cast<TeamCity9*>(iter->party);
+            auto teamcity9 = dynamic_cast<TeamCity9*>(iter->party);
             if(!teamcity9)
                 continue;
 
@@ -178,10 +172,7 @@ void TeamCity9Poller::notify_interested_parties(BuilderEvents event, const QStri
 
 void TeamCity9Poller::enqueue_request(const QString& url_str, ReplyStates state, const QStringList& request_data, Priorities priority)
 {
-    RequestData rd;
-    rd.url = url_str;
-    rd.state = state;
-    rd.data = request_data;
+    RequestData rd{state, url_str, request_data};
     if(priority == Priorities::BackOfQueue)
         requests.push_back(rd);
     else
@@ -206,19 +197,16 @@ void TeamCity9Poller::create_request(const QString& url_str, ReplyStates state, 
     request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
     request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
 
-    QNetworkReply* reply = QNAM->get(request);
-    bool connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity9Poller::slot_get_read);
-    ASSERT_UNUSED(connected);
+    auto reply = QNAM->get(request);
+    auto connected = connect(reply, &QNetworkReply::readyRead, this, &TeamCity9Poller::slot_get_read);
+    ASSERT_UNUSED(connected)
     connected = connect(reply, &QNetworkReply::finished, this, &TeamCity9Poller::slot_get_complete);
-    ASSERT_UNUSED(connected);
+    ASSERT_UNUSED(connected)
     connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
                         this, &TeamCity9Poller::slot_get_failed);
-    ASSERT_UNUSED(connected);
+    ASSERT_UNUSED(connected)
 
-    ReplyData reply_data;
-    reply_data.state = state;
-    reply_data.data = request_data;
-
+    ReplyData reply_data{state, QByteArray(), request_data};
     active_replies[reply] = reply_data;
 
     if(pending_requests.contains(url_str))
@@ -227,19 +215,19 @@ void TeamCity9Poller::create_request(const QString& url_str, ReplyStates state, 
 
 void TeamCity9Poller::process_reply(QNetworkReply *reply)
 {
-    ReplyData& data = active_replies[reply];
+    auto& data = active_replies[reply];
     if(data.state == ReplyStates::GettingProjects)
     {
         projects.clear();
 
-        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
-        QJsonObject sett2 = d.object();
-        int count = sett2["count"].toInt();
-        QJsonArray project_array = sett2.value(QString("project")).toArray();
-        for(int x = 0;x < count;++x)
+        auto d = QJsonDocument::fromJson(data.buffer);
+        auto sett2 = d.object();
+        auto count = sett2["count"].toInt();
+        auto project_array = sett2.value(QString("project")).toArray();
+        for(auto x = 0;x < count;++x)
         {
-            QJsonObject project = project_array.at(x).toObject();
-            QString project_id = project["id"].toString();
+            auto project = project_array.at(x).toObject();
+            auto project_id = project["id"].toString();
             if(project_id == "_Root")
                 continue;
 
@@ -251,18 +239,18 @@ void TeamCity9Poller::process_reply(QNetworkReply *reply)
     }
     else if(data.state == ReplyStates::GettingBuilders)
     {
-        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
-        QJsonObject project_data = d.object();
-        QString project_id = project_data["id"].toString();
+        auto d = QJsonDocument::fromJson(data.buffer);
+        auto project_data = d.object();
+        auto project_id = project_data["id"].toString();
 
-        ProjectData& pd = projects[project_id];
+        auto& pd = projects[project_id];
         pd.project_data = project_data;
-        QString project_name = project_data["name"].toString();
+        auto project_name = project_data["name"].toString();
 
-        QJsonObject buildtypes = project_data["buildTypes"].toObject();
-        int count = buildtypes["count"].toInt();
-        QJsonArray builder_array = buildtypes["buildType"].toArray();
-        for(int x = 0;x < count;++x)
+        auto buildtypes = project_data["buildTypes"].toObject();
+        auto count = buildtypes["count"].toInt();
+        auto builder_array = buildtypes["buildType"].toArray();
+        for(auto x = 0;x < count;++x)
         {
             BuilderData bd;
             bd.builder_data = builder_array.at(x).toObject();
@@ -282,28 +270,28 @@ void TeamCity9Poller::process_reply(QNetworkReply *reply)
     else if(data.state == ReplyStates::GettingBuilderStatus)
     {
         // got a status update for a specific Project::Builder
-        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
-        QJsonObject sett2 = d.object();
+        auto d = QJsonDocument::fromJson(data.buffer);
+        auto sett2 = d.object();
         process_builder_status(sett2, data.data);
     }
     else if(data.state == ReplyStates::GettingBuildPending)
     {
         // got a status update for a specific build id
-        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
-        QJsonObject sett2 = d.object();
+        auto d = QJsonDocument::fromJson(data.buffer);
+        auto sett2 = d.object();
         process_build_pending(sett2, data.data);
     }
     else if(data.state == ReplyStates::GettingBuildStatus)
     {
         // got a status update for a specific build id
-        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
-        QJsonObject sett2 = d.object();
+        auto d = QJsonDocument::fromJson(data.buffer);
+        auto sett2 = d.object();
         process_build_status(sett2, data.data);
     }
     else if(data.state == ReplyStates::GettingBuildFinal)
     {
-        QJsonDocument d = QJsonDocument::fromJson(data.buffer);
-        QJsonObject sett2 = d.object();
+        auto d = QJsonDocument::fromJson(data.buffer);
+        auto sett2 = d.object();
         process_build_final(sett2, data.data);
     }
 }
@@ -317,15 +305,14 @@ bool TeamCity9Poller::any_interest_in_changes_check(const QString& project_name,
     keys << QString("%1::").arg(project_name.toLower());
     keys << QString("%1::%2").arg(project_name.toLower()).arg(builder_name.toLower());
 
-    bool check_pending = false;
+    auto check_pending{false};
     foreach(const QString& key, keys)
     {
         if(!interested_parties.contains(key))
             continue;
 
-        InterestedList& interested = interested_parties[key];
-        InterestedList::iterator interested_iter;
-        for(interested_iter = interested.begin();interested_iter != interested.end();++interested_iter)
+        auto& interested = interested_parties[key];
+        for(auto interested_iter = interested.begin();interested_iter != interested.end();++interested_iter)
         {
             if((interested_iter->flags & Interest::PendingChanges) != 0)
             {
@@ -364,19 +351,19 @@ void TeamCity9Poller::process_builder_status(const QJsonObject& status, const QS
     //   ]
     // }
 
-    ProjectData& project = projects[status_data[0]];
-    BuildersList::iterator builder;
-    for(builder = project.builders.begin();builder != project.builders.end();++builder)
+    auto& project = projects[status_data[0]];
+    auto builder = project.builders.begin();
+    for(;builder != project.builders.end();++builder)
     {
         if(!builder->builder_data["id"].toString().compare(status_data[1]))
             break;
     }
     Q_ASSERT(builder != project.builders.end());
 
-    QString project_name = project.project_data["name"].toString();
-    QString builder_name = builder->builder_data["name"].toString();
+    auto project_name = project.project_data["name"].toString();
+    auto builder_name = builder->builder_data["name"].toString();
 
-    int count = status["count"].toInt();
+    auto count = status["count"].toInt();
     if(count == 0 && builder->build_status.isEmpty())
     {
         if(!builder->pause_pending_changes_check && any_interest_in_changes_check(project_name, builder_name))
@@ -384,7 +371,7 @@ void TeamCity9Poller::process_builder_status(const QJsonObject& status, const QS
             builder->build_event = BuilderEvents::BuildPending;
             ++builder->pending_changes_check_count;
 
-            QString url = QString("%1/httpAuth/app/rest/changes?locator=buildType:(id:%2),pending:true").arg(target.toString()).arg(builder->builder_data["id"].toString());
+            auto url = QString("%1/httpAuth/app/rest/changes?locator=buildType:(id:%2),pending:true").arg(target.toString()).arg(builder->builder_data["id"].toString());
             enqueue_request_unique(url, ReplyStates::GettingBuildPending, QStringList() << status_data[0] << builder->builder_data["id"].toString());
         }
 
@@ -397,14 +384,14 @@ void TeamCity9Poller::process_builder_status(const QJsonObject& status, const QS
 
     QSet<int> c, p, finished_builds, new_builds;
 
-    QJsonArray builder_array = status["build"].toArray();
-    for(int x = 0;x < count;++x)
+    auto builder_array = status["build"].toArray();
+    for(auto x = 0;x < count;++x)
     {
-        QJsonObject build = builder_array.at(x).toObject();
+        auto build = builder_array.at(x).toObject();
         c.insert(build["id"].toInt());
     }
 
-    foreach(int build_key, builder->build_status.keys())
+    foreach(auto build_key, builder->build_status.keys())
         p.insert(build_key);
 
     // what previously watched builds are no longer in the current list?
@@ -415,11 +402,11 @@ void TeamCity9Poller::process_builder_status(const QJsonObject& status, const QS
     // these need to be added to the build_status[] list
     new_builds = c - p;
 
-    for(int x = 0;x < count;++x)
+    for(auto x = 0;x < count;++x)
     {
-        QJsonObject build = builder_array.at(x).toObject();
+        auto build = builder_array.at(x).toObject();
 
-        int build_id = build["id"].toInt();
+        auto build_id = build["id"].toInt();
 
         if(new_builds.contains(build_id))
         {
@@ -428,13 +415,13 @@ void TeamCity9Poller::process_builder_status(const QJsonObject& status, const QS
             builder->build_status[build_id] = build;
             builder->build_event = BuilderEvents::BuildStarted;
 
-            QString url = QString("%1/httpAuth/app/rest/buildQueue/id:%2").arg(target.toString()).arg(build_id);
+            auto url = QString("%1/httpAuth/app/rest/buildQueue/id:%2").arg(target.toString()).arg(build_id);
             enqueue_request_unique(url, ReplyStates::GettingBuildStatus, QStringList() << status_data[0] << QString::number(build_id));
         }
         else if(!finished_builds.contains(build_id))
         {
             // active build
-            QJsonObject cached_json = builder->build_status[build_id];
+            auto cached_json = builder->build_status[build_id];
             // is there a change since the last poll?
             if(cached_json != build)
             {
@@ -443,7 +430,7 @@ void TeamCity9Poller::process_builder_status(const QJsonObject& status, const QS
                 builder->build_status[build_id] = build;
                 builder->build_event = BuilderEvents::BuildProgress;
 
-                QString url = QString("%1/httpAuth/app/rest/buildQueue/id:%2").arg(target.toString()).arg(build_id);
+                auto url = QString("%1/httpAuth/app/rest/buildQueue/id:%2").arg(target.toString()).arg(build_id);
                 enqueue_request_unique(url, ReplyStates::GettingBuildStatus, QStringList() << status_data[0] << QString::number(build_id));
             }
         }
@@ -452,7 +439,7 @@ void TeamCity9Poller::process_builder_status(const QJsonObject& status, const QS
     QVector<int> finals;
     if(finished_builds.count())
     {
-        foreach(int build_id, finished_builds)
+        foreach(auto build_id, finished_builds)
         {
             finals.push_back(build_id);
             builder->build_status.remove(build_id);
@@ -462,7 +449,7 @@ void TeamCity9Poller::process_builder_status(const QJsonObject& status, const QS
     // get final results for all finished builds as priorities
     if(finals.count())
     {
-        foreach(int build_id, finals)
+        foreach(auto build_id, finals)
             create_request(QString("%1/httpAuth/app/rest/builds/id:%2").arg(target.toString()).arg(build_id),
                             ReplyStates::GettingBuildFinal,
                             status_data);
@@ -473,9 +460,9 @@ void TeamCity9Poller::process_build_pending(const QJsonObject& status, const QSt
 {
     // 'status' will be a detailed listing about pending changes for an idle builder
 
-    ProjectData& project = projects[status_data[0]];
-    BuildersList::iterator builder;
-    for(builder = project.builders.begin();builder != project.builders.end();++builder)
+    auto& project = projects[status_data[0]];
+    auto builder = project.builders.begin();
+    for(;builder != project.builders.end();++builder)
     {
         if(!builder->builder_data["id"].toString().compare(status_data[1]))
             break;
@@ -511,9 +498,9 @@ void TeamCity9Poller::process_build_status(const QJsonObject& status, const QStr
 {
     // 'status' will be a detailed listing about a specific build
 
-    ProjectData& project = projects[status_data[0]];
-    BuildersList::iterator builder;
-    for(builder = project.builders.begin();builder != project.builders.end();++builder)
+    auto& project = projects[status_data[0]];
+    auto builder = project.builders.begin();
+    for(;builder != project.builders.end();++builder)
     {
         if(builder->build_status.contains(status_data[1].toInt()))
             break;
@@ -549,9 +536,9 @@ void TeamCity9Poller::process_build_final(const QJsonObject& status, const QStri
     //   "finishDate":"20161213T205325+0000",
     //   ...
 
-    ProjectData& project = projects[status_data[0]];
-    BuildersList::iterator builder;
-    for(builder = project.builders.begin();builder != project.builders.end();++builder)
+    auto& project = projects[status_data[0]];
+    auto builder = project.builders.begin();
+    for(;builder != project.builders.end();++builder)
     {
         if(!builder->builder_data["id"].toString().compare(status_data[1]))
             break;
@@ -563,20 +550,20 @@ void TeamCity9Poller::process_build_final(const QJsonObject& status, const QStri
 
 void TeamCity9Poller::slot_get_read()
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if(reply)
     {
-        ReplyData& data = active_replies[reply];
+        auto& data = active_replies[reply];
         data.buffer += reply->readAll();
     }
 }
 
 void TeamCity9Poller::slot_get_complete()
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if(reply && reply->error() == QNetworkReply::NoError)
     {
-        ReplyData& data = active_replies[reply];
+        auto& data = active_replies[reply];
         data.buffer += reply->readAll();
         process_reply(reply);
     }
@@ -593,7 +580,7 @@ void TeamCity9Poller::slot_get_complete()
 
 void TeamCity9Poller::slot_get_failed(QNetworkReply::NetworkError code)
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if(!active_replies.contains(reply))
         return;
 
@@ -605,12 +592,12 @@ void TeamCity9Poller::slot_get_failed(QNetworkReply::NetworkError code)
     else
         error_message = tr("<b>Network Error</b><br>A network error code %1 was returned for the last operation.").arg(code);
 
-    ReplyData& data = active_replies[reply];
+    auto& data = active_replies[reply];
     if(!data.data.isEmpty())
     {
-        ProjectData& pd = projects[data.data[0]];
-        BuildersList::iterator builder_data;
-        for(builder_data = pd.builders.begin();builder_data != pd.builders.end();++builder_data)
+        auto& pd = projects[data.data[0]];
+        auto builder_data = pd.builders.begin();
+        for(;builder_data != pd.builders.end();++builder_data)
         {
             if(!builder_data->builder_data["id"].toString().compare(data.data[1]))
                 break;
@@ -630,7 +617,7 @@ void TeamCity9Poller::slot_request_pump()
 
     if(requests.count())
     {
-        RequestData rd = requests.front();
+        auto rd = requests.front();
         requests.pop_front();
         create_request(rd.url, rd.state, rd.data);
     }
@@ -644,21 +631,20 @@ void TeamCity9Poller::slot_poll()
 
     foreach(const QString& key, projects.keys())
     {
-        ProjectData& project = projects[key];
-        BuildersList::iterator builder;
-        for(builder = project.builders.begin();builder != project.builders.end();++builder)
+        auto& project = projects[key];
+        for(auto builder = project.builders.begin();builder != project.builders.end();++builder)
         {
-            QString project_name = project.project_data["name"].toString();
-            QString builder_name = builder->builder_data["name"].toString();
+            auto project_name = project.project_data["name"].toString();
+            auto builder_name = builder->builder_data["name"].toString();
 
-            QString project_key = QString("%1::").arg(project_name.toLower());
-            QString builder_key = QString("%1::%2").arg(project_name.toLower()).arg(builder_name.toLower());
+            auto project_key = QString("%1::").arg(project_name.toLower());
+            auto builder_key = QString("%1::%2").arg(project_name.toLower()).arg(builder_name.toLower());
 
             if(interested_parties.contains(project_key.toLower()) || interested_parties.contains(builder_key.toLower()))
             {
-                QString builder_id = builder->builder_data["id"].toString();
+                auto builder_id = builder->builder_data["id"].toString();
 
-                QString url = QString("%1/httpAuth/app/rest/builds?locator=buildType:(id:%2),running:true,defaultFilter:false")
+                auto url = QString("%1/httpAuth/app/rest/builds?locator=buildType:(id:%2),running:true,defaultFilter:false")
                                         .arg(target.toString())
                                         .arg(builder_id);
                 enqueue_request_unique(url, ReplyStates::GettingBuilderStatus, QStringList() << key << builder_id);

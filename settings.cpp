@@ -23,7 +23,7 @@ Settings::Settings(const QString& application, const QString &base_filename)
 
 QString Settings::fix_type_name(const QString& type_name)
 {
-    QString name = type_name.toLower();
+    auto name = type_name.toLower();
     if(name.startsWith("q"))
         name.remove(0, 1);
     return name;
@@ -31,7 +31,7 @@ QString Settings::fix_type_name(const QString& type_name)
 
 QString Settings::get_current_path(const QStringList& current_path)
 {
-    QString path = current_path.join("/");
+    auto path = current_path.join("/");
     while(path.contains("//"))
         path.replace("//", "/");
     return path;
@@ -59,8 +59,8 @@ QStringList Settings::construct_path(const QString& path)
 
     section_path.replace("//", "/");
 
-    QStringList elements = section_path.split("/");
-    QString target_name = elements.back();
+    auto elements = section_path.split("/");
+    auto target_name = elements.back();
     elements.pop_back();
     QStringList result;
     result << elements.join("/") << target_name;
@@ -70,21 +70,21 @@ QStringList Settings::construct_path(const QString& path)
 
 Settings::Item* Settings::create_path(const QString& path)
 {
-    Item* section = nullptr;
+    Item* section{nullptr};
 
     if(section_path_map.contains(path))
         section = section_path_map[path];
 
     if(!section)
     {
-        QStringList elements = path.split("/");
+        auto elements = path.split("/");
         while(elements[0].isEmpty())
             elements.pop_front();
 
-        QString path = "/";
-        Item* parent = tree_root.data();
+        QString path("/");
+        auto parent = tree_root.data();
 
-        foreach(const QString& element, elements)
+        foreach(const auto& element, elements)
         {
             if(!path.endsWith("/"))
                 path += "/";
@@ -93,7 +93,7 @@ Settings::Item* Settings::create_path(const QString& path)
                 parent = section_path_map[path];    // already exists
             else
             {
-                Item* item = new Item(parent, QStringList() << "Section" << element);
+                auto item = new Item(parent, QStringList() << "Section" << element);
                 section_path_map[path] = item;
                 parent = item;
             }
@@ -109,11 +109,11 @@ int Settings::begin_section(const QString& path)
 {
     default_section.append(path);
 
-    QStringList locator = construct_path();
-    QString section_path = locator.join("/");
+    auto locator = construct_path();
+    auto section_path = locator.join("/");
     section_path.replace("//", "/");
 
-    Item* section = nullptr;
+    Item* section{nullptr};
     if(section_path_map.contains(section_path))
        section = section_path_map[section_path];
 
@@ -125,13 +125,13 @@ int Settings::begin_section(const QString& path)
 
 void Settings::clear_section(const QString& path)
 {
-    QStringList locator = construct_path(path);
+    auto locator = construct_path(path);
     if(!locator.isEmpty())
     {
-        QString section_path = locator.join("/");
+        auto section_path = locator.join("/");
         section_path.replace("//", "/");
 
-        Item* section = nullptr;
+        Item* section{nullptr};
         if(section_path_map.contains(section_path))
             section = section_path_map[section_path];
 
@@ -141,13 +141,13 @@ void Settings::clear_section(const QString& path)
             // 'section_path' must be removed
 
             QStringList bad_keys;
-            foreach(const QString& key, section_path_map.keys())
+            foreach(const auto& key, section_path_map.keys())
             {
                 if(key.startsWith(section_path) && key.length() > section_path.length())
                     bad_keys << key;
             }
 
-            foreach(const QString& key, bad_keys)
+            foreach(const auto& key, bad_keys)
                 section_path_map.remove(key);
 
             while(section->childCount())
@@ -158,13 +158,13 @@ void Settings::clear_section(const QString& path)
 
 void Settings::clear_section()
 {
-    QStringList locator = construct_path();
+    auto locator = construct_path();
     if(!locator.isEmpty())
     {
-        QString section_path = locator.join("/");
+        auto section_path = locator.join("/");
         section_path.replace("//", "/");
 
-        Item* section = nullptr;
+        Item* section{nullptr};
         if(section_path_map.contains(section_path))
             section = section_path_map[section_path];
 
@@ -174,13 +174,13 @@ void Settings::clear_section()
             // 'section_path' must be removed
 
             QStringList bad_keys;
-            foreach(const QString& key, section_path_map.keys())
+            foreach(const auto& key, section_path_map.keys())
             {
                 if(key.startsWith(section_path) && key.length() > section_path.length())
                     bad_keys << key;
             }
 
-            foreach(const QString& key, bad_keys)
+            foreach(const auto& key, bad_keys)
                 section_path_map.remove(key);
 
             while(section->childCount())
@@ -199,11 +199,11 @@ int Settings::begin_array(const QString& path)
     default_array.append(path);
     current_array_index.append(-1);
 
-    QStringList locator = construct_path();
-    QString section_path = locator.join("/");
+    auto locator = construct_path();
+    auto section_path = locator.join("/");
     section_path.replace("//", "/");
 
-    Item* array = nullptr;
+    Item* array{nullptr};
     if(section_path_map.contains(section_path))
         array = section_path_map[section_path];
 
@@ -233,18 +233,18 @@ QVariant Settings::get_item(const QString& item_name, const QVariant& default_va
     if(!default_array.isEmpty() && (current_array_index.back() != -1))
         return get_array_item(current_array_index.back(), item_name, default_value);
 
-    QStringList locator = construct_path(item_name);
+    auto locator = construct_path(item_name);
 
-    Item* section = nullptr;
+    Item* section{nullptr};
 
     if(section_path_map.contains(locator[0]))
         section = section_path_map[locator[0]];
 
     if(section)
     {
-        for(int i = 0;i < section->childCount(); ++i)
+        for(auto i = 0;i < section->childCount(); ++i)
         {
-            Item* child = section->child(i);
+            auto child = section->child(i);
             if(!child->text(1).compare(locator[1]))
                 return child->data(0, Qt::UserRole);
         }
@@ -257,16 +257,16 @@ QVariant Settings::get_item(int index, const QVariant& default_value)
 {
     if(default_array.isEmpty())
     {
-        QStringList locator = construct_path();
+        auto locator = construct_path();
 
-        Item* section = nullptr;
+        Item* section{nullptr};
 
         if(section_path_map.contains(locator[0]))
             section = section_path_map[locator[0]];
 
         if(section && index < section->childCount())
         {
-            Item* child = section->child(index);
+            auto child = section->child(index);
             return child->data(0, Qt::UserRole);
         }
     }
@@ -276,13 +276,13 @@ QVariant Settings::get_item(int index, const QVariant& default_value)
 
 QVariant Settings::get_array_item(int index, const QString &element_name, const QVariant& default_value)
 {
-    QStringList locator = construct_path();
+    auto locator = construct_path();
     if(locator.isEmpty())
         return default_value;
-    QString section_path = locator.join("/");
+    auto section_path = locator.join("/");
     section_path.replace("//", "/");
 
-    Item* array = nullptr;
+    Item* array{nullptr};
 
     if(section_path_map.contains(section_path))
         array = section_path_map[section_path];
@@ -290,11 +290,11 @@ QVariant Settings::get_array_item(int index, const QString &element_name, const 
     if(!array || index >= array->childCount())
         return default_value;
 
-    Item* sub_element = nullptr;
-    Item* element = array->child(index);
-    for(int i = 0;i < element->childCount(); ++i)
+    Item* sub_element{nullptr};
+    auto element = array->child(index);
+    for(auto i = 0;i < element->childCount(); ++i)
     {
-        Item* child = element->child(i);
+        auto child = element->child(i);
         if(!child->text(1).compare(element_name))
         {
             sub_element = child;
@@ -310,7 +310,7 @@ QVariant Settings::get_array_item(int index, const QString &element_name, const 
 
 QVariant Settings::get_array_item(const QString& array_name, int index, const QString &element_name, const QVariant& default_value)
 {
-    Item* array = nullptr;
+    Item* array{nullptr};
 
     if(section_path_map.contains(array_name))
         array = section_path_map[array_name];
@@ -318,11 +318,11 @@ QVariant Settings::get_array_item(const QString& array_name, int index, const QS
     if(!array || index >= array->childCount())
         return default_value;
 
-    Item* sub_element = nullptr;
-    Item* element = array->child(index);
-    for(int i = 0;i < element->childCount(); ++i)
+    Item* sub_element{nullptr};
+    auto element = array->child(index);
+    for(auto i = 0;i < element->childCount(); ++i)
     {
-        Item* child = element->child(i);
+        auto child = element->child(i);
         if(!child->text(1).compare(element_name))
         {
             sub_element = child;
@@ -344,9 +344,9 @@ void Settings::set_item(const QString& item_name, const QVariant& value)
         return;
     }
 
-    QStringList locator = construct_path(item_name);
+    auto locator = construct_path(item_name);
 
-    Item* section = nullptr;
+    Item* section{nullptr};
 
     if(section_path_map.contains(locator[0]))
         section = section_path_map[locator[0]];
@@ -354,10 +354,10 @@ void Settings::set_item(const QString& item_name, const QVariant& value)
     if(!section)
         section = create_path(locator[0]);
 
-    Item* item = nullptr;
+    Item* item{nullptr};
     for(int i = 0;i < section->childCount(); ++i)
     {
-        Item* child = section->child(i);
+        auto child = section->child(i);
         if(!child->text(1).compare(locator[1]))
         {
             item = child;
@@ -373,13 +373,13 @@ void Settings::set_item(const QString& item_name, const QVariant& value)
 
 void Settings::set_array_item(int index, const QString& element_name, const QVariant& element_value)
 {
-    QStringList locator = construct_path();
+    auto locator = construct_path();
     if(locator.isEmpty())
         return;
-    QString section_path = locator.join("/");
+    auto section_path = locator.join("/");
     section_path.replace("//", "/");
 
-    Item* array = nullptr;
+    Item* array{nullptr};
 
     if(section_path_map.contains(section_path))
         array = section_path_map[section_path];
@@ -392,15 +392,15 @@ void Settings::set_array_item(int index, const QString& element_name, const QVar
 
     while(array->childCount() < (index + 1))
     {
-        int i = array->childCount();
+        auto i = array->childCount();
         new Item(array, QStringList() << "Element" << QString::number(i));
     }
 
-    Item* sub_element = nullptr;
-    Item* element = array->child(index);
-    for(int i = 0;i < element->childCount(); ++i)
+    Item* sub_element{nullptr};
+    auto element = array->child(index);
+    for(auto i = 0;i < element->childCount(); ++i)
     {
-        Item* child = element->child(i);
+        auto child = element->child(i);
         if(!child->text(1).compare(element_name))
         {
             sub_element = child;
@@ -416,7 +416,7 @@ void Settings::set_array_item(int index, const QString& element_name, const QVar
 
 void Settings::set_array_item(const QString& array_name, int index, const QString& element_name, const QVariant& element_value)
 {
-    Item* array = nullptr;
+    Item* array{nullptr};
 
     if(section_path_map.contains(array_name))
         array = section_path_map[array_name];
@@ -429,15 +429,15 @@ void Settings::set_array_item(const QString& array_name, int index, const QStrin
 
     while(array->childCount() < (index + 1))
     {
-        int i = array->childCount();
+        auto i = array->childCount();
         new Item(array, QStringList() << "Element" << QString::number(i));
     }
 
-    Item* sub_element = nullptr;
-    Item* element = array->child(index);
+    Item* sub_element{nullptr};
+    auto element = array->child(index);
     for(int i = 0;i < element->childCount(); ++i)
     {
-        Item* child = element->child(i);
+        auto child = element->child(i);
         if(!child->text(1).compare(element_name))
         {
             sub_element = child;
@@ -454,8 +454,8 @@ void Settings::set_array_item(const QString& array_name, int index, const QStrin
 //----------------------------------------------------------------
 // SettingsXML implementation
 
-SettingsXML::SettingsXML(const QString& application, const QString& base_filename)
-    : Settings(application, base_filename)
+SettingsXML::SettingsXML(const QString& application_, const QString& base_filename)
+    : Settings(application_, base_filename)
 {
     if(!filename.toLower().endsWith(".xml"))
         filename += ".xml";
@@ -489,7 +489,7 @@ bool SettingsXML::init(bool clear)
     }
 
     QDomDocument note_database(application);
-    QDomElement root = note_database.createElement(application);
+    auto root = note_database.createElement(application);
     root.setAttribute("version", "1");
 
     note_database.appendChild(root);
@@ -505,8 +505,8 @@ bool SettingsXML::init(bool clear)
     }
 
     QString errorStr, versionStr = "1";
-    int errorLine;
-    int errorColumn;
+    auto errorLine{0};
+    auto errorColumn{0};
 
     if(!note_database.setContent(&file, true, &errorStr, &errorLine, &errorColumn))
     {
@@ -528,10 +528,10 @@ bool SettingsXML::init(bool clear)
     QStringList current_path;
     current_path << "/";
 
-    QDomNodeList children = root.childNodes();
-    for(int i = 0;i < children.length();i++)
+    auto children = root.childNodes();
+    for(auto i = 0;i < children.length();i++)
     {
-        QDomNode node = children.at(i);
+        auto node = children.at(i);
         if(!node.nodeName().compare("Section"))
             // top-level items should always and only be Sections
             (void)read_section(&node, tree_root.data(), current_path);
@@ -542,17 +542,17 @@ bool SettingsXML::init(bool clear)
 
 Settings::Item* SettingsXML::read_section(QDomNode* node, Settings::Item* parent, QStringList &current_path)
 {
-    QDomElement element = node->toElement();
-    QString name = element.attribute("name");
-    Item* section = new Item(parent, QStringList() << "Section" << name);
+    auto element = node->toElement();
+    auto name = element.attribute("name");
+    auto section = new Item(parent, QStringList() << "Section" << name);
 
     current_path.append(name);
     section_path_map[get_current_path(current_path)] = section;
 
-    QDomNodeList children = node->childNodes();
-    for(int i = 0;i < children.length();i++)
+    auto children = node->childNodes();
+    for(auto i = 0;i < children.length();i++)
     {
-        QDomNode child_node = children.at(i);
+        auto child_node = children.at(i);
         if(!child_node.nodeName().compare("Section"))
             (void)read_section(&child_node, section, current_path);
         else if(!child_node.nodeName().compare("Array"))
@@ -572,17 +572,17 @@ Settings::Item* SettingsXML::read_section(QDomNode* node, Settings::Item* parent
 
 Settings::Item* SettingsXML::read_array(QDomNode *node, Settings::Item* parent, QStringList &current_path)
 {
-    QDomElement element = node->toElement();
-    QString name = element.attribute("name");
-    Item* array = new Item(parent, QStringList() << "Array" << name);
+    auto element = node->toElement();
+    auto name = element.attribute("name");
+    auto array = new Item(parent, QStringList() << "Array" << name);
 
     current_path.append(name);
     section_path_map[get_current_path(current_path)] = array;
 
-    QDomNodeList children = node->childNodes();
-    for(int i = 0;i < children.length();i++)
+    auto children = node->childNodes();
+    for(auto i = 0;i < children.length();i++)
     {
-        QDomNode child_node = children.at(i);
+        auto child_node = children.at(i);
         if(!child_node.nodeName().compare("Array"))
             (void)read_array(&child_node, array, current_path);
         else if(!child_node.nodeName().compare("Element"))
@@ -600,13 +600,13 @@ Settings::Item* SettingsXML::read_array(QDomNode *node, Settings::Item* parent, 
 
 Settings::Item* SettingsXML::read_element(QDomNode *node, Settings::Item* parent)
 {
-    QDomElement element_node = node->toElement();
-    Item* element = new Item(parent, QStringList() << "Element" << element_node.attribute("name"));
+    auto element_node = node->toElement();
+    auto element = new Item(parent, QStringList() << "Element" << element_node.attribute("name"));
 
-    QDomNodeList children = node->childNodes();
-    for(int i = 0;i < children.length();i++)
+    auto children = node->childNodes();
+    for(auto i = 0;i < children.length();i++)
     {
-        QDomNode child_node = children.at(i);
+        auto child_node = children.at(i);
         if(!child_node.nodeName().compare("Item"))
             (void)read_item(&child_node, element);
         else
@@ -620,22 +620,22 @@ Settings::Item* SettingsXML::read_element(QDomNode *node, Settings::Item* parent
 
 Settings::Item* SettingsXML::read_item(QDomNode *node, Settings::Item* parent)
 {
-    QDomElement element = node->toElement();
-    Item* item = new Item(parent, QStringList() << "Item" << element.attribute("name"));
+    auto element = node->toElement();
+    auto item = new Item(parent, QStringList() << "Item" << element.attribute("name"));
 
-    QString type = element.attribute("type");
+    auto type = element.attribute("type");
     if(!type.compare("stringlist"))
     {
         QStringList sl;
-        QDomNodeList children = node->childNodes();
-        for(int i = 0;i < children.length();++i)
+        auto children = node->childNodes();
+        for(auto i = 0;i < children.length();++i)
         {
-            QDomNode child_node = children.at(i);
-            QDomNodeList sub_children = child_node.childNodes();
-            for(int j = 0;j < sub_children.length();++j)
+            auto child_node = children.at(i);
+            auto sub_children = child_node.childNodes();
+            for(auto j = 0;j < sub_children.length();++j)
             {
-                QDomNode sub_child_node = sub_children.at(j);
-                QDomCDATASection cdata_node = sub_child_node.toCDATASection();
+                auto sub_child_node = sub_children.at(j);
+                auto cdata_node = sub_child_node.toCDATASection();
                 if(!cdata_node.isNull())
                 {
                     sl << cdata_node.data();
@@ -651,16 +651,16 @@ Settings::Item* SettingsXML::read_item(QDomNode *node, Settings::Item* parent)
     {
         QString data;
 
-        QDomNodeList children = node->childNodes();
-        for(int i = 0;i < children.length() && data.isEmpty();++i)
+        auto children = node->childNodes();
+        for(auto i = 0;i < children.length() && data.isEmpty();++i)
         {
-            QDomNode child_node = children.at(i);
-            QDomCDATASection cdata_node = child_node.toCDATASection();
+            auto child_node = children.at(i);
+            auto cdata_node = child_node.toCDATASection();
             if(!cdata_node.isNull())
                 data = cdata_node.data();
             else
             {
-                QDomText text_node = child_node.toText();
+                auto text_node = child_node.toText();
                 if(!text_node.isNull())
                     data = text_node.data();
             }
@@ -669,7 +669,7 @@ Settings::Item* SettingsXML::read_item(QDomNode *node, Settings::Item* parent)
             {
                 if(!type.compare("bytearray"))
                 {
-                    QByteArray ba = QByteArray::fromHex(data.toUtf8());
+                    auto ba = QByteArray::fromHex(data.toUtf8());
                     QVariant v(ba);
                     item->setData(0, Qt::UserRole, v);
                 }
@@ -699,7 +699,7 @@ bool SettingsXML::flush()
     }
 
     QDomDocument settings(application);
-    QDomElement root = settings.createElement(application);
+    auto root = settings.createElement(application);
     root.setAttribute("version", QString::number(version));
 
     settings.appendChild(root);
@@ -707,7 +707,7 @@ bool SettingsXML::flush()
     QDomNode node(settings.createProcessingInstruction("xml", "version=\"1.0\" encoding=\"UTF8\""));
     settings.insertBefore(node, settings.firstChild());
 
-    for(int i = 0;i < tree_root->childCount();++i)
+    for(auto i = 0;i < tree_root->childCount();++i)
         write_section(tree_root->child(i), &root, &settings);
 
     QFile file(filename);
@@ -720,23 +720,23 @@ bool SettingsXML::flush()
 
     settings.save(out, IndentSize);
 
-    bool result = (file.error() != QFileDevice::NoError);
+    auto result = (file.error() != QFileDevice::NoError);
     file.close();
     return result;
 }
 
 void SettingsXML::write_section(Item* section, QDomNode* parent, QDomDocument* doc)
 {
-    QDomElement child = doc->createElement("Section");
+    auto child = doc->createElement("Section");
     child.setAttribute("name", section->text(1));
     parent->appendChild(child);
 
-    QDomComment comment = doc->createComment(QString("End: %1").arg(section->text(1)));
+    auto comment = doc->createComment(QString("End: %1").arg(section->text(1)));
     parent->appendChild(comment);
 
-    for(int i = 0;i < section->childCount();++i)
+    for(auto i = 0;i < section->childCount();++i)
     {
-        Item* item = section->child(i);
+        auto item = section->child(i);
         if(!item->text(0).compare("Section"))
             write_section(item, &child, doc);
         else if(!item->text(0).compare("Array"))
@@ -752,16 +752,16 @@ void SettingsXML::write_section(Item* section, QDomNode* parent, QDomDocument* d
 
 void SettingsXML::write_array(Item* array, QDomNode* parent, QDomDocument* doc)
 {
-    QDomElement child_array = doc->createElement("Array");
+    auto child_array = doc->createElement("Array");
     child_array.setAttribute("name", array->text(1));
     parent->appendChild(child_array);
 
-    QDomComment comment = doc->createComment(QString("End: %1").arg(array->text(1)));
+    auto comment = doc->createComment(QString("End: %1").arg(array->text(1)));
     parent->appendChild(comment);
 
-    for(int i = 0;i < array->childCount();++i)
+    for(auto i = 0;i < array->childCount();++i)
     {
-        Item* item = array->child(i);
+        auto item = array->child(i);
         if(!item->text(0).compare("Array"))
             write_array(item, &child_array, doc);
         else if(!item->text(0).compare("Element"))
@@ -775,13 +775,13 @@ void SettingsXML::write_array(Item* array, QDomNode* parent, QDomDocument* doc)
 
 void SettingsXML::write_element(Item* element, QDomNode* parent, QDomDocument* doc)
 {
-    QDomElement child = doc->createElement("Element");
+    auto child = doc->createElement("Element");
     child.setAttribute("name", element->text(1));
     parent->appendChild(child);
 
-    for(int i = 0;i < element->childCount();++i)
+    for(auto i = 0;i < element->childCount();++i)
     {
-        Item* item = element->child(i);
+        auto item = element->child(i);
         if(!item->text(0).compare("Item"))
             write_item(item, &child, doc);
         else
@@ -793,9 +793,9 @@ void SettingsXML::write_element(Item* element, QDomNode* parent, QDomDocument* d
 
 void SettingsXML::write_item(Item* item, QDomNode* parent, QDomDocument* doc)
 {
-    QDomElement child = doc->createElement("Item");
+    auto child = doc->createElement("Item");
     child.setAttribute("name", item->text(1));
-    QString type = item->text(2);
+    auto type = item->text(2);
     child.setAttribute("type", type);
 
     if(!type.compare("stringlist"))
@@ -804,18 +804,18 @@ void SettingsXML::write_item(Item* item, QDomNode* parent, QDomDocument* doc)
         // in the list.  that way, we don't have to guard against
         // strings containing the separate character.
 
-        QStringList data = item->data(0, Qt::UserRole).toStringList();
-        foreach(const QString& str, data)
+        auto data = item->data(0, Qt::UserRole).toStringList();
+        foreach(const auto& str, data)
         {
-            QDomElement element = doc->createElement("Element");
-            QDomCDATASection element_text = doc->createCDATASection(str);
+            auto element = doc->createElement("Element");
+            auto element_text = doc->createCDATASection(str);
             element.appendChild(element_text);
             child.appendChild(element);
         }
 
         parent->appendChild(child);
 
-        QDomComment comment = doc->createComment(QString("End: %1").arg(item->text(1)));
+        auto comment = doc->createComment(QString("End: %1").arg(item->text(1)));
         parent->appendChild(comment);
     }
     else
@@ -826,7 +826,7 @@ void SettingsXML::write_item(Item* item, QDomNode* parent, QDomDocument* doc)
         else
             data = item->data(0, Qt::UserRole).toString();
 
-        QDomCDATASection child_text = doc->createCDATASection(data);
+        auto child_text = doc->createCDATASection(data);
         child.appendChild(child_text);
         parent->appendChild(child);
     }

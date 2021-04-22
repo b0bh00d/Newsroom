@@ -8,15 +8,13 @@ Producer::Producer(ChyronPointer chyron,
                    StoryInfoPointer story_info,
                    StyleListPointer style_list,
                    QObject *parent)
-    : chyron(chyron),
+    : QObject(parent),
       reporter(reporter),
-      covering_story(false),
-      story_shelved(false),
+      chyron(chyron),
       story_info(story_info),
-      style_list(style_list),
-      QObject(parent)
+      style_list(style_list)
 {
-    IReporter2* reporter_draw = dynamic_cast<IReporter2*>(reporter.data());
+    auto reporter_draw = dynamic_cast<IReporter2*>(reporter.data());
     if(reporter_draw && reporter_draw->UseReporterDraw())
         connect(chyron.data(), &Chyron::signal_headline_going_out_of_scope, this, &Producer::slot_headline_going_out_of_scope);
 }
@@ -99,16 +97,16 @@ void Producer::file_headline(const QString& data)
 {
     // check for keyword triggers, and select the stylesheet appropriately
 
-    QString lower_headline = data.toLower();
+    auto lower_headline = data.toLower();
 
     QString stylesheet, default_stylesheet;
-    foreach(const HeadlineStyle& style, (*style_list.data()))
+    foreach(const auto& style, (*style_list.data()))
     {
         if(!style.name.compare("Default"))
             default_stylesheet = style.stylesheet;
         else if(stylesheet.isEmpty())
         {
-            foreach(const QString& trigger, style.triggers)
+            foreach(const auto& trigger, style.triggers)
             {
                 if(lower_headline.contains(trigger.toLower()))
                 {
@@ -123,14 +121,15 @@ void Producer::file_headline(const QString& data)
         stylesheet = default_stylesheet;    // set to Default
 
     // file a headline with the new content
-    int w, h;
+    auto w{0};
+    auto h{0};
     story_info->get_dimensions(w, h);
     HeadlineGenerator generator(w, h, story_info, data);
-    HeadlinePointer headline = generator.get_headline();
+    auto headline = generator.get_headline();
 
     headline->set_stylesheet(stylesheet);
 
-    IReporter2* reporter_draw = dynamic_cast<IReporter2*>(reporter.data());
+    auto reporter_draw = dynamic_cast<IReporter2*>(reporter.data());
     if(reporter_draw && reporter_draw->UseReporterDraw())
     {
         headline->set_reporter_draw(true);
@@ -147,7 +146,7 @@ void Producer::file_headline(const QString& data)
 
 void Producer::slot_headline_going_out_of_scope(HeadlinePointer headline)
 {
-    foreach(HeadlinePointer hp, headlines)
+    foreach(auto hp, headlines)
     {
         if(hp.data() == headline.data())
         {
@@ -178,7 +177,7 @@ void Producer::slot_new_data(const QByteArray& data)
         return;
     }
 
-    bool has_breaks = data.contains("<br>");
+    auto has_breaks = data.contains("<br>");
 
     QStringList lines;
     if(has_breaks)
@@ -187,8 +186,8 @@ void Producer::slot_new_data(const QByteArray& data)
         lines = QString(data).split('\n');
 
     QString new_line;
-    int current_limit = 0;
-    foreach(const QString& line, lines)
+    auto current_limit{0};
+    foreach(const auto& line, lines)
     {
         if(new_line.length())
         {

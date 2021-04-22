@@ -4,11 +4,9 @@
 #define ASSERT_UNUSED(cond) Q_ASSERT(cond); Q_UNUSED(cond)
 
 TransmissionPoller::TransmissionPoller(const QUrl& target, int timeout, QObject *parent)
-    : target(target),
-      QNAM(nullptr),
-      poll_timer(nullptr),
-      poll_timeout(timeout),
-      QObject(parent)
+    : QObject(parent),
+      target(target),
+      poll_timeout(timeout)
 {
     QNAM = new QNetworkAccessManager(this);
 
@@ -51,7 +49,7 @@ TransmissionPoller::~TransmissionPoller()
 void TransmissionPoller::add_interest(int slot, QObject* me, int flags)
 {
     // make sure it's a Transmission instance
-    Transmission* transmission = dynamic_cast<Transmission*>(me);
+    auto transmission = dynamic_cast<Transmission*>(me);
     if(!transmission)
         return;
 
@@ -80,10 +78,9 @@ void TransmissionPoller::notify_interested_parties(int slot, const QString& mess
     if(slot == -1)
     {
         // notify them all
-        InterestedList::iterator iter;
-        for(iter = interested_parties.begin();iter != interested_parties.end();++iter)
+        for(auto iter = interested_parties.begin();iter != interested_parties.end();++iter)
         {
-            Transmission* transmission = dynamic_cast<Transmission*>(iter->party);
+            auto transmission = dynamic_cast<Transmission*>(iter->party);
             if(!transmission)
                 continue;
             transmission->error(message);
@@ -95,10 +92,10 @@ void TransmissionPoller::notify_interested_parties(int slot, const QString& mess
     if(interested_parties.length() < slot)
         return;
 
-    InterestData& data = interested_parties[slot-1];
+    auto& data = interested_parties[slot-1];
     if(data.party)
     {
-        Transmission* transmission = dynamic_cast<Transmission*>(data.party);
+        auto transmission = dynamic_cast<Transmission*>(data.party);
         if(transmission)
             transmission->error(message);
     }
@@ -109,10 +106,10 @@ void TransmissionPoller::notify_interested_parties(int slot, const QJsonObject& 
     if(interested_parties.length() < slot)
         return;
 
-    InterestData& data = interested_parties[slot-1];
+    auto& data = interested_parties[slot-1];
     if(data.party)
     {
-        Transmission* transmission = dynamic_cast<Transmission*>(data.party);
+        auto transmission = dynamic_cast<Transmission*>(data.party);
         if(transmission)
         {
             transmission->status(status, maxratio);
@@ -123,10 +120,7 @@ void TransmissionPoller::notify_interested_parties(int slot, const QJsonObject& 
 
 void TransmissionPoller::enqueue_request(const QString& url_str, ReplyStates state, const QStringList& request_data, Priorities priority)
 {
-    RequestData rd;
-    rd.url = url_str;
-    rd.state = state;
-    rd.data = request_data;
+    RequestData rd{state, url_str, request_data};
     if(priority == Priorities::BackOfQueue)
         requests.push_back(rd);
     else
@@ -149,14 +143,14 @@ void TransmissionPoller::create_request(const QString& url_str, ReplyStates stat
     request.setRawHeader(QByteArray("Content-type"), QByteArray("application/json"));
     request.setRawHeader(QByteArray("Accept"), QByteArray("application/json"));
 
-    QNetworkReply* reply = QNAM->get(request);
-    bool connected = connect(reply, &QNetworkReply::readyRead, this, &TransmissionPoller::slot_get_read);
-    ASSERT_UNUSED(connected);
+    auto reply = QNAM->get(request);
+    auto connected = connect(reply, &QNetworkReply::readyRead, this, &TransmissionPoller::slot_get_read);
+    ASSERT_UNUSED(connected)
     connected = connect(reply, &QNetworkReply::finished, this, &TransmissionPoller::slot_get_complete);
-    ASSERT_UNUSED(connected);
+    ASSERT_UNUSED(connected)
     connected = connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error),
                         this, &TransmissionPoller::slot_get_failed);
-    ASSERT_UNUSED(connected);
+    ASSERT_UNUSED(connected)
 
     ReplyData reply_data;
     reply_data.state = state;
@@ -170,14 +164,14 @@ void TransmissionPoller::create_request(const QString& url_str, ReplyStates stat
 
 void TransmissionPoller::process_reply(QNetworkReply *reply)
 {
-    ReplyData& data = active_replies[reply];
+    auto& data = active_replies[reply];
     if(data.state == ReplyStates::GettingStatus)
     {
         QJsonParseError error;
-        QJsonDocument d = QJsonDocument::fromJson(data.buffer, &error);
+        auto d = QJsonDocument::fromJson(data.buffer, &error);
         if(error.error == QJsonParseError::NoError)
         {
-            QJsonObject sett2 = d.object();
+            auto sett2 = d.object();
             if(!sett2.isEmpty())
                 process_client_status(sett2, data.data);
         }
@@ -232,20 +226,19 @@ void TransmissionPoller::process_client_status(const QJsonObject& status, const 
         notify_interested_parties(-1, status["data"].toString());
     else if(!status["type"].toString().compare("status"))
     {
-        InterestedList::iterator iter;
-        for(iter = interested_parties.begin();iter != interested_parties.end();++iter)
+        for(auto iter = interested_parties.begin();iter != interested_parties.end();++iter)
             iter->notified = false;
 
-        int count = status["count"].toInt();
-        float maxratio = 0.0f;
+        auto count = status["count"].toInt();
+        auto maxratio{0.0f};
         if(status.contains("maxratio"))
-            maxratio = (float)status["maxratio"].toDouble();
-        QJsonArray slots_ = status["slots"].toArray();
+            maxratio = static_cast<float>(status["maxratio"].toDouble());
+        auto slots_ = status["slots"].toArray();
 
-        int slot_no = 1;
-        for(int i = 0;i < count;++i)
+        auto slot_no{1};
+        for(auto i = 0;i < count;++i)
         {
-            QJsonObject slot = slots_.at(i).toObject();
+            auto slot = slots_.at(i).toObject();
 
             QJsonValue value(slot_no);
             slot.insert("slot", value);
@@ -253,7 +246,7 @@ void TransmissionPoller::process_client_status(const QJsonObject& status, const 
             notify_interested_parties(slot_no++, slot, maxratio);
         }
 
-        for(iter = interested_parties.begin();iter != interested_parties.end();++iter)
+        for(auto iter = interested_parties.begin();iter != interested_parties.end();++iter)
         {
             if(!iter->notified && iter->party)
             {
@@ -267,20 +260,20 @@ void TransmissionPoller::process_client_status(const QJsonObject& status, const 
 
 void TransmissionPoller::slot_get_read()
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if(reply)
     {
-        ReplyData& data = active_replies[reply];
+        auto& data = active_replies[reply];
         data.buffer += reply->readAll();
     }
 }
 
 void TransmissionPoller::slot_get_complete()
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if(reply && reply->error() == QNetworkReply::NoError)
     {
-        ReplyData& data = active_replies[reply];
+        auto& data = active_replies[reply];
         data.buffer += reply->readAll();
         process_reply(reply);
     }
@@ -297,7 +290,7 @@ void TransmissionPoller::slot_get_complete()
 
 void TransmissionPoller::slot_get_failed(QNetworkReply::NetworkError code)
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if(!active_replies.contains(reply))
         return;
 
@@ -319,7 +312,7 @@ void TransmissionPoller::slot_request_pump()
 
     if(requests.count())
     {
-        RequestData rd = requests.front();
+        auto rd = requests.front();
         requests.pop_front();
         create_request(rd.url, rd.state, rd.data);
     }

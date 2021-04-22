@@ -114,36 +114,36 @@ protected:  // methods
      */
 
 protected:  // data members
-    bool                stay_visible;
-    bool                was_stay_visible;
-    bool                mouse_in_widget;
-    bool                is_zoomed;
-    int                 margin;
+    bool                stay_visible{false};
+    bool                was_stay_visible{false};
+    bool                mouse_in_widget{false};
+    bool                is_zoomed{false};
+    int                 margin{5};
     StoryInfoPointer    story_info;
     QString             headline;
     QFont               font;
     QString             stylesheet;
 
-    bool                shrink_text_to_fit;
-    bool                compact_mode;
-    bool                reporter_draw;
-    int                 original_w;
-    int                 original_h;
+    bool                shrink_text_to_fit{false};
+    bool                compact_mode{false};
+    bool                reporter_draw{false};
+    int                 original_w{0};
+    int                 original_h{0};
 
-    bool                ignore;     // Chyron
-    uint                viewed;     // Chyron
-    AnimationPointer    animation;  // Chyron
+    bool                ignore{false};  // Chyron
+    uint                viewed{0};      // Chyron
+    AnimationPointer    animation;      // Chyron
 
     QLabel*             label;
 
-    bool                include_progress_bar;
+    bool                include_progress_bar{false};
     QString             progress_text_re;
-    bool                progress_on_top;
+    bool                progress_on_top{false};
 
     QRect               starting_geometry, target_geometry;
-    QTimer*             hover_timer;
+    QTimer*             hover_timer{nullptr};
 
-    qreal               old_opacity;
+    qreal               old_opacity{1.0};
 
     // in the '!stay_visible' case, because of the way the nativeEvent()
     // function works, a new window will end up displaying BENEATH the
@@ -154,7 +154,7 @@ protected:  // data members
     // function will use it to place the new window precisely at the top
     // of the Dashboard Z-order.
 
-    QWidget*            bottom_window;  // Chyron
+    QWidget*            bottom_window{nullptr}; // Chyron
 
     friend class Chyron;        // manages the Headline's life cycle and appearance
     friend class Dashboard;     // needs to access initialize() for its Dashboard Headline banner
@@ -169,7 +169,7 @@ public:
                               Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
                               bool configure_for_left = true,
                               QWidget *parent = nullptr);
-    ~PortraitHeadline();
+    ~PortraitHeadline() override;
 
     /*!
       By definition, the PortraitHeadline has a width that is smaller than its
@@ -190,10 +190,10 @@ protected:      // methods
     QSize   sizeHint() const Q_DECL_OVERRIDE;
     QSize   minimumSizeHint() const Q_DECL_OVERRIDE;
 
-    virtual void initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron, LaneManager
+    void initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0) override; // Chyron, LaneManager
 
 protected:      // data members
-    bool    configure_for_left;
+    bool    configure_for_left{false};
 };
 
 class LandscapeHeadline : public Headline
@@ -204,7 +204,7 @@ public:
                                const QString& headline,
                                Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter,
                                QWidget *parent = nullptr);
-    ~LandscapeHeadline();
+    ~LandscapeHeadline() override;
 
 protected:      // methods
     void    changeEvent(QEvent* event) Q_DECL_OVERRIDE;
@@ -212,7 +212,7 @@ protected:      // methods
     QSize   sizeHint() const  Q_DECL_OVERRIDE;
     QSize   minimumSizeHint() const  Q_DECL_OVERRIDE;
 
-    void initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0);      // Chyron, LaneManager
+    void initialize(bool stay_visible, FixedText fixed_text = FixedText::None, int width = 0, int height = 0) override; // Chyron, LaneManager
 
     /*!
       We override the Headline 'zoom' hooks so we can turn off progress detection
@@ -220,10 +220,10 @@ protected:      // methods
       is complete.  This provides for a cleaner looking animation.
      @{
      */
-    void prepare_to_zoom_in();
-    void zoomed_in();
-    void prepare_to_zoom_out();
-    void zoomed_out();
+    void prepare_to_zoom_in() override;
+    void zoomed_in() override;
+    void prepare_to_zoom_out() override;
+    void zoomed_out() override;
     /*!
       @}
      */
@@ -245,14 +245,15 @@ protected:      // methods
     void    enable_progress_detection(const QString& re, bool on_top);
 
 protected:      // data members
-    bool    detect_progress, old_detect_progress;
+    bool    detect_progress{false};
+    bool    old_detect_progress{false};
     QString progress_re;
-    bool    progress_on_top;
+//    bool    progress_on_top;
 
-    int     progress_x;
-    int     progress_y;
-    int     progress_w;
-    int     progress_h;
+    int     progress_x{0};
+    int     progress_y{0};
+    int     progress_w{0};
+    int     progress_h{0};
 
     QColor  progress_color, progress_highlight;
 };

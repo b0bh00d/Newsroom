@@ -12,12 +12,12 @@
 // We're building with Qt -- Use Qt-specific container types
 #include <QVector>
 #define SPECIALIZE_VECTOR(type, name) \
-    typedef QVector<type>   name##Vector; \
+    using name##Vector = QVector<type>; \
     SPECIALIZE_ITER(name##Vector)
 
 #include <QMap>
 #define SPECIALIZE_MAP(key, value, name) \
-    typedef QMap<key, value>   name##Map; \
+    using name##Map = QMap<key, value>; \
     SPECIALIZE_ITER(name##Map)
 
 #define map_key(iter)    iter.key()
@@ -25,39 +25,39 @@
 
 #include <QList>
 #define SPECIALIZE_LIST(type, name) \
-    typedef QList<type>   name##List; \
+    using name##List = QList<type>; \
     SPECIALIZE_ITER(name##List)
 
 #include <QSharedPointer>
 #define SPECIALIZE_SHAREDPTR(type, name) \
-    typedef QSharedPointer<type>   name##Pointer;
+    using name##Pointer = QSharedPointer<type>;
 
 #include <QWeakPointer>
 #define SPECIALIZE_WEAKPTR(type, name) \
-    typedef QWeakPointer<type>   name##WeakPointer;
+    using name##WeakPointer = QWeakPointer<type>;
 
 #include <QQueue>
 #define SPECIALIZE_QUEUE(type, name) \
-    typedef QQueue<type>   name##Queue;
+    using name##Queue = QQueue<type>;
 
 #include <QPair>
 #define SPECIALIZE_PAIR(type1, type2, name) \
-    typedef QPair<type1, type2>   name##Pair;
+    using name##Pair = QPair<type1, type2>;
 
 #include <QSet>
 #define SPECIALIZE_SET(type, name) \
-    typedef QSet<type>   name##Set;
+    using name##Set = QSet<type>;
 
 #else   // Using STL
 
 #include <vector>
 #define SPECIALIZE_VECTOR(type, name) \
-    typedef std::vector<type>   name##Vector; \
+    using name##Vector = std::vector<type>; \
     SPECIALIZE_ITER(name##Vector)
 
 #include <map>
 #define SPECIALIZE_MAP(key, value, name) \
-    typedef std::map<key, value>   name##Map; \
+    using name##Map = std::map<key, value>; \
     SPECIALIZE_ITER(name##Map)
 
 #define map_key(iter)    iter->first
@@ -65,27 +65,27 @@
 
 #include <list>
 #define SPECIALIZE_LIST(type, name) \
-    typedef std::list<type>   name##List; \
+    using name##List = std::list<type>; \
     SPECIALIZE_ITER(name##List)
 
 #include <memory>
 #define SPECIALIZE_SHAREDPTR(type, name) \
-    typedef std::shared_ptr<type>   name##Pointer;
+    using name##Pointer = std::shared_ptr<type>;
 
 #define SPECIALIZE_WEAKPTR(type, name) \
-    typedef std::weak_ptr<type>   name##WeakPointer;
+    using name##WeakPointer = std::weak_ptr<type>;
 
 #include <queue>
 #define SPECIALIZE_QUEUE(type, name) \
-    typedef std::queue<type>   name##Queue;
+    using name##Queue = std::queue<type>;
 
 #include <set>
 #define SPECIALIZE_SET(type, name) \
-    typedef std::set<type>   name##Set;
+    using name##Set = std::set<type>;
 
 #include <utility>
 #define SPECIALIZE_PAIR(type1, type2, name) \
-    typedef std::pair<type1, type2>   name##Pair;
+    using name##Pair = std::pair<type1, type2>;
 
 #endif  // QT_VERSION
 

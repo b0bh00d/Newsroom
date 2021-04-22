@@ -17,7 +17,7 @@ class LaneManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit LaneManager(const QFont& font, const QString& stylesheet, QObject *parent = 0);
+    explicit LaneManager(const QFont& font, const QString& stylesheet, QObject *parent = nullptr);
     ~LaneManager();
 
     void    subscribe(Chyron* chyron);
@@ -26,7 +26,7 @@ public:
 
     void    anim_queue(Chyron *chyron, QAbstractAnimation* anim);
     void    anim_clear(Chyron* chyron);
-    bool    anim_in_progress();
+    bool    anim_in_progress() const;
 
     const QRect&  get_base_lane_position(Chyron* chyron);
     QRect&  get_lane_boundaries(Chyron* chyron);
@@ -55,7 +55,7 @@ private:    // datamembers
     QFont           headline_font;
     QString         headline_stylesheet;
 
-    int             animation_count;
+    int             animation_count{0};
 };
 
 SPECIALIZE_SHAREDPTR(LaneManager, LaneManager)      // "LaneManagerPointer"

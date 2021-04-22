@@ -55,7 +55,6 @@ public:
     // Reporter-drawn Headline needs to be highlighted by adjusting its opacity.
     void        highlight_headline(HeadlinePointer hl, qreal opacity, int timeout);
 
-
 signals:
     void        signal_headline_going_out_of_scope(HeadlinePointer headline);
 
@@ -89,7 +88,7 @@ protected:  // methods
 protected:  // data members
     StoryInfoPointer story_info;
 
-    QTimer*         age_timer;
+    QTimer*         age_timer{nullptr};
 
     TransitionQueue incoming_headlines;
     HeadlineList    headline_list;
@@ -104,10 +103,10 @@ protected:  // data members
     OpacityMap      opacity_map;
 
 #ifdef HIGHLIGHT_LANES
-    HighlightWidget*    highlight;
+    HighlightWidget*    highlight{nullptr};
 #endif
 
-    bool            visible;
-    bool            suspended;
+    bool            visible{true};
+    bool            suspended{false};
 };
 SPECIALIZE_SHAREDPTR(Chyron, Chyron)        // "ChyronPointer"

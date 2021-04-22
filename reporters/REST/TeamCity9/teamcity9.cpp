@@ -8,10 +8,7 @@
 TeamCity9::PollerMap TeamCity9::poller_map;
 
 TeamCity9::TeamCity9(QObject *parent)
-    : poll_timeout(60),
-      last_changes_count(0),
-      check_for_changes(true),
-      IReporter(parent)
+    : IReporter(parent)
 {
     report_template << "Project \"<b>${PROJECT_NAME}</b>\" :: Builder \"<b>${BUILDER_NAME}</b>\" :: Build #<b>${BUILD_NUMBER}</b>";
     report_template << "State: ${STATE}";
@@ -44,7 +41,7 @@ float TeamCity9::Supports(const QUrl& entity) const
 
     // ensure they aren't handing us an incorrect path...
 
-    QString entity_str = entity.toString().toLower();
+    auto entity_str = entity.toString().toLower();
     if(entity_str.endsWith(".htm") || entity_str.endsWith(".html"))
         return 0.0f;
 
@@ -182,14 +179,14 @@ bool TeamCity9::CoverStory()
     // signals and slots at runtime--we can't construct signals/slots for
     // specific project/builder combinations.
 
-    int flags = 0;
+    auto flags{0};
     if(check_for_changes)
         flags |= Interest::PendingChanges;
 
     poller->add_interest(project_name, builder_name, this, flags);
 
     // do an initial "idle" Headline
-    QString status = QString("Project \"<b>%1</b>\"").arg(project_name);
+    auto status = QString("Project \"<b>%1</b>\"").arg(project_name);
     if(!builder_name.isEmpty())
         status += QString(" :: Builder \"<b>%1</b>\"").arg(builder_name);
     status += "<br>State: idle";
@@ -242,7 +239,7 @@ void TeamCity9::build_pending(const QJsonObject& status)
         last_changes_count = status["count"].toInt();
 
         // use the initial Headline format, and add 'Changes:'
-        QString status_str = QString("Project \"<b>%1</b>\"").arg(project_name);
+        auto status_str = QString("Project \"<b>%1</b>\"").arg(project_name);
         if(!builder_name.isEmpty())
             status_str += QString(" :: Builder \"<b>%1</b>\"").arg(builder_name);
         status_str += "<br>State: idle";
@@ -257,11 +254,11 @@ void TeamCity9::build_started(const QJsonObject& status)
 
     last_changes_count = 0;
 
-    int build_id = status["id"].toInt();
+    auto build_id = status["id"].toInt();
 
-    uint now = QDateTime::currentDateTime().toTime_t();
+    auto now = QDateTime::currentDateTime().toTime_t();
 
-    int complete = 0;
+    auto complete{0};
     if(status.contains("percentageComplete"))
         complete = status["percentageComplete"].toInt();
 
@@ -277,23 +274,23 @@ void TeamCity9::build_started(const QJsonObject& status)
 
     ReportMap report_map;
     populate_report_map(report_map, status, builder_name);
-    QString status_str = render_report(report_map);
+    auto status_str = render_report(report_map);
 
     emit signal_new_data(status_str.toUtf8());
 }
 
 void TeamCity9::build_progress(const QJsonObject& status)
 {
-    int build_id = status["id"].toInt();
+    auto build_id = status["id"].toInt();
 
-    uint now = QDateTime::currentDateTime().toTime_t();
+    auto now = QDateTime::currentDateTime().toTime_t();
 
-    bool send_update = false;
+    auto send_update{false};
 
-    QJsonObject cached_json = build_status[build_id];
+    auto cached_json = build_status[build_id];
     send_update = (cached_json != status);
 
-    int complete = 0;
+    auto complete{0};
     if(status.contains("percentageComplete"))
         complete = status["percentageComplete"].toInt();
 
@@ -307,23 +304,23 @@ void TeamCity9::build_progress(const QJsonObject& status)
     // after a few updates, calculate an eta
 
     QString eta_str;
-    uint completed_delta = complete - eta[build_id].initial_completed;
+    auto completed_delta = complete - eta[build_id].initial_completed;
     if(completed_delta > 5)
     {
         // how much clock time has passed since we started monitoring?
-        uint time_delta = now - eta[build_id].start;
-        uint average_per_point = time_delta / completed_delta;
-        uint percent_left = 100 - complete;
-        uint time_left = percent_left * average_per_point;
-        QDateTime target = QDateTime::currentDateTime();
+        auto time_delta = now - eta[build_id].start;
+        auto average_per_point = time_delta / static_cast<unsigned int>(completed_delta);
+        auto percent_left = 100 - complete;
+        auto time_left = static_cast<unsigned int>(percent_left) * average_per_point;
+        auto target = QDateTime::currentDateTime();
         eta_str = target.addSecs(time_left).toString("h:mm ap");
 
         // check for hung build if no progress after 5 minutes
 
-        QJsonObject running_info = status["running_info"].toObject();
+        auto running_info = status["running_info"].toObject();
         if(running_info.contains("probablyHanging"))
         {
-            bool hanging = running_info["probablyHanging"].toBool();
+            auto hanging = running_info["probablyHanging"].toBool();
             if(hanging)
             {
                 eta_str = QString("%1 (possibly hung)").arg(eta_str);
@@ -338,7 +335,7 @@ void TeamCity9::build_progress(const QJsonObject& status)
 
         ReportMap report_map;
         populate_report_map(report_map, status, builder_name, eta_str);
-        QString status_str = render_report(report_map);
+        auto status_str = render_report(report_map);
 
         emit signal_new_data(status_str.toUtf8());
     }
@@ -346,7 +343,7 @@ void TeamCity9::build_progress(const QJsonObject& status)
 
 void TeamCity9::build_final(const QJsonObject& status)
 {
-    int build_id = status["id"].toInt();
+    auto build_id = status["id"].toInt();
 
     if(build_status.contains(build_id))
         build_status.remove(build_id);
@@ -357,24 +354,24 @@ void TeamCity9::build_final(const QJsonObject& status)
 
     // convert the odd TeamCity timestamp to an ISO 8601
     // format so QDateTime can grok it...
-    QString iso_8601 = status["finishDate"].toString();
+    auto iso_8601 = status["finishDate"].toString();
     iso_8601.insert(18, ':');
     iso_8601.insert(13, ':');
     iso_8601.insert(11, ':');
     iso_8601.insert(6, '-');
     iso_8601.insert(4, '-');
-    QDateTime finish_timestamp = QDateTime::fromString(iso_8601, Qt::ISODate).toLocalTime();
+    auto finish_timestamp = QDateTime::fromString(iso_8601, Qt::ISODate).toLocalTime();
     report_map["COMPLETED"] = QString("100% @ %1").arg(finish_timestamp.toString("h:mm ap"));
 
     populate_report_map(report_map, status, builder_name);
-    QString report = render_report(report_map);
+    auto report = render_report(report_map);
 
     emit signal_new_data(report.toUtf8());
 }
 
-void TeamCity9::error(const QString& error_message)
+void TeamCity9::error(const QString& error_message_)
 {
-    emit signal_new_data(error_message.toUtf8());
+    emit signal_new_data(error_message_.toUtf8());
 }
 
 void TeamCity9::populate_report_map(ReportMap& report_map,
@@ -391,7 +388,7 @@ void TeamCity9::populate_report_map(ReportMap& report_map,
         report_map["BUILDER_NAME"] = build["name"].toString();
     else if(build.contains("buildType"))
     {
-        QJsonObject build_type = build["buildType"].toObject();
+        auto build_type = build["buildType"].toObject();
         if(build_type.contains("name"))
             report_map["BUILDER_NAME"] = build_type["name"].toString();
     }
@@ -419,21 +416,21 @@ void TeamCity9::populate_report_map(ReportMap& report_map,
     report_map["AGENT"] = "";
     if(build.contains("agent"))
     {
-        QJsonObject agent = build["agent"].toObject();
+        auto agent = build["agent"].toObject();
         report_map["AGENT"] = agent["name"].toString();
     }
 
     if(build.contains("properties"))
     {
-        QJsonObject properties = build["properties"].toObject();
-        int count = properties["count"].toInt();
+        auto properties = build["properties"].toObject();
+        auto count = properties["count"].toInt();
         if(count)
         {
-            QJsonArray properties_array = properties["property"].toArray();
-            for(int i = 0;i < count;++i)
+            auto properties_array = properties["property"].toArray();
+            for(auto i = 0;i < count;++i)
             {
-                QJsonObject property = properties_array.at(i).toObject();
-                QString property_id = QString("PROPERTY_%1").arg(property["name"].toString().toUpper());
+                auto property = properties_array.at(i).toObject();
+                auto property_id = QString("PROPERTY_%1").arg(property["name"].toString().toUpper());
                 report_map[property_id] = property["value"].toString();
             }
         }
@@ -442,10 +439,10 @@ void TeamCity9::populate_report_map(ReportMap& report_map,
 
 QString TeamCity9::render_report(const ReportMap& report_map)
 {
-    QString report = report_template.join("<br>");
+    auto report = report_template.join("<br>");
     foreach(const QString& key, report_map.keys())
     {
-        QString token = QString("${%1}").arg(key);
+        auto token = QString("${%1}").arg(key);
         report.replace(token, report_map[key]);
     }
 
@@ -454,7 +451,7 @@ QString TeamCity9::render_report(const ReportMap& report_map)
 
 QString TeamCity9::capitalize(const QString& str)
 {
-    QString tmp = str.toLower();
+    auto tmp = str.toLower();
     tmp[0] = str[0].toUpper();
     return tmp;
 }
